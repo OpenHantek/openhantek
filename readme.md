@@ -18,7 +18,7 @@ You need the following packages, to build OpenHantek from source:
 * libusb 1.x
 
 For debian based systems (Ubuntu, Mint) install named requirements like this:
-> apt-get install cmake qttools5-dev-tools libfftw3-dev
+> apt-get install cmake qttools5-dev-tools libfftw3-dev libusb-1.0-0-dev
 
 For rpm based distributions (Fedora) use this command:
 > dnf install cmake qt5-qtbase-gui qt5-qttools-devel qt5-qttranslations fftw-devel libusbx-devel
