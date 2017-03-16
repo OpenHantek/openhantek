@@ -351,6 +351,9 @@ namespace Hantek {
 			else {
 				// Normal mode, channels are using their separate buffers
 				sampleCount = totalSampleCount / HANTEK_CHANNELS;
+				// if device is 6022BE, drop first 1000 samples
+				if (this->device->getModel() == MODEL_DSO6022BE)
+					sampleCount -= 1000;
 				for(int channel = 0; channel < HANTEK_CHANNELS; ++channel) {
 					if(this->settings.voltage[channel].used) {
 						// Resize sample vector
@@ -372,8 +375,11 @@ namespace Hantek {
 							}
 						}
 						else {
-							if (this->device->getModel() == MODEL_DSO6022BE)
+							if (this->device->getModel() == MODEL_DSO6022BE) {
 								bufferPosition += channel;
+						        // if device is 6022BE, offset 1000 incrementally
+								bufferPosition += 1000 * 2;
+							}
 							else
 								bufferPosition += HANTEK_CHANNELS - 1 - channel;
 
@@ -948,8 +954,8 @@ namespace Hantek {
 					this->specification.voltageLimit[channel]
 					<<   25 <<   51 <<  103 <<  206 <<  412 << 196 <<  392 <<   784 << 1000;
 				// Divider. Tested and calculated results are different!
-				//this->specification.gainDiv
-				//	<<   10 <<   10 <<   10 <<   10 <<   10 <<   2 <<    2 <<    2 <<    1;
+				this->specification.gainDiv
+					<<   10 <<   10 <<   10 <<   10 <<   10 <<   2 <<    2 <<    2 <<    1;
 				this->specification.sampleSize = 8;
 				break;
 
@@ -1161,8 +1167,10 @@ namespace Hantek {
 	//		Dso::ERROR_NONE;
 
 		// SetRelays control command for coupling relays
-		static_cast<ControlSetRelays *>(this->control[CONTROLINDEX_SETRELAYS])->setCoupling(channel, coupling != Dso::COUPLING_AC);
-		this->controlPending[CONTROLINDEX_SETRELAYS] = true;
+		if (this->device->getModel() != MODEL_DSO6022BE) {
+			static_cast<ControlSetRelays *>(this->control[CONTROLINDEX_SETRELAYS])->setCoupling(channel, coupling != Dso::COUPLING_AC);
+			this->controlPending[CONTROLINDEX_SETRELAYS] = true;
+		}
 		
 		return Dso::ERROR_NONE;
 	}
@@ -1183,17 +1191,29 @@ namespace Hantek {
 		for(gainId = 0; gainId < this->specification.gainSteps.count() - 1; ++gainId)
 			if(this->specification.gainSteps[gainId] >= gain)
 				break;
+
+		// Fixme, shoulb be some kind of protocol check instead of model check.
+		if (this->device->getModel() == MODEL_DSO6022BE) {
+			if (channel == 0) {
+				static_cast<ControlSetVoltDIV_CH1 *>(this->control[CONTROLINDEX_SETVOLTDIV_CH1])->setDiv(this->specification.gainDiv[gainId]);
+				this->controlPending[CONTROLINDEX_SETVOLTDIV_CH1] = true;
+			} else if (channel == 1) {
+				static_cast<ControlSetVoltDIV_CH2 *>(this->control[CONTROLINDEX_SETVOLTDIV_CH2])->setDiv(this->specification.gainDiv[gainId]);
+				this->controlPending[CONTROLINDEX_SETVOLTDIV_CH2] = true;
+			} else
+				qDebug("%s: Unsuported channel: %i\n", __func__, channel);
+		} else {
+			// SetGain bulk command for gain
+			static_cast<BulkSetGain *>(this->command[BULK_SETGAIN])->setGain(channel, this->specification.gainIndex[gainId]);
+			this->commandPending[BULK_SETGAIN] = true;
 		
-		// SetGain bulk command for gain
-		static_cast<BulkSetGain *>(this->command[BULK_SETGAIN])->setGain(channel, this->specification.gainIndex[gainId]);
-		this->commandPending[BULK_SETGAIN] = true;
-		
-		// SetRelays control command for gain relays
-		ControlSetRelays *controlSetRelays = static_cast<ControlSetRelays *>(this->control[CONTROLINDEX_SETRELAYS]);
-		controlSetRelays->setBelow1V(channel, gainId < 3);
-		controlSetRelays->setBelow100mV(channel, gainId < 6);
-		this->controlPending[CONTROLINDEX_SETRELAYS] = true;
-		
+			// SetRelays control command for gain relays
+			ControlSetRelays *controlSetRelays = static_cast<ControlSetRelays *>(this->control[CONTROLINDEX_SETRELAYS]);
+			controlSetRelays->setBelow1V(channel, gainId < 3);
+			controlSetRelays->setBelow100mV(channel, gainId < 6);
+			this->controlPending[CONTROLINDEX_SETRELAYS] = true;
+		}
+
 		this->settings.voltage[channel].gain = gainId;
 		
 		this->setOffset(channel, this->settings.voltage[channel].offset);
@@ -1220,8 +1240,12 @@ namespace Hantek {
 		double offsetReal = (double) (offsetValue - minimum) / (maximum - minimum);
 		
 		// SetOffset control command for channel offset
-		static_cast<ControlSetOffset *>(this->control[CONTROLINDEX_SETOFFSET])->setChannel(channel, offsetValue);
-		this->controlPending[CONTROLINDEX_SETOFFSET] = true;
+		// Don't set control command if 6022be.
+		// Otherwise, pipe error messages will be appeared.
+		if (this->device->getModel() != MODEL_DSO6022BE) {
+			static_cast<ControlSetOffset *>(this->control[CONTROLINDEX_SETOFFSET])->setChannel(channel, offsetValue);
+			this->controlPending[CONTROLINDEX_SETOFFSET] = true;
+		}
 		
 		this->settings.voltage[channel].offset = offset;
 		this->settings.voltage[channel].offsetReal = offsetReal;
@@ -1237,7 +1261,7 @@ namespace Hantek {
 		if(!this->device->isConnected())
 			return Dso::ERROR_CONNECTION;
 		
-		if(mode < Dso::TRIGGERMODE_AUTO || mode > Dso::TRIGGERMODE_SINGLE)
+		if(mode < Dso::TRIGGERMODE_AUTO || mode > Dso::TRIGGERMODE_SOFTWARE)
 			return Dso::ERROR_PARAMETER;
 		
 		this->settings.trigger.mode = mode;
@@ -1332,7 +1356,8 @@ namespace Hantek {
 		unsigned short int levelValue = qBound((long int) minimum, (long int) ((this->settings.voltage[channel].offsetReal + level / this->specification.gainSteps[this->settings.voltage[channel].gain]) * (maximum - minimum) + 0.5) + minimum, (long int) maximum);
 		
 		// Check if the set channel is the trigger source
-		if(!this->settings.trigger.special && channel == this->settings.trigger.source) {
+		if(!this->settings.trigger.special && channel == this->settings.trigger.source
+			&& this->device->getModel() != MODEL_DSO6022BE) {
 			// SetOffset control command for trigger level
 			static_cast<ControlSetOffset *>(this->control[CONTROLINDEX_SETOFFSET])->setTrigger(levelValue);
 			this->controlPending[CONTROLINDEX_SETOFFSET] = true;
