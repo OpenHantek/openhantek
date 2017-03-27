@@ -49,6 +49,12 @@ Your DSO does not store its firmware permanently -- the firmware has to be sent 
        AnchorChips  EZ-USB, Cypress EZ-USB FX, or Cypress EZ-USB FX2 microcontrollers.)
 * Add your current user to the **plugdev** group.
 
+## For 6022BE
+You can adjust samplerate and use software triggering for 6022BE.
+   - Support 48, 24, 16, 8, 4, 2, 1 M and 500, 200, 100 k Hz samplerates with modded firmware by [jhoenicke](https://github.com/rpcope1/Hantek6022API) 
+   - Support software trigger by detecting rising or falling edge of signal.
+   - Note that I dropped first 1000 samples due to unstable/unusual reading.
+
 ## Contribute
 Please use Github Issues to report any problems or enhancements or send us pull requests. Some random notes:
    - Read [how to properly contribute to open source projects on GitHub][10].
