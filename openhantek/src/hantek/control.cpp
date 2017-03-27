@@ -938,13 +938,13 @@ namespace Hantek {
 				break;
 			
 			case MODEL_DSO6022BE:
-				this->specification.samplerate.single.base = 48e6;
+				this->specification.samplerate.single.base = 1e6;
 				this->specification.samplerate.single.max = 48e6;
-				this->specification.samplerate.single.maxDownsampler = 1;
+				this->specification.samplerate.single.maxDownsampler = 10;
 				this->specification.samplerate.single.recordLengths << UINT_MAX << 10240 << 32768;
-				this->specification.samplerate.multi.base = 48e6;
+				this->specification.samplerate.multi.base = 1e6;
 				this->specification.samplerate.multi.max = 48e6;
-				this->specification.samplerate.multi.maxDownsampler = 1;
+				this->specification.samplerate.multi.maxDownsampler = 10;
 				this->specification.samplerate.multi.recordLengths << UINT_MAX << 20480 << 65536;
 				this->specification.bufferDividers << 1000 << 1 << 1;
 				this->specification.gainSteps
@@ -956,6 +956,10 @@ namespace Hantek {
 				// Divider. Tested and calculated results are different!
 				this->specification.gainDiv
 					<<   10 <<   10 <<   10 <<   10 <<   10 <<   2 <<    2 <<    2 <<    1;
+				this->specification.sampleSteps
+					<< 1e5 << 2e5 << 5e5 << 1e6 << 2e6 << 4e6 << 8e6 << 16e6 << 24e6 << 48e6;
+				this->specification.sampleDiv
+					<< 10  << 20  << 50  << 1   << 2   << 4   << 8   << 16   << 24   << 48;
 				this->specification.sampleSize = 8;
 				break;
 
@@ -999,6 +1003,12 @@ namespace Hantek {
 		if(this->settings.samplerate.limits->recordLengths[this->settings.recordLengthId] != UINT_MAX)
 			emit recordTimeChanged((double) this->settings.samplerate.limits->recordLengths[this->settings.recordLengthId] / this->settings.samplerate.current);
 		emit samplerateChanged(this->settings.samplerate.current);
+
+		if(this->device->getModel() == MODEL_DSO6022BE) {
+			QList<double> sampleSteps;
+			sampleSteps << 1.0 << 2.0 << 5.0 << 10.0 << 20.0 << 40.0 << 80.0 << 160.0 << 240.0 << 480.0;
+			emit samplerateSet(1, sampleSteps);
+		}
 		
 		DsoControl::connectDevice();
 	}
@@ -1035,18 +1045,36 @@ namespace Hantek {
 			this->settings.samplerate.target.samplerateSet = true;
 		}
 		
-		// When possible, enable fast rate if it is required to reach the requested samplerate
-		bool fastRate = (this->settings.usedChannels <= 1) && (samplerate > this->specification.samplerate.single.max / this->specification.bufferDividers[this->settings.recordLengthId]);
-		
-		// What is the nearest, at least as high samplerate the scope can provide?
-		unsigned int downsampler = 0;
-		double bestSamplerate = getBestSamplerate(samplerate, fastRate, false, &(downsampler));
-		
-		// Set the calculated samplerate
-		if(this->updateSamplerate(downsampler, fastRate) == UINT_MAX)
-			return 0.0;
-		else {
-			return bestSamplerate;
+		if (this->device->getModel() != MODEL_DSO6022BE) {
+			// When possible, enable fast rate if it is required to reach the requested samplerate
+			bool fastRate = (this->settings.usedChannels <= 1) && (samplerate > this->specification.samplerate.single.max / this->specification.bufferDividers[this->settings.recordLengthId]);
+			
+			// What is the nearest, at least as high samplerate the scope can provide?
+			unsigned int downsampler = 0;
+			double bestSamplerate = getBestSamplerate(samplerate, fastRate, false, &(downsampler));
+			
+			// Set the calculated samplerate
+			if(this->updateSamplerate(downsampler, fastRate) == UINT_MAX)
+				return 0.0;
+			else {
+				return bestSamplerate;
+			}
+		} else {
+			int sampleId;
+			for(sampleId = 0; sampleId < this->specification.sampleSteps.count() - 1; ++sampleId)
+				if(this->specification.sampleSteps[sampleId] == samplerate)
+					break;
+			this->controlCode[CONTROLINDEX_SETTIMEDIV] = CONTROL_SETTIMEDIV;
+			static_cast<ControlSetTimeDIV *>(this->control[CONTROLINDEX_SETTIMEDIV])->setDiv(this->specification.sampleDiv[sampleId]);
+			this->controlPending[CONTROLINDEX_SETTIMEDIV] = true;
+			this->settings.samplerate.current = samplerate;
+
+			// Check for Roll mode
+			if(this->settings.samplerate.limits->recordLengths[this->settings.recordLengthId] != UINT_MAX)
+				emit recordTimeChanged((double) this->settings.samplerate.limits->recordLengths[this->settings.recordLengthId] / this->settings.samplerate.current);
+			emit samplerateChanged(this->settings.samplerate.current);
+
+			return samplerate;
 		}
 	}
 	
