@@ -20,7 +20,7 @@ You need the following packages, to build OpenHantek from source:
 * libusb 1.x (prebuild files will be downloaded on windows)
 
 For debian based systems (Ubuntu, Mint) install named requirements like this:
-> apt-get install cmake qttools5-dev-tools libfftw3-dev binutils-dev libusb-1.0-0-dev
+> apt-get install cmake qttools5-dev-tools qtbase5-dev libfftw3-dev binutils-dev libusb-1.0-0-dev
 
 For rpm based distributions (Fedora) use this command:
 > dnf install cmake qt5-qtbase-gui qt5-qttools-devel qt5-qttranslations fftw-devel libusbx-devel binutils-devel libusb-1.0-0-devel
@@ -44,10 +44,21 @@ Your DSO does not store its firmware permanently -- the firmware has to be sent 
 
 * You need binutils-dev autoconf automake fxload
 * Install the `firmware/*.hex` files into `/usr/local/share/hantek/`.
+
+> mkdir -p /usr/local/share/hantek <br>
+> cp -r firmware/*.hex /usr/local/share/hantek/
+
 * Install the `firmware/90-hantek.rules` file into `/etc/udev/rules.d/`.
-* install fxload (fxload is a program which downloads firmware to USB  devices  based  on
-       AnchorChips  EZ-USB, Cypress EZ-USB FX, or Cypress EZ-USB FX2 microcontrollers.)
+
+> cp firmware/90-hantek.rules /etc/udev/rules.d/
+
+* install fxload (fxload is a program which downloads firmware to USB  devices  based on AnchorChips EZ-USB, Cypress EZ-USB FX, or Cypress EZ-USB FX2 microcontrollers.)
+
+> apt-get install fxload
+
 * Add your current user to the **plugdev** group.
+
+> usermod -a -G plugdev {user id}
 
 ## For 6022BE
 You can adjust samplerate and use software triggering for 6022BE.
