@@ -87,7 +87,9 @@ void GlGenerator::generateGraphs() {
 	}
 	
 	this->dataAnalyzer->mutex()->lock();
-	
+
+	unsigned int preTrigSamples = 0;
+	unsigned int postTrigSamples = 0;
 	switch(this->settings->scope.horizontal.format) {
 		case Dso::GRAPHFORMAT_TY:
 		    {
@@ -99,11 +101,28 @@ void GlGenerator::generateGraphs() {
 					double value;
 					double level = this->settings->scope.voltage[channel].trigger;
 					unsigned int sampleCount = this->dataAnalyzer->data(channel)->samples.voltage.sample.size();
+					double timeDisplay = this->settings->scope.horizontal.timebase*10;
+					double samplesDisplay = timeDisplay * this->settings->scope.horizontal.samplerate;
+					if (samplesDisplay >= sampleCount) {
+						// For sure not enough samples to adjust for jitter.
+						// Following options exist:
+						//    1: Decrease sample rate
+						//    2: Change trigger mode to auto
+						//    3: Ignore samples
+						// For now #3 is chosen
+#ifdef DEBUG
+						Helper::timestampDebug(QString("Too few samples to make a steady picture. Decrease sample rate"));
+#endif
+						this->dataAnalyzer->mutex()->unlock();
+						return;
+					}
+					preTrigSamples = (this->settings->scope.trigger.position * samplesDisplay);
+					postTrigSamples = sampleCount  - (samplesDisplay - preTrigSamples);
 					//std::vector<double>::const_iterator dataIterator = this->dataAnalyzer->data(channel)->samples.voltage.sample.begin();
 
 					if (this->settings->scope.trigger.slope == Dso::SLOPE_POSITIVE) {
 						double prev = INT_MAX;
-						for (unsigned int i = 0; i < sampleCount; i++) {
+						for (unsigned int i = preTrigSamples; i < postTrigSamples; i++) {
 							value = this->dataAnalyzer->data(channel)->samples.voltage.sample[i];
 							if (value > level && prev <= level) {
 								int rising = 0;
@@ -122,7 +141,7 @@ void GlGenerator::generateGraphs() {
 					}
 					else if (this->settings->scope.trigger.slope == Dso::SLOPE_NEGATIVE) {
 						double prev = INT_MIN;
-						for (unsigned int i = 0; i < sampleCount; i++) {
+						for (unsigned int i = preTrigSamples; i < postTrigSamples; i++) {
 							value = this->dataAnalyzer->data(channel)->samples.voltage.sample[i];
 							if (value < level && prev >= level) {
 								int falling = 0;
@@ -140,6 +159,13 @@ void GlGenerator::generateGraphs() {
 						}
 					}
 				}
+				if (swTriggerStart == 0) {
+#ifdef DEBUG
+					Helper::timestampDebug(QString("Trigger not asserted. Data ignored"));
+#endif
+					this->dataAnalyzer->mutex()->unlock();
+					return;
+				}
 			}
 
 			// Add graphs for channels
@@ -150,7 +176,7 @@ void GlGenerator::generateGraphs() {
 						// Check if the sample count has changed
 						unsigned int sampleCount = (mode == Dso::CHANNELMODE_VOLTAGE) ? this->dataAnalyzer->data(channel)->samples.voltage.sample.size() : this->dataAnalyzer->data(channel)->samples.spectrum.sample.size();
 						if(mode == Dso::CHANNELMODE_VOLTAGE)
-							sampleCount -= swTriggerStart;
+							sampleCount -= (swTriggerStart - preTrigSamples);
 						unsigned int neededSize = sampleCount * 2;
 
 #if 0
@@ -179,7 +205,7 @@ void GlGenerator::generateGraphs() {
 							const double gain = this->settings->scope.voltage[channel].gain;
 							const double offset = this->settings->scope.voltage[channel].offset;
 							
-							std::advance(dataIterator, swTriggerStart);
+							std::advance(dataIterator, swTriggerStart-preTrigSamples);
 
 							for(unsigned int position = 0; position < sampleCount; ++position) {
 								*(glIterator++) = position * horizontalFactor - DIVS_TIME / 2;
