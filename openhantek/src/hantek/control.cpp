@@ -860,12 +860,12 @@ namespace Hantek {
 		for(int control = 0; control <= lastControlIndex; ++control)
 			this->controlPending[control] = true;
 
-    // Disable controls not supported by 6022BE
-    if (this->device->getModel() == MODEL_DSO6022BE) {
-      this->controlPending[CONTROLINDEX_SETOFFSET] = false;
-      this->controlPending[CONTROLINDEX_SETRELAYS] = false;
-    }
-		
+		// Disable controls not supported by 6022BE
+		if (this->device->getModel() == MODEL_DSO6022BE) {
+		  this->controlPending[CONTROLINDEX_SETOFFSET] = false;
+		  this->controlPending[CONTROLINDEX_SETRELAYS] = false;
+		}
+
 		// Maximum possible samplerate for a single channel and dividers for record lengths
 		this->specification.bufferDividers.clear();
 		this->specification.samplerate.single.recordLengths.clear();
