@@ -1289,7 +1289,7 @@ namespace Hantek {
 		if(!this->device->isConnected())
 			return Dso::ERROR_CONNECTION;
 		
-		if(mode < Dso::TRIGGERMODE_AUTO || mode > Dso::TRIGGERMODE_SOFTWARE)
+		if(mode < Dso::TRIGGERMODE_AUTO || mode >= Dso::TRIGGERMODE_COUNT)
 			return Dso::ERROR_PARAMETER;
 		
 		this->settings.trigger.mode = mode;

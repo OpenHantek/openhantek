@@ -339,7 +339,7 @@ void TriggerDock::closeEvent(QCloseEvent *event) {
 /// \param mode The trigger mode.
 /// \return Index of mode-value, -1 on error.
 int TriggerDock::setMode(Dso::TriggerMode mode) {
-	if(mode >= Dso::TRIGGERMODE_AUTO && mode <=Dso::TRIGGERMODE_SOFTWARE) {
+	if(mode >= Dso::TRIGGERMODE_AUTO && mode < Dso::TRIGGERMODE_COUNT) {
 		this->modeComboBox->setCurrentIndex(mode);
 		return mode;
 	}
