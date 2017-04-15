@@ -1093,21 +1093,44 @@ namespace Hantek {
 			this->settings.samplerate.target.samplerateSet = false;
 		}
 		
-		// Calculate the maximum samplerate that would still provide the requested duration
-		double maxSamplerate = (double) this->specification.samplerate.single.recordLengths[this->settings.recordLengthId] / duration;
-		
-		// When possible, enable fast rate if the record time can't be set that low to improve resolution
-		bool fastRate = (this->settings.usedChannels <= 1) && (maxSamplerate >= this->specification.samplerate.multi.base / this->specification.bufferDividers[this->settings.recordLengthId]);
-		
-		// What is the nearest, at most as high samplerate the scope can provide?
-		unsigned int downsampler = 0;
-		double bestSamplerate = getBestSamplerate(maxSamplerate, fastRate, true, &(downsampler));
-		
-		// Set the calculated samplerate
-		if(this->updateSamplerate(downsampler, fastRate) == UINT_MAX)
-			return 0.0;
-		else {
-			return (double) this->settings.samplerate.limits->recordLengths[this->settings.recordLengthId] / bestSamplerate;
+		if (this->device->getModel() != MODEL_DSO6022BE) {
+			// Calculate the maximum samplerate that would still provide the requested duration
+			double maxSamplerate = (double) this->specification.samplerate.single.recordLengths[this->settings.recordLengthId] / duration;
+
+			// When possible, enable fast rate if the record time can't be set that low to improve resolution
+			bool fastRate = (this->settings.usedChannels <= 1) && (maxSamplerate >= this->specification.samplerate.multi.base / this->specification.bufferDividers[this->settings.recordLengthId]);
+
+			// What is the nearest, at most as high samplerate the scope can provide?
+			unsigned int downsampler = 0;
+			double bestSamplerate = getBestSamplerate(maxSamplerate, fastRate, true, &(downsampler));
+
+			// Set the calculated samplerate
+			if(this->updateSamplerate(downsampler, fastRate) == UINT_MAX)
+				return 0.0;
+			else {
+				return (double) this->settings.samplerate.limits->recordLengths[this->settings.recordLengthId] / bestSamplerate;
+			}
+		} else {
+			// For now - we go for the 10240 size sampling - the other seems not to be supported
+			// Find highest samplerate using less than 10240 samples to obtain our duration.
+			// Better add some margin for our SW trigger
+			unsigned int sampleMargin = 2000;
+			unsigned int sampleCount = 10240;
+			int bestId = 0;
+			int sampleId;
+			for(sampleId = 0; sampleId < this->specification.sampleSteps.count(); ++sampleId) {
+				if (this->specification.sampleSteps[sampleId] * duration < (sampleCount - sampleMargin))
+					bestId = sampleId;
+			}
+			sampleId = bestId;
+			// Usable sample value
+			this->controlCode[CONTROLINDEX_SETTIMEDIV] = CONTROL_SETTIMEDIV;
+			static_cast<ControlSetTimeDIV *>(this->control[CONTROLINDEX_SETTIMEDIV])->setDiv(this->specification.sampleDiv[sampleId]);
+			this->controlPending[CONTROLINDEX_SETTIMEDIV] = true;
+			this->settings.samplerate.current = this->specification.sampleSteps[sampleId];
+
+			emit samplerateChanged(this->settings.samplerate.current);
+			return this->settings.samplerate.current;
 		}
 	}
 	
