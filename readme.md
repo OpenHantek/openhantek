@@ -9,6 +9,10 @@ Supported operating systems:
 <img alt="Image of main window" width="350" src="doc/screenshot_mainwindow.png">
 <img alt="Image of main window" width="350" src="doc/screenshot_mainwindow_win.png">
 
+Supported hantek devices:
+* DSO2xxx Series
+* DSO52xx Series
+
 ## Install prebuilt binary
 Navigate to the [Releases](https://github.com/OpenHantek/openhantek/releases) page 
 
@@ -20,10 +24,10 @@ You need the following packages, to build OpenHantek from source:
 * libusb 1.x (prebuild files will be downloaded on windows)
 
 For debian based systems (Ubuntu, Mint) install named requirements like this:
-> apt-get install g++ cmake qttools5-dev-tools qtbase5-dev libfftw3-dev binutils-dev libusb-1.0-0-dev
+> apt-get install g++ cmake qttools5-dev qttools5-dev-tools libfftw3-dev binutils-dev libusb-1.0-0-dev
 
 For rpm based distributions (Fedora) use this command:
-> dnf install cmake gcc-c++ qt5-qtbase-gui qt5-qttools-devel qt5-qttranslations fftw-devel libusbx-devel binutils-devel libusb-1.0-0-devel
+> dnf install cmake gcc-c++ qt5-qtbase-gui qt5-qttools-devel qt5-qttranslations fftw-devel binutils-devel libusb-devel
 
 For MacOSX use homebrew
 > brew update <br>
@@ -35,6 +39,11 @@ After you've installed the requirements either run **cmake-gui** or run the foll
 > cmake ../ <br>
 > make -j4 (for 4 concurrent compile jobs) <br>
 > make install (optional, for installing only)
+
+For MacOSX, the cmake command in the previous command list must include the directory where Qt5 is installed. Qt5 is installed in a directory with the same name of its version:
+> brew info qt5
+For example, if brew showed 5.7.0, the cmake command should be:
+> cmake ../ -DCMAKE_PREFIX_PATH=/usr/local/Cellar/qt5/5.7.0
 
 You can specify an install prefix when running cmake:
 > cmake -DCMAKE_INSTALL_PREFIX=/usr
@@ -78,3 +87,7 @@ Please use Github Issues to report any problems or enhancements or send us pull 
 [10]: http://gun.io/blog/how-to-github-fork-branch-and-pull-request
 [11]: http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html
 [12]: https://help.github.com/articles/using-pull-requests
+
+## Other open source software
+* [SigRok](www.sigrok.org)
+* [Software for the Hantek 6022BE/BL only](http://pididu.com/wordpress/basicscope/)
