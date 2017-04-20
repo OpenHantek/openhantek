@@ -1,4 +1,4 @@
-# OpenHantek [![Build Status](https://travis-ci.org/OpenHantek/openhantek.svg)](https://travis-ci.org/OpenHantek/openhantek) [![Build status](https://ci.appveyor.com/api/projects/status/9w4rd5r04ufqafr4/branch/master?svg=true)](https://ci.appveyor.com/project/davidgraeff/openhantek/branch/master)
+# OpenHantek [![Build Status](https://travis-ci.org/OpenHantek/openhantek.svg?branch=master)](https://travis-ci.org/OpenHantek/openhantek) [![Build status](https://ci.appveyor.com/api/projects/status/9w4rd5r04ufqafr4/branch/master?svg=true)](https://ci.appveyor.com/project/davidgraeff/openhantek/branch/master)
 OpenHantek is a free software for Hantek (Voltcraft/Darkwire/Protek/Acetech) USB digital storage oscilloscopes based on HantekDSO and has started as an alternative to the official Hantek DSO software.
 
 Supported operating systems:
@@ -18,10 +18,10 @@ Navigate to the [Releases](https://github.com/OpenHantek/openhantek/releases) pa
 
 ## Building OpenHantek from source
 You need the following packages, to build OpenHantek from source:
-* CMake 3.0+
+* CMake 3.5+
 * Qt 5.3+
 * FFTW 3+ (prebuild files will be downloaded on windows)
-* libusb 1.x (prebuild files will be downloaded on windows)
+* libusb 1.x (prebuild files will be used on windows)
 
 For debian based systems (Ubuntu, Mint) install named requirements like this:
 > apt-get install g++ cmake qttools5-dev qttools5-dev-tools libfftw3-dev binutils-dev libusb-1.0-0-dev
