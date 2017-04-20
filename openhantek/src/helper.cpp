@@ -192,7 +192,7 @@ namespace Helper {
 		switch(unit) {
 			case UNIT_VOLTS: {
 				// Voltage string decoding
-				if(unitString.startsWith('u'))
+				if(unitString.startsWith("µ"))
 					return value * 1e-6;
 				else if(unitString.startsWith('m'))
 					return value * 1e-3;
@@ -209,7 +209,7 @@ namespace Helper {
 					return value * 1e-12;
 				else if(unitString.startsWith('n'))
 					return value * 1e-9;
-				else if(unitString.startsWith('µ'))
+				else if(unitString.startsWith("µ"))
 					return value * 1e-6;
 				else if(unitString.startsWith("min"))
 					return value * 60;
