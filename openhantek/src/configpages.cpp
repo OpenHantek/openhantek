@@ -189,9 +189,9 @@ DsoConfigColorsPage::DsoConfigColorsPage(DsoSettings *settings, QWidget *parent)
     this->screenSpectrumColorBox.append(
         new ColorBox(colorSettings.screen.spectrum[channel]));
     this->printChannelColorBox.append(
-        new ColorBox(colorSettings.screen.voltage[channel]));
+        new ColorBox(colorSettings.print.voltage[channel]));
     this->printSpectrumColorBox.append(
-        new ColorBox(colorSettings.screen.spectrum[channel]));
+        new ColorBox(colorSettings.print.spectrum[channel]));
   }
 
   // Plot Area Layout
