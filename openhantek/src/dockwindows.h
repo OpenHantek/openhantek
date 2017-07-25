@@ -180,6 +180,8 @@ protected:
       gainComboBox; ///< Select the vertical gain for the channels
   QList<QComboBox *>
       miscComboBox; ///< Select coupling for real and mode for math channels
+  QList<QCheckBox *>
+      invertCheckBox; ///< Select if the channels should be displayed inverted
 
   DsoSettings *settings; ///< The settings provided by the parent class
 
@@ -192,6 +194,7 @@ protected slots:
   void gainSelected(int index);
   void miscSelected(int index);
   void usedSwitched(bool checked);
+  void invertSwitched(bool checked);
 
 signals:
   void
