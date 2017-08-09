@@ -733,6 +733,7 @@ void OpenHantekMainWindow::samplerateSelected() {
 void OpenHantekMainWindow::timebaseSelected() {
   this->dsoControl->setRecordTime(this->settings->scope.horizontal.timebase *
                                   DIVS_TIME);
+  this->dsoWidget->updateTimebase(settings->scope.horizontal.timebase);
 }
 
 /// \brief Sets the offset of the oscilloscope for the given channel.

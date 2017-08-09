@@ -52,7 +52,7 @@ HorizontalDock::HorizontalDock(DsoSettings *settings, QWidget *parent,
   this->samplerateSiSpinBox->setUnitPostfix("/s");
 
   QList<double> timebaseSteps;
-  timebaseSteps << 1.0 << 2.0 << 4.0 << 10.0;
+  timebaseSteps << 1.0 << 2.0 << 5.0 << 10.0;
 
   this->timebaseLabel = new QLabel(tr("Timebase"));
   this->timebaseSiSpinBox = new SiSpinBox(Helper::UNIT_SECONDS);
