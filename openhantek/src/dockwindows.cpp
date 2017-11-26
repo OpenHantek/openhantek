@@ -51,7 +51,6 @@ HorizontalDock::HorizontalDock(DsoSettings *settings, QWidget *parent,
   this->samplerateSiSpinBox->setMaximum(1e8);
   this->samplerateSiSpinBox->setUnitPostfix("/s");
 
-  QList<double> timebaseSteps;
   timebaseSteps << 1.0 << 2.0 << 4.0 << 10.0;
 
   this->timebaseLabel = new QLabel(tr("Timebase"));
@@ -144,10 +143,23 @@ void HorizontalDock::setSamplerate(double samplerate) {
 
 /// \brief Changes the timebase.
 /// \param timebase The timebase in seconds.
-void HorizontalDock::setTimebase(double timebase) {
-  this->suppressSignals = true;
-  this->timebaseSiSpinBox->setValue(timebase);
-  this->suppressSignals = false;
+double HorizontalDock::setTimebase(double timebase) {
+
+  double range = pow(10, floor(log10(timebase))); // order of magnitude
+  double vNorm = timebase / range;                // significand
+
+  for (int i = 0; i < timebaseSteps.size() - 1; ++i) {
+    if (timebaseSteps.at(i) <= vNorm && vNorm < timebaseSteps.at(i + 1)) {
+      suppressSignals = true;
+      timebaseSiSpinBox->setValue(
+        /* (vNorm * vNorm < timebaseSteps.at(i) * timebaseSteps.at(i + 1))
+        ? */ range * timebaseSteps.at(i) /*
+        : range * timebaseSteps.at(i + 1) */);
+      suppressSignals = false;
+      break;
+    }
+  }
+  return timebaseSiSpinBox->value();
 }
 
 /// \brief Changes the record length if the new value is supported.
