@@ -28,7 +28,7 @@ You need a OpenGL 3.x capable graphics card for OpenHantek.
 
 ### Install requirements on Linux
 For debian based systems (Ubuntu, Mint) install named requirements like this:
-> apt-get install g++ cmake qttools5-dev qttools5-dev-tools libfftw3-dev binutils-dev libusb-1.0-0-dev
+> apt install g++ cmake qttools5-dev qttools5-dev-tools libfftw3-dev binutils-dev libusb-1.0-0-dev libqt5opengl5-dev
 
 For rpm based distributions (Fedora) use this command:
 > dnf install cmake gcc-c++ qt5-qtbase-gui qt5-qttools-devel qt5-qttranslations fftw-devel binutils-devel libusb-devel
@@ -101,7 +101,7 @@ Please use Github Issues to report any problems or enhancements or send us pull 
    - Read [how to properly contribute to open source projects on GitHub][10].
    - Create a separate branch other than *master* to easily amend changes to a pull request later, if necessary.
    - Write [good commit messages][11].
-   - [Squash commits[][14] on the topic branch before opening a pull request.
+   - [Squash commits][14] on the topic branch before opening a pull request.
    - Use the same [coding style and spacing][13]
      (install clang-format and use it in the root directory: `clang-format -style=llvm openhantek/src/*`).
    - Open a [pull request][12] with a clear title and description
