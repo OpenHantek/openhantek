@@ -31,7 +31,7 @@
 #define true (1 == 1)
 #endif
 #if !defined(false)
-#define false(!true)
+#define false (!true)
 #endif
 #if defined(_PREFAST_)
 #pragma warning(disable : 28193)
