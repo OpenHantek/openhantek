@@ -19,8 +19,8 @@ class FindDevices {
   public:
     FindDevices(libusb_context *context = nullptr);
     std::list<std::unique_ptr<USBDevice>> findDevices();
-    const QString &getErrorMessage() const;
-    bool allDevicesNoAccessError() const;
+    const QString &getErrorMessage() const { return errorMessage; }
+    bool allDevicesNoAccessError() const { return noAccessDevices; }
 
   private:
     libusb_context *context; ///< The usb context used for this device

@@ -57,7 +57,3 @@ std::list<std::unique_ptr<USBDevice>> FindDevices::findDevices() {
     libusb_free_device_list(deviceList, true);
     return devices;
 }
-
-const QString &FindDevices::getErrorMessage() const { return errorMessage; }
-
-bool FindDevices::allDevicesNoAccessError() const { return noAccessDevices; }

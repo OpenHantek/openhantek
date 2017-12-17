@@ -24,15 +24,19 @@
 #include <stdbool.h>
 #else
 #define __attribute__(x)
+
+#ifndef __cplusplus
 #if !defined(bool)
 #define bool int
 #endif
 #if !defined(true)
-#define true(1 == 1)
+#define true (1 == 1)
 #endif
 #if !defined(false)
-#define false(!true)
+#define false (!true)
 #endif
+#endif // __cplusplus
+
 #if defined(_PREFAST_)
 #pragma warning(disable : 28193)
 #endif
