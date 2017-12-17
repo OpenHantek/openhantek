@@ -28,7 +28,7 @@
 #define bool int
 #endif
 #if !defined(true)
-#define true(1 == 1)
+#define true (1 == 1)
 #endif
 #if !defined(false)
 #define false(!true)
