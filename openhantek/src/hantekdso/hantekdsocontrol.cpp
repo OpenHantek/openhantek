@@ -62,25 +62,20 @@ USBDevice *HantekDsoControl::getDevice() { return device; }
 const DSOsamples &HantekDsoControl::getLastSamples() { return result; }
 
 HantekDsoControl::HantekDsoControl(USBDevice *device) : device(device),
-    specification(device->getModel()->specification), controlsettings(&(specification.samplerate.single), HANTEK_CHANNELS) {
+    specification(device->getModel()->specification), controlsettings(&(specification.samplerate.single), specification.channels) {
     if (device == nullptr) throw new std::runtime_error("No usb device for HantekDsoControl");
 
-    // Transmission-ready control commands
-    this->control[CONTROLINDEX_SETOFFSET] = new ControlSetOffset();
-    this->controlCode[CONTROLINDEX_SETOFFSET] = CONTROL_SETOFFSET;
-    this->control[CONTROLINDEX_SETRELAYS] = new ControlSetRelays();
-    this->controlCode[CONTROLINDEX_SETRELAYS] = CONTROL_SETRELAYS;
-
-    // Instantiate the commands needed for all models
-    command[(uint8_t)BulkCode::FORCETRIGGER] = new BulkForceTrigger();
-    command[(uint8_t)BulkCode::STARTSAMPLING] = new BulkCaptureStart();
-    command[(uint8_t)BulkCode::ENABLETRIGGER] = new BulkTriggerEnabled();
-    command[(uint8_t)BulkCode::GETDATA] = new BulkGetData();
-    command[(uint8_t)BulkCode::GETCAPTURESTATE] = new BulkGetCaptureState();
-    command[(uint8_t)BulkCode::SETGAIN] = new BulkSetGain();
-
-    if (specification.useControlNoBulk)
+    if (specification.useControlNoBulk) {
         device->setEnableBulkTransfer(false);
+    } else {
+        // Instantiate the commands needed for all bulk-command-enabled models
+        addCommand(BulkCode::FORCETRIGGER, new BulkForceTrigger(), false);
+        addCommand(BulkCode::STARTSAMPLING, new BulkCaptureStart(), false);
+        addCommand(BulkCode::ENABLETRIGGER, new BulkTriggerEnabled(), false);
+        addCommand(BulkCode::GETDATA, new BulkGetData(), false);
+        addCommand(BulkCode::GETCAPTURESTATE, new BulkGetCaptureState(), false);
+        addCommand(BulkCode::SETGAIN, new BulkSetGain(), false);
+    }
 
     // Apply special requirements by the devices model
     device->getModel()->applyRequirements(this);
@@ -89,11 +84,19 @@ HantekDsoControl::HantekDsoControl(USBDevice *device) : device(device),
 }
 
 HantekDsoControl::~HantekDsoControl() {
-    for (int cIndex = 0; cIndex < (uint8_t)BulkCode::COUNT; ++cIndex) { delete command[cIndex]; }
-    for (int cIndex = 0; cIndex < CONTROLINDEX_COUNT; ++cIndex) { delete control[cIndex]; }
+    while (firstBulkCommand) {
+        BulkCommand*t = firstBulkCommand->next;
+        delete firstBulkCommand;
+        firstBulkCommand = t;
+    }
+    while (firstControlCommand) {
+        ControlCommand*t = firstControlCommand->next;
+        delete firstControlCommand;
+        firstControlCommand = t;
+    }
 }
 
-unsigned HantekDsoControl::getChannelCount() { return HANTEK_CHANNELS; }
+unsigned HantekDsoControl::getChannelCount() { return specification.channels; }
 
 const std::vector<unsigned> &HantekDsoControl::getAvailableRecordLengths() { //
     return controlsettings.samplerate.limits->recordLengths;
@@ -105,7 +108,7 @@ double HantekDsoControl::getMinSamplerate() {
 
 double HantekDsoControl::getMaxSamplerate() {
     ControlSamplerateLimits *limits =
-        (controlsettings.usedChannels <= 1) ? &specification.samplerate.multi : &specification.samplerate.single;
+            (controlsettings.usedChannels <= 1) ? &specification.samplerate.multi : &specification.samplerate.single;
     return limits->max;
 }
 
@@ -114,7 +117,7 @@ void HantekDsoControl::updateInterval() {
     // Check the current oscilloscope state everytime 25% of the time the buffer
     // should be refilled
     if (isRollMode())
-        cycleTime = (int)((double)device->getPacketSize() / (isFastRate() ? 1 : HANTEK_CHANNELS) /
+        cycleTime = (int)((double)device->getPacketSize() / (isFastRate() ? 1 : specification.channels) /
                           controlsettings.samplerate.current * 250);
     else
         cycleTime = (int)((double)getRecordLength() / controlsettings.samplerate.current * 250);
@@ -137,8 +140,8 @@ unsigned HantekDsoControl::getRecordLength() const {
 
 Dso::ErrorCode HantekDsoControl::retrieveChannelLevelData() {
     // Get channel level data
-    int errorCode = device->controlRead(CONTROL_VALUE, (unsigned char *)&(specification.offsetLimit),
-                                    sizeof(specification.offsetLimit), (int)VALUE_OFFSETLIMITS);
+    int errorCode = device->controlRead((uint8_t)ControlCode::CONTROL_VALUE, (unsigned char *)&(specification.offsetLimit),
+                                        sizeof(specification.offsetLimit), (uint8_t)ControlValue::VALUE_OFFSETLIMITS);
     if (errorCode < 0) {
         qWarning() << tr("Couldn't get channel level data from oscilloscope");
         emit statusMessage(tr("Couldn't get channel level data from oscilloscope"), 0);
@@ -164,7 +167,7 @@ std::pair<int, unsigned> HantekDsoControl::getCaptureState() const {
 
     if (!specification.supportsCaptureState) return std::make_pair(CAPTURE_READY, 0);
 
-    errorCode = device->bulkCommand(command[(uint8_t)BulkCode::GETCAPTURESTATE], 1);
+    errorCode = device->bulkCommand(getBulkCommand(BulkCode::GETCAPTURESTATE), 1);
     if (errorCode < 0) {
         qWarning() << "Getting capture state failed: " << libUsbErrorString(errorCode);
         return std::make_pair(CAPTURE_ERROR, 0);
@@ -183,7 +186,7 @@ std::pair<int, unsigned> HantekDsoControl::getCaptureState() const {
 std::vector<unsigned char> HantekDsoControl::getSamples(unsigned &previousSampleCount) const {
     if (!specification.useControlNoBulk) {
         // Request data
-        int errorCode = device->bulkCommand(command[(uint8_t)BulkCode::GETDATA], 1);
+        int errorCode = device->bulkCommand(getBulkCommand(BulkCode::GETDATA), 1);
         if (errorCode < 0) {
             qWarning() << "Getting sample data failed: " << libUsbErrorString(errorCode);
             emit communicationError();
@@ -226,8 +229,8 @@ void HantekDsoControl::convertRawDataToSamples(const std::vector<unsigned char> 
     result.samplerate = controlsettings.samplerate.current;
     result.append = isRollMode();
     // Prepare result buffers
-    result.data.resize(HANTEK_CHANNELS);
-    for (int channelCounter = 0; channelCounter < HANTEK_CHANNELS; ++channelCounter)
+    result.data.resize(specification.channels);
+    for (unsigned channelCounter = 0; channelCounter < specification.channels; ++channelCounter)
         result.data[channelCounter].clear();
 
     const unsigned extraBitsSize = specification.sampleSize - 8;             // Number of extra bits
@@ -237,11 +240,11 @@ void HantekDsoControl::convertRawDataToSamples(const std::vector<unsigned char> 
     if (isFastRate()) {
         // Fast rate mode, one channel is using all buffers
         unsigned channel = 0;
-        for (; channel < HANTEK_CHANNELS; ++channel) {
+        for (; channel < specification.channels; ++channel) {
             if (controlsettings.voltage[channel].used) break;
         }
 
-        if (channel >= HANTEK_CHANNELS) return;
+        if (channel >= specification.channels) return;
 
         // Resize sample vector
         result.data[channel].resize(totalSampleCount);
@@ -258,11 +261,11 @@ void HantekDsoControl::convertRawDataToSamples(const std::vector<unsigned char> 
                 if (bufferPosition >= totalSampleCount) bufferPosition %= totalSampleCount;
 
                 const unsigned short low = rawData[bufferPosition];
-                const unsigned extraBitsPosition = bufferPosition % HANTEK_CHANNELS;
-                const unsigned shift = (8 - (HANTEK_CHANNELS - 1 - extraBitsPosition) * extraBitsSize);
+                const unsigned extraBitsPosition = bufferPosition % specification.channels;
+                const unsigned shift = (8 - (specification.channels - 1 - extraBitsPosition) * extraBitsSize);
                 const unsigned short high =
-                    ((unsigned short int)rawData[totalSampleCount + bufferPosition - extraBitsPosition] << shift) &
-                    extraBitsMask;
+                        ((unsigned short int)rawData[totalSampleCount + bufferPosition - extraBitsPosition] << shift) &
+                        extraBitsMask;
 
                 result.data[channel][pos] = ((double)(low + high) / limit - offset) * gainStep;
             }
@@ -276,8 +279,8 @@ void HantekDsoControl::convertRawDataToSamples(const std::vector<unsigned char> 
         }
     } else {
         // Normal mode, channels are using their separate buffers
-        for (unsigned channel = 0; channel < HANTEK_CHANNELS; ++channel) {
-            result.data[channel].resize(totalSampleCount / HANTEK_CHANNELS);
+        for (unsigned channel = 0; channel < specification.channels; ++channel) {
+            result.data[channel].resize(totalSampleCount / specification.channels);
 
             const unsigned gainID = controlsettings.voltage[channel].gain;
             const unsigned short limit = specification.voltageLimit[channel][gainID];
@@ -291,13 +294,13 @@ void HantekDsoControl::convertRawDataToSamples(const std::vector<unsigned char> 
                 unsigned extraBitsIndex = 8 - channel * 2; // Bit position offset for extra bits extraction
 
                 for (unsigned realPosition = 0; realPosition < result.data[channel].size();
-                     ++realPosition, bufferPosition += HANTEK_CHANNELS) {
+                     ++realPosition, bufferPosition += specification.channels) {
                     if (bufferPosition >= totalSampleCount) bufferPosition %= totalSampleCount;
 
-                    const unsigned short low = rawData[bufferPosition + HANTEK_CHANNELS - 1 - channel];
+                    const unsigned short low = rawData[bufferPosition + specification.channels - 1 - channel];
                     const unsigned short high =
-                        ((unsigned short int)rawData[totalSampleCount + bufferPosition] << extraBitsIndex) &
-                        extraBitsMask;
+                            ((unsigned short int)rawData[totalSampleCount + bufferPosition] << extraBitsIndex) &
+                            extraBitsMask;
 
                     result.data[channel][realPosition] = ((double)(low + high) / limit - offset) * gainStep;
                 }
@@ -311,14 +314,14 @@ void HantekDsoControl::convertRawDataToSamples(const std::vector<unsigned char> 
                     bufferPosition += DROP_DSO6022_HEAD * 2;
                 }
                 bufferPosition += channel;
-                for (unsigned pos = 0; pos < result.data[channel].size(); ++pos, bufferPosition += HANTEK_CHANNELS) {
+                for (unsigned pos = 0; pos < result.data[channel].size(); ++pos, bufferPosition += specification.channels) {
                     if (bufferPosition >= totalSampleCount) bufferPosition %= totalSampleCount;
                     double dataBuf = (double)((int)(rawData[bufferPosition] - 0x83));
                     result.data[channel][pos] = (dataBuf / limit) * gainStep;
                 }
             } else {
-                bufferPosition += HANTEK_CHANNELS - 1 - channel;
-                for (unsigned pos = 0; pos < result.data[channel].size(); ++pos, bufferPosition += HANTEK_CHANNELS) {
+                bufferPosition += specification.channels - 1 - channel;
+                for (unsigned pos = 0; pos < result.data[channel].size(); ++pos, bufferPosition += specification.channels) {
                     if (bufferPosition >= totalSampleCount) bufferPosition %= totalSampleCount;
                     double dataBuf = (double)((int)(rawData[bufferPosition]));
                     result.data[channel][pos] = (dataBuf / limit - offset) * gainStep;
@@ -346,7 +349,7 @@ double HantekDsoControl::getBestSamplerate(double samplerate, bool fastRate, boo
     double bestDownsampler = limits->base / specification.bufferDividers[controlsettings.recordLengthId] / samplerate;
     // Base samplerate sufficient, or is the maximum better?
     if (bestDownsampler < 1.0 &&
-        (samplerate <= limits->max / specification.bufferDividers[controlsettings.recordLengthId] || !maximum)) {
+            (samplerate <= limits->max / specification.bufferDividers[controlsettings.recordLengthId] || !maximum)) {
         bestDownsampler = 0.0;
         bestSamplerate = limits->max / specification.bufferDividers[controlsettings.recordLengthId];
     } else {
@@ -420,38 +423,29 @@ unsigned HantekDsoControl::getSampleCount() const {
         if (isFastRate())
             return getRecordLength();
         else
-            return getRecordLength() * HANTEK_CHANNELS;
+            return getRecordLength() * specification.channels;
     }
 }
 
 unsigned HantekDsoControl::updateRecordLength(unsigned index) {
-    if (index >= (unsigned)controlsettings.samplerate.limits->recordLengths.size()) return 0;
+    if (index >= controlsettings.samplerate.limits->recordLengths.size()) return 0;
 
     switch (specification.command.bulk.setRecordLength) {
     case BulkCode::SETTRIGGERANDSAMPLERATE:
-        // SetTriggerAndSamplerate bulk command for record length
-        static_cast<BulkSetTriggerAndSamplerate *>(command[(uint8_t)BulkCode::SETTRIGGERANDSAMPLERATE])->setRecordLength(index);
-        commandPending[(uint8_t)BulkCode::SETTRIGGERANDSAMPLERATE] = true;
-
+        modifyCommand<BulkSetTriggerAndSamplerate>(BulkCode::SETTRIGGERANDSAMPLERATE)->setRecordLength(index);
         break;
 
     case BulkCode::DSETBUFFER:
         if (specification.command.bulk.setPretrigger == BulkCode::FSETBUFFER) {
-            // Pointers to needed commands
-            BulkSetRecordLength2250 *commandSetRecordLength2250 =
-                static_cast<BulkSetRecordLength2250 *>(command[(uint8_t)BulkCode::DSETBUFFER]);
-
-            commandSetRecordLength2250->setRecordLength(index);
+            modifyCommand<BulkSetRecordLength2250>(BulkCode::DSETBUFFER)->setRecordLength(index);
         } else {
             // SetBuffer5200 bulk command for record length
-            BulkSetBuffer5200 *commandSetBuffer5200 = static_cast<BulkSetBuffer5200 *>(command[(uint8_t)BulkCode::DSETBUFFER]);
+            BulkSetBuffer5200 *commandSetBuffer5200 =modifyCommand<BulkSetBuffer5200>(BulkCode::DSETBUFFER);
 
             commandSetBuffer5200->setUsedPre(DTriggerPositionUsed::DTRIGGERPOSITION_ON);
             commandSetBuffer5200->setUsedPost(DTriggerPositionUsed::DTRIGGERPOSITION_ON);
             commandSetBuffer5200->setRecordLength(index);
         }
-
-        commandPending[(uint8_t)BulkCode::DSETBUFFER] = true;
 
         break;
 
@@ -461,7 +455,7 @@ unsigned HantekDsoControl::updateRecordLength(unsigned index) {
 
     // Check if the divider has changed and adapt samplerate limits accordingly
     bool bDividerChanged =
-        specification.bufferDividers[index] != specification.bufferDividers[controlsettings.recordLengthId];
+            specification.bufferDividers[index] != specification.bufferDividers[controlsettings.recordLengthId];
 
     controlsettings.recordLengthId = index;
 
@@ -478,7 +472,7 @@ unsigned HantekDsoControl::updateRecordLength(unsigned index) {
 unsigned HantekDsoControl::updateSamplerate(unsigned downsampler, bool fastRate) {
     // Get samplerate limits
     Hantek::ControlSamplerateLimits *limits =
-        fastRate ? &specification.samplerate.multi : &specification.samplerate.single;
+            fastRate ? &specification.samplerate.multi : &specification.samplerate.single;
 
     // Set the calculated samplerate
     switch (specification.command.bulk.setSamplerate) {
@@ -508,7 +502,7 @@ unsigned HantekDsoControl::updateSamplerate(unsigned downsampler, bool fastRate)
 
         // Pointers to needed commands
         BulkSetTriggerAndSamplerate *commandSetTriggerAndSamplerate =
-            static_cast<BulkSetTriggerAndSamplerate *>(command[(uint8_t)BulkCode::SETTRIGGERANDSAMPLERATE]);
+                modifyCommand<BulkSetTriggerAndSamplerate>(BulkCode::SETTRIGGERANDSAMPLERATE);
 
         // Store if samplerate ID or downsampling factor is used
         commandSetTriggerAndSamplerate->setDownsamplingMode(downsampling);
@@ -518,8 +512,6 @@ unsigned HantekDsoControl::updateSamplerate(unsigned downsampler, bool fastRate)
         commandSetTriggerAndSamplerate->setDownsampler(downsamplerValue);
         // Set fast rate when used
         commandSetTriggerAndSamplerate->setFastRate(false /*fastRate*/);
-
-        commandPending[(uint8_t)BulkCode::SETTRIGGERANDSAMPLERATE] = true;
 
         break;
     }
@@ -531,9 +523,9 @@ unsigned HantekDsoControl::updateSamplerate(unsigned downsampler, bool fastRate)
 
         // Pointers to needed commands
         BulkSetSamplerate5200 *commandSetSamplerate5200 =
-            static_cast<BulkSetSamplerate5200 *>(command[(uint8_t)BulkCode::CSETTRIGGERORSAMPLERATE]);
+                modifyCommand<BulkSetSamplerate5200>(BulkCode::CSETTRIGGERORSAMPLERATE);
         BulkSetTrigger5200 *commandSetTrigger5200 =
-            static_cast<BulkSetTrigger5200 *>(command[(uint8_t)BulkCode::ESETTRIGGERORSAMPLERATE]);
+                modifyCommand<BulkSetTrigger5200>(BulkCode::ESETTRIGGERORSAMPLERATE);
 
         // Store samplerate fast value
         commandSetSamplerate5200->setSamplerateFast(4 - valueFast);
@@ -542,15 +534,12 @@ unsigned HantekDsoControl::updateSamplerate(unsigned downsampler, bool fastRate)
         // Set fast rate when used
         commandSetTrigger5200->setFastRate(fastRate);
 
-        commandPending[(uint8_t)BulkCode::CSETTRIGGERORSAMPLERATE] = true;
-        commandPending[(uint8_t)BulkCode::ESETTRIGGERORSAMPLERATE] = true;
-
         break;
     }
     case BulkCode::ESETTRIGGERORSAMPLERATE: {
         // Pointers to needed commands
         BulkSetSamplerate2250 *commandSetSamplerate2250 =
-            static_cast<BulkSetSamplerate2250 *>(command[(uint8_t)BulkCode::ESETTRIGGERORSAMPLERATE]);
+                modifyCommand<BulkSetSamplerate2250>(BulkCode::ESETTRIGGERORSAMPLERATE);
 
         bool downsampling = downsampler >= 1;
         // Store downsampler state value
@@ -559,8 +548,6 @@ unsigned HantekDsoControl::updateSamplerate(unsigned downsampler, bool fastRate)
         commandSetSamplerate2250->setSamplerate(downsampler > 1 ? 0x10001 - downsampler : 0);
         // Set fast rate when used
         commandSetSamplerate2250->setFastRate(fastRate);
-
-        commandPending[(uint8_t)BulkCode::ESETTRIGGERORSAMPLERATE] = true;
 
         break;
     }
@@ -575,10 +562,10 @@ unsigned HantekDsoControl::updateSamplerate(unsigned downsampler, bool fastRate)
     controlsettings.samplerate.downsampler = downsampler;
     if (downsampler)
         controlsettings.samplerate.current = controlsettings.samplerate.limits->base /
-                                             specification.bufferDividers[controlsettings.recordLengthId] / downsampler;
+                specification.bufferDividers[controlsettings.recordLengthId] / downsampler;
     else
         controlsettings.samplerate.current =
-            controlsettings.samplerate.limits->max / specification.bufferDividers[controlsettings.recordLengthId];
+                controlsettings.samplerate.limits->max / specification.bufferDividers[controlsettings.recordLengthId];
 
     // Update dependencies
     this->setPretriggerPosition(controlsettings.trigger.position);
@@ -597,7 +584,7 @@ unsigned HantekDsoControl::updateSamplerate(unsigned downsampler, bool fastRate)
 }
 
 void HantekDsoControl::restoreTargets() {
-    if (controlsettings.samplerate.target.samplerateSet)
+    if (controlsettings.samplerate.target.samplerateSet == ControlSettingsSamplerateTarget::Samplerrate)
         this->setSamplerate();
     else
         this->setRecordTime();
@@ -607,11 +594,11 @@ void HantekDsoControl::updateSamplerateLimits() {
     // Works only if the minimum samplerate for normal mode is lower than for fast
     // rate mode, which is the case for all models
     ControlSamplerateLimits *limits =
-        (controlsettings.usedChannels <= 1) ? &specification.samplerate.multi : &specification.samplerate.single;
+            (controlsettings.usedChannels <= 1) ? &specification.samplerate.multi : &specification.samplerate.single;
     emit samplerateLimitsChanged((double)specification.samplerate.single.base /
-                                     specification.samplerate.single.maxDownsampler /
-                                     specification.bufferDividers[controlsettings.recordLengthId],
-                                 limits->max / specification.bufferDividers[controlsettings.recordLengthId]);
+                                 specification.samplerate.single.maxDownsampler /
+                                 specification.bufferDividers[controlsettings.recordLengthId],
+            limits->max / specification.bufferDividers[controlsettings.recordLengthId]);
 }
 
 /// \brief Sets the size of the oscilloscopes sample buffer.
@@ -620,10 +607,10 @@ void HantekDsoControl::updateSamplerateLimits() {
 Dso::ErrorCode HantekDsoControl::setRecordLength(unsigned index) {
     if (!device->isConnected()) return Dso::ErrorCode::CONNECTION;
 
-    if (!this->updateRecordLength(index)) return Dso::ErrorCode::PARAMETER;
+    if (!updateRecordLength(index)) return Dso::ErrorCode::PARAMETER;
 
-    this->restoreTargets();
-    this->setPretriggerPosition(controlsettings.trigger.position);
+    restoreTargets();
+    setPretriggerPosition(controlsettings.trigger.position);
 
     emit recordLengthChanged(getRecordLength());
     return Dso::ErrorCode::NONE;
@@ -640,15 +627,15 @@ Dso::ErrorCode HantekDsoControl::setSamplerate(double samplerate) {
         samplerate = controlsettings.samplerate.target.samplerate;
     } else {
         controlsettings.samplerate.target.samplerate = samplerate;
-        controlsettings.samplerate.target.samplerateSet = true;
+        controlsettings.samplerate.target.samplerateSet = ControlSettingsSamplerateTarget::Samplerrate;
     }
 
     if (!specification.isSoftwareTriggerDevice) {
         // When possible, enable fast rate if it is required to reach the requested
         // samplerate
         bool fastRate = (controlsettings.usedChannels <= 1) &&
-                        (samplerate > specification.samplerate.single.max /
-                                          specification.bufferDividers[controlsettings.recordLengthId]);
+                (samplerate > specification.samplerate.single.max /
+                 specification.bufferDividers[controlsettings.recordLengthId]);
 
         // What is the nearest, at least as high samplerate the scope can provide?
         unsigned downsampler = 0;
@@ -664,10 +651,8 @@ Dso::ErrorCode HantekDsoControl::setSamplerate(double samplerate) {
         unsigned sampleId;
         for (sampleId = 0; sampleId < specification.fixedSampleRates.size() - 1; ++sampleId)
             if (specification.fixedSampleRates[sampleId].samplerate == samplerate) break;
-        this->controlCode[CONTROLINDEX_SETTIMEDIV] = CONTROL_SETTIMEDIV;
-        static_cast<ControlSetTimeDIV *>(this->control[CONTROLINDEX_SETTIMEDIV])
-            ->setDiv(specification.fixedSampleRates[sampleId].id);
-        this->controlPending[CONTROLINDEX_SETTIMEDIV] = true;
+        modifyCommand<ControlSetTimeDIV>(ControlCode::CONTROL_SETTIMEDIV)
+                ->setDiv(specification.fixedSampleRates[sampleId].id);
         controlsettings.samplerate.current = samplerate;
 
         // Check for Roll mode
@@ -690,20 +675,20 @@ Dso::ErrorCode HantekDsoControl::setRecordTime(double duration) {
         duration = controlsettings.samplerate.target.duration;
     } else {
         controlsettings.samplerate.target.duration = duration;
-        controlsettings.samplerate.target.samplerateSet = false;
+        controlsettings.samplerate.target.samplerateSet = ControlSettingsSamplerateTarget::Duration;
     }
 
     if (!specification.isFixedSamplerateDevice) {
         // Calculate the maximum samplerate that would still provide the requested
         // duration
         double maxSamplerate =
-            (double)specification.samplerate.single.recordLengths[controlsettings.recordLengthId] / duration;
+                (double)specification.samplerate.single.recordLengths[controlsettings.recordLengthId] / duration;
 
         // When possible, enable fast rate if the record time can't be set that low
         // to improve resolution
         bool fastRate = (controlsettings.usedChannels <= 1) &&
-                        (maxSamplerate >= specification.samplerate.multi.base /
-                                              specification.bufferDividers[controlsettings.recordLengthId]);
+                (maxSamplerate >= specification.samplerate.multi.base /
+                 specification.bufferDividers[controlsettings.recordLengthId]);
 
         // What is the nearest, at most as high samplerate the scope can provide?
         unsigned downsampler = 0;
@@ -726,10 +711,8 @@ Dso::ErrorCode HantekDsoControl::setRecordTime(double duration) {
                     (sampleCount - controlsettings.swtriggerSampleMargin))break;
         }
         // Usable sample value
-        this->controlCode[CONTROLINDEX_SETTIMEDIV] = CONTROL_SETTIMEDIV;
-        static_cast<ControlSetTimeDIV *>(this->control[CONTROLINDEX_SETTIMEDIV])
-            ->setDiv(specification.fixedSampleRates[sampleId].id);
-        this->controlPending[CONTROLINDEX_SETTIMEDIV] = true;
+        modifyCommand<ControlSetTimeDIV>(ControlCode::CONTROL_SETTIMEDIV)
+                ->setDiv(specification.fixedSampleRates[sampleId].id);
         controlsettings.samplerate.current = specification.fixedSampleRates[sampleId].samplerate;
 
         emit samplerateChanged(controlsettings.samplerate.current);
@@ -744,12 +727,12 @@ Dso::ErrorCode HantekDsoControl::setRecordTime(double duration) {
 Dso::ErrorCode HantekDsoControl::setChannelUsed(unsigned channel, bool used) {
     if (!device->isConnected()) return Dso::ErrorCode::CONNECTION;
 
-    if (channel >= HANTEK_CHANNELS) return Dso::ErrorCode::PARAMETER;
+    if (channel >= specification.channels) return Dso::ErrorCode::PARAMETER;
 
     // Update settings
     controlsettings.voltage[channel].used = used;
     unsigned channelCount = 0;
-    for (unsigned c = 0; c < HANTEK_CHANNELS; ++c) {
+    for (unsigned c = 0; c < specification.channels; ++c) {
         if (controlsettings.voltage[c].used) ++channelCount;
     }
 
@@ -771,22 +754,17 @@ Dso::ErrorCode HantekDsoControl::setChannelUsed(unsigned channel, bool used) {
     switch (specification.command.bulk.setChannels) {
     case BulkCode::SETTRIGGERANDSAMPLERATE: {
         // SetTriggerAndSamplerate bulk command for trigger source
-        static_cast<BulkSetTriggerAndSamplerate *>(command[(uint8_t)BulkCode::SETTRIGGERANDSAMPLERATE])
-            ->setUsedChannels((uint8_t)usedChannels);
-        commandPending[(uint8_t)BulkCode::SETTRIGGERANDSAMPLERATE] = true;
+        modifyCommand<BulkSetTriggerAndSamplerate>(BulkCode::SETTRIGGERANDSAMPLERATE)->setUsedChannels((uint8_t)usedChannels);
         break;
     }
     case BulkCode::BSETCHANNELS: {
         // SetChannels2250 bulk command for active channels
-        static_cast<BulkSetChannels2250 *>(command[(uint8_t)BulkCode::BSETCHANNELS])->setUsedChannels((uint8_t)usedChannels);
-        commandPending[(uint8_t)BulkCode::BSETCHANNELS] = true;
-
+        modifyCommand<BulkSetChannels2250>(BulkCode::BSETCHANNELS)->setUsedChannels((uint8_t)usedChannels);
         break;
     }
     case BulkCode::ESETTRIGGERORSAMPLERATE: {
         // SetTrigger5200s bulk command for trigger source
-        static_cast<BulkSetTrigger5200 *>(command[(uint8_t)BulkCode::ESETTRIGGERORSAMPLERATE])->setUsedChannels((uint8_t)usedChannels);
-        commandPending[(uint8_t)BulkCode::ESETTRIGGERORSAMPLERATE] = true;
+        modifyCommand<BulkSetTrigger5200>(BulkCode::ESETTRIGGERORSAMPLERATE)->setUsedChannels((uint8_t)usedChannels);
         break;
     }
     default:
@@ -809,13 +787,12 @@ Dso::ErrorCode HantekDsoControl::setChannelUsed(unsigned channel, bool used) {
 Dso::ErrorCode HantekDsoControl::setCoupling(unsigned channel, Dso::Coupling coupling) {
     if (!device->isConnected()) return Dso::ErrorCode::CONNECTION;
 
-    if (channel >= HANTEK_CHANNELS) return Dso::ErrorCode::PARAMETER;
+    if (channel >= specification.channels) return Dso::ErrorCode::PARAMETER;
 
     // SetRelays control command for coupling relays
     if (specification.supportsCouplingRelays) {
-        static_cast<ControlSetRelays *>(this->control[CONTROLINDEX_SETRELAYS])
-            ->setCoupling(channel, coupling != Dso::COUPLING_AC);
-        this->controlPending[CONTROLINDEX_SETRELAYS] = true;
+        modifyCommand<ControlSetRelays>(ControlCode::CONTROL_SETRELAYS)
+                ->setCoupling(channel, coupling != Dso::COUPLING_AC);
     }
 
     return Dso::ErrorCode::NONE;
@@ -829,7 +806,7 @@ Dso::ErrorCode HantekDsoControl::setCoupling(unsigned channel, Dso::Coupling cou
 Dso::ErrorCode HantekDsoControl::setGain(unsigned channel, double gain) {
     if (!device->isConnected()) return Dso::ErrorCode::CONNECTION;
 
-    if (channel >= HANTEK_CHANNELS) return Dso::ErrorCode::PARAMETER;
+    if (channel >= specification.channels) return Dso::ErrorCode::PARAMETER;
 
     // Find lowest gain voltage thats at least as high as the requested
     unsigned gainID;
@@ -838,25 +815,21 @@ Dso::ErrorCode HantekDsoControl::setGain(unsigned channel, double gain) {
 
     if (specification.useControlNoBulk) {
         if (channel == 0) {
-            static_cast<ControlSetVoltDIV_CH1 *>(this->control[CONTROLINDEX_SETVOLTDIV_CH1])
-                ->setDiv(specification.gain[gainID].gainIndex);
-            this->controlPending[CONTROLINDEX_SETVOLTDIV_CH1] = true;
+            modifyCommand<ControlSetVoltDIV_CH1>(ControlCode::CONTROL_SETVOLTDIV_CH1)
+                    ->setDiv(specification.gain[gainID].gainIndex);
         } else if (channel == 1) {
-            static_cast<ControlSetVoltDIV_CH2 *>(this->control[CONTROLINDEX_SETVOLTDIV_CH2])
-                ->setDiv(specification.gain[gainID].gainIndex);
-            this->controlPending[CONTROLINDEX_SETVOLTDIV_CH2] = true;
+            modifyCommand<ControlSetVoltDIV_CH2>(ControlCode::CONTROL_SETVOLTDIV_CH2)
+                    ->setDiv(specification.gain[gainID].gainIndex);
         } else
             qDebug("%s: Unsuported channel: %i\n", __func__, channel);
     } else {
         // SetGain bulk command for gain
-        static_cast<BulkSetGain *>(command[(uint8_t)BulkCode::SETGAIN])->setGain(channel, specification.gain[gainID].gainIndex);
-        commandPending[(uint8_t)BulkCode::SETGAIN] = true;
+        modifyCommand<BulkSetGain>(BulkCode::SETGAIN)->setGain(channel, specification.gain[gainID].gainIndex);
 
         // SetRelays control command for gain relays
-        ControlSetRelays *controlSetRelays = static_cast<ControlSetRelays *>(this->control[CONTROLINDEX_SETRELAYS]);
+        ControlSetRelays *controlSetRelays = modifyCommand<ControlSetRelays>(ControlCode::CONTROL_SETRELAYS);
         controlSetRelays->setBelow1V(channel, gainID < 3);
         controlSetRelays->setBelow100mV(channel, gainID < 6);
-        this->controlPending[CONTROLINDEX_SETRELAYS] = true;
     }
 
     controlsettings.voltage[channel].gain = gainID;
@@ -873,21 +846,20 @@ Dso::ErrorCode HantekDsoControl::setGain(unsigned channel, double gain) {
 Dso::ErrorCode HantekDsoControl::setOffset(unsigned channel, double offset) {
     if (!device->isConnected()) return Dso::ErrorCode::CONNECTION;
 
-    if (channel >= HANTEK_CHANNELS) return Dso::ErrorCode::PARAMETER;
+    if (channel >= specification.channels) return Dso::ErrorCode::PARAMETER;
 
     Offset& channelOffLimit = specification.offsetLimit[channel].step[controlsettings.voltage[channel].gain];
     // Calculate the offset value
     // The range is given by the calibration data (convert from big endian)
     unsigned short int minimum = ((unsigned short int)*((unsigned char *)&(channelOffLimit.start)) << 8) +
-                                 *((unsigned char *)&(channelOffLimit.start) + 1);
+            *((unsigned char *)&(channelOffLimit.start) + 1);
     unsigned short int maximum = ((unsigned short int)*((unsigned char *)&(channelOffLimit.end)) << 8) +
-                                 *((unsigned char *)&(channelOffLimit.end) + 1);
+            *((unsigned char *)&(channelOffLimit.end) + 1);
     unsigned short int offsetValue = offset * (maximum - minimum) + minimum + 0.5;
     double offsetReal = (double)(offsetValue - minimum) / (maximum - minimum);
 
     if (specification.supportsOffset) {
-        static_cast<ControlSetOffset *>(this->control[CONTROLINDEX_SETOFFSET])->setChannel(channel, offsetValue);
-        this->controlPending[CONTROLINDEX_SETOFFSET] = true;
+        modifyCommand<ControlSetOffset>(ControlCode::CONTROL_SETOFFSET)->setChannel(channel, offsetValue);
     }
 
     controlsettings.voltage[channel].offset = offset;
@@ -917,7 +889,7 @@ Dso::ErrorCode HantekDsoControl::setTriggerSource(bool special, unsigned id) {
     if (!device->isConnected()) return Dso::ErrorCode::CONNECTION;
     if (specification.isSoftwareTriggerDevice) return Dso::ErrorCode::UNSUPPORTED;
 
-    if (!special && id >= HANTEK_CHANNELS)
+    if (!special && id >= specification.channels)
         return Dso::ErrorCode::PARAMETER;
 
     if (special && id >= specification.specialTriggerChannels.size())
@@ -928,23 +900,20 @@ Dso::ErrorCode HantekDsoControl::setTriggerSource(bool special, unsigned id) {
     switch (specification.command.bulk.setTrigger) {
     case BulkCode::SETTRIGGERANDSAMPLERATE:
         // SetTriggerAndSamplerate bulk command for trigger source
-        static_cast<BulkSetTriggerAndSamplerate *>(command[(uint8_t)BulkCode::SETTRIGGERANDSAMPLERATE])
-            ->setTriggerSource(1 - hardwareID);
-        commandPending[(uint8_t)BulkCode::SETTRIGGERANDSAMPLERATE] = true;
+        modifyCommand<BulkSetTriggerAndSamplerate>(BulkCode::SETTRIGGERANDSAMPLERATE)
+                ->setTriggerSource(1 - hardwareID);
         break;
 
     case BulkCode::CSETTRIGGERORSAMPLERATE:
         // SetTrigger2250 bulk command for trigger source
-        static_cast<BulkSetTrigger2250 *>(command[(uint8_t)BulkCode::CSETTRIGGERORSAMPLERATE])
-            ->setTriggerSource(2 + hardwareID);
-        commandPending[(uint8_t)BulkCode::CSETTRIGGERORSAMPLERATE] = true;
+        modifyCommand<BulkSetTrigger2250>(BulkCode::CSETTRIGGERORSAMPLERATE)
+                ->setTriggerSource(2 + hardwareID);
         break;
 
     case BulkCode::ESETTRIGGERORSAMPLERATE:
         // SetTrigger5200 bulk command for trigger source
-        static_cast<BulkSetTrigger5200 *>(command[(uint8_t)BulkCode::ESETTRIGGERORSAMPLERATE])
-            ->setTriggerSource(1 - hardwareID);
-        commandPending[(uint8_t)BulkCode::ESETTRIGGERORSAMPLERATE] = true;
+        modifyCommand<BulkSetTrigger5200>(BulkCode::ESETTRIGGERORSAMPLERATE)
+                ->setTriggerSource(1 - hardwareID);
         break;
 
     default:
@@ -952,8 +921,7 @@ Dso::ErrorCode HantekDsoControl::setTriggerSource(bool special, unsigned id) {
     }
 
     // SetRelays control command for external trigger relay
-    static_cast<ControlSetRelays *>(this->control[CONTROLINDEX_SETRELAYS])->setTrigger(special);
-    this->controlPending[CONTROLINDEX_SETRELAYS] = true;
+    modifyCommand<ControlSetRelays>(ControlCode::CONTROL_SETRELAYS)->setTrigger(special);
 
     controlsettings.trigger.special = special;
     controlsettings.trigger.source = id;
@@ -961,8 +929,7 @@ Dso::ErrorCode HantekDsoControl::setTriggerSource(bool special, unsigned id) {
     // Apply trigger level of the new source
     if (special) {
         // SetOffset control command for changed trigger level
-        static_cast<ControlSetOffset *>(this->control[CONTROLINDEX_SETOFFSET])->setTrigger(0x7f);
-        this->controlPending[CONTROLINDEX_SETOFFSET] = true;
+        modifyCommand<ControlSetOffset>(ControlCode::CONTROL_SETOFFSET)->setTrigger(0x7f);
     } else
         this->setTriggerLevel(id, controlsettings.trigger.level[id]);
 
@@ -976,7 +943,7 @@ Dso::ErrorCode HantekDsoControl::setTriggerSource(bool special, unsigned id) {
 Dso::ErrorCode HantekDsoControl::setTriggerLevel(unsigned channel, double level) {
     if (!device->isConnected()) return Dso::ErrorCode::CONNECTION;
 
-    if (channel >= HANTEK_CHANNELS) return Dso::ErrorCode::PARAMETER;
+    if (channel >= specification.channels) return Dso::ErrorCode::PARAMETER;
 
     // Calculate the trigger level value
     unsigned short minimum, maximum;
@@ -984,9 +951,9 @@ Dso::ErrorCode HantekDsoControl::setTriggerLevel(unsigned channel, double level)
         Offset& offsetLimit = specification.offsetLimit[channel].step[controlsettings.voltage[channel].gain];
         // The range is the same as used for the offsets for 10 bit models
         minimum = ((unsigned short)*((unsigned char *)&(offsetLimit.start)) << 8) +
-                  *((unsigned char *)&(offsetLimit.start) + 1);
+                *((unsigned char *)&(offsetLimit.start) + 1);
         maximum = ((unsigned short)*((unsigned char *)&(offsetLimit.end)) << 8) +
-                  *((unsigned char *)&(offsetLimit.end) + 1);
+                *((unsigned char *)&(offsetLimit.end) + 1);
     } else {
         // It's from 0x00 to 0xfd for the 8 bit models
         minimum = 0x00;
@@ -998,13 +965,12 @@ Dso::ErrorCode HantekDsoControl::setTriggerLevel(unsigned channel, double level)
     const double offsetReal = controlsettings.voltage[channel].offsetReal;
     const double gainStep = specification.gain[gainID].gainSteps;
     unsigned short levelValue = qBound(
-        minimum, (unsigned short)(((offsetReal + level / gainStep) * (maximum - minimum) + 0.5) + minimum), maximum);
+                minimum, (unsigned short)(((offsetReal + level / gainStep) * (maximum - minimum) + 0.5) + minimum), maximum);
 
     // Check if the set channel is the trigger source
     if (!controlsettings.trigger.special && channel == controlsettings.trigger.source && specification.supportsOffset) {
         // SetOffset control command for trigger level
-        static_cast<ControlSetOffset *>(this->control[CONTROLINDEX_SETOFFSET])->setTrigger(levelValue);
-        this->controlPending[CONTROLINDEX_SETOFFSET] = true;
+        modifyCommand<ControlSetOffset>(ControlCode::CONTROL_SETOFFSET)->setTrigger(levelValue);
     }
 
     /// \todo Get alternating trigger in here
@@ -1024,20 +990,17 @@ Dso::ErrorCode HantekDsoControl::setTriggerSlope(Dso::Slope slope) {
     switch (specification.command.bulk.setTrigger) {
     case BulkCode::SETTRIGGERANDSAMPLERATE: {
         // SetTriggerAndSamplerate bulk command for trigger slope
-        static_cast<BulkSetTriggerAndSamplerate *>(command[(uint8_t)BulkCode::SETTRIGGERANDSAMPLERATE])->setTriggerSlope(slope);
-        commandPending[(uint8_t)BulkCode::SETTRIGGERANDSAMPLERATE] = true;
+        modifyCommand<BulkSetTriggerAndSamplerate>(BulkCode::SETTRIGGERANDSAMPLERATE)->setTriggerSlope(slope);
         break;
     }
     case BulkCode::CSETTRIGGERORSAMPLERATE: {
         // SetTrigger2250 bulk command for trigger slope
-        static_cast<BulkSetTrigger2250 *>(command[(uint8_t)BulkCode::CSETTRIGGERORSAMPLERATE])->setTriggerSlope(slope);
-        commandPending[(uint8_t)BulkCode::CSETTRIGGERORSAMPLERATE] = true;
+        modifyCommand<BulkSetTrigger2250>(BulkCode::CSETTRIGGERORSAMPLERATE)->setTriggerSlope(slope);
         break;
     }
     case BulkCode::ESETTRIGGERORSAMPLERATE: {
         // SetTrigger5200 bulk command for trigger slope
-        static_cast<BulkSetTrigger5200 *>(command[(uint8_t)BulkCode::ESETTRIGGERORSAMPLERATE])->setTriggerSlope(slope);
-        commandPending[(uint8_t)BulkCode::ESETTRIGGERORSAMPLERATE] = true;
+        modifyCommand<BulkSetTrigger5200>(BulkCode::ESETTRIGGERORSAMPLERATE)->setTriggerSlope(slope);
         break;
     }
     default:
@@ -1048,7 +1011,7 @@ Dso::ErrorCode HantekDsoControl::setTriggerSlope(Dso::Slope slope) {
     return Dso::ErrorCode::NONE;
 }
 
-void HantekDsoControl::forceTrigger() { commandPending[(uint8_t)BulkCode::FORCETRIGGER] = true; }
+void HantekDsoControl::forceTrigger() { modifyCommand<BulkCommand>(BulkCode::FORCETRIGGER); }
 
 /// \brief Set the trigger position.
 /// \param position The new trigger position (in s).
@@ -1060,7 +1023,7 @@ Dso::ErrorCode HantekDsoControl::setPretriggerPosition(double position) {
     double positionSamples = position * controlsettings.samplerate.current;
     unsigned recordLength = getRecordLength();
     // Fast rate mode uses both channels
-    if (controlsettings.samplerate.limits == &specification.samplerate.multi) positionSamples /= HANTEK_CHANNELS;
+    if (isFastRate()) positionSamples /= specification.channels;
 
     switch (specification.command.bulk.setPretrigger) {
     case BulkCode::SETTRIGGERANDSAMPLERATE: {
@@ -1068,9 +1031,7 @@ Dso::ErrorCode HantekDsoControl::setPretriggerPosition(double position) {
         unsigned position = isRollMode() ? 0x1 : 0x7ffff - recordLength + (unsigned)positionSamples;
 
         // SetTriggerAndSamplerate bulk command for trigger position
-        static_cast<BulkSetTriggerAndSamplerate *>(command[(uint8_t)BulkCode::SETTRIGGERANDSAMPLERATE])->setTriggerPosition(position);
-        commandPending[(uint8_t)BulkCode::SETTRIGGERANDSAMPLERATE] = true;
-
+        modifyCommand<BulkSetTriggerAndSamplerate>(BulkCode::SETTRIGGERANDSAMPLERATE)->setTriggerPosition(position);
         break;
     }
     case BulkCode::FSETBUFFER: {
@@ -1079,11 +1040,9 @@ Dso::ErrorCode HantekDsoControl::setPretriggerPosition(double position) {
         unsigned positionPost = 0x7ffff - (unsigned)positionSamples;
 
         // SetBuffer2250 bulk command for trigger position
-        BulkSetBuffer2250 *commandSetBuffer2250 = static_cast<BulkSetBuffer2250 *>(command[(uint8_t)BulkCode::FSETBUFFER]);
+        BulkSetBuffer2250 *commandSetBuffer2250 =modifyCommand<BulkSetBuffer2250>(BulkCode::FSETBUFFER);
         commandSetBuffer2250->setTriggerPositionPre(positionPre);
         commandSetBuffer2250->setTriggerPositionPost(positionPost);
-        commandPending[(uint8_t)BulkCode::FSETBUFFER] = true;
-
         break;
     }
     case BulkCode::ESETTRIGGERORSAMPLERATE: {
@@ -1092,11 +1051,9 @@ Dso::ErrorCode HantekDsoControl::setPretriggerPosition(double position) {
         unsigned positionPost = 0xffff - (unsigned)positionSamples;
 
         // SetBuffer5200 bulk command for trigger position
-        BulkSetBuffer5200 *commandSetBuffer5200 = static_cast<BulkSetBuffer5200 *>(command[(uint8_t)BulkCode::DSETBUFFER]);
+        BulkSetBuffer5200 *commandSetBuffer5200 =modifyCommand<BulkSetBuffer5200>(BulkCode::DSETBUFFER);
         commandSetBuffer5200->setTriggerPositionPre((unsigned short)positionPre);
         commandSetBuffer5200->setTriggerPositionPost((unsigned short)positionPost);
-        commandPending[(uint8_t)BulkCode::DSETBUFFER] = true;
-
         break;
     }
     default:
@@ -1113,83 +1070,94 @@ Dso::ErrorCode HantekDsoControl::stringCommand(const QString &commandString) {
     QStringList commandParts = commandString.split(' ', QString::SkipEmptyParts);
 
     if (commandParts.count() < 1) return Dso::ErrorCode::PARAMETER;
-
     if (commandParts[0] != "send") return Dso::ErrorCode::UNSUPPORTED;
-
     if (commandParts.count() < 2) return Dso::ErrorCode::PARAMETER;
 
+    uint8_t codeIndex = 0;
+    hexParse(commandParts[2], &codeIndex, 1);
+    QString data = commandString.section(' ', 2, -1, QString::SectionSkipEmpty);
+
     if (commandParts[1] == "bulk") {
-        QString data = commandString.section(' ', 2, -1, QString::SectionSkipEmpty);
-        unsigned char commandCode = 0;
+        if (codeIndex >= bulkCount || !command[codeIndex]) return Dso::ErrorCode::UNSUPPORTED;
 
-        // Read command code (First byte)
-        hexParse(commandParts[2], &commandCode, 1);
-        if (commandCode > (uint8_t)BulkCode::COUNT) return Dso::ErrorCode::UNSUPPORTED;
-
-        // Update bulk command and mark as pending
-        hexParse(data, command[commandCode]->data(), command[commandCode]->getSize());
-        commandPending[commandCode] = true;
+        BulkCommand* c = modifyCommand<BulkCommand>((BulkCode)codeIndex);
+        hexParse(data, c->data(), c->getSize());
         return Dso::ErrorCode::NONE;
     } else if (commandParts[1] == "control") {
-        unsigned char controlCode = 0;
+        if (codeIndex >= controlCount || !control[codeIndex]) return Dso::ErrorCode::UNSUPPORTED;
 
-        // Read command code (First byte)
-        hexParse(commandParts[2], &controlCode, 1);
-        int cIndex;
-        for (cIndex = 0; cIndex < CONTROLINDEX_COUNT; ++cIndex) {
-            if (this->controlCode[cIndex] == controlCode) break;
-        }
-        if (cIndex >= CONTROLINDEX_COUNT) return Dso::ErrorCode::UNSUPPORTED;
-
-        QString data = commandString.section(' ', 3, -1, QString::SectionSkipEmpty);
-
-        // Update control command and mark as pending
-        hexParse(data, this->control[cIndex]->data(), this->control[cIndex]->getSize());
-        this->controlPending[cIndex] = true;
+        ControlCommand* c = modifyCommand<ControlCommand>((ControlCode)codeIndex);
+        hexParse(data, c->data(), c->getSize());
         return Dso::ErrorCode::NONE;
     } else
         return Dso::ErrorCode::UNSUPPORTED;
+}
+
+void HantekDsoControl::addCommand(BulkCode code, BulkCommand *command, bool pending) {
+    command->pending = pending;
+    this->command[(uint8_t)code] = command;
+    command->next = firstBulkCommand;
+    firstBulkCommand = command;
+}
+
+const BulkCommand *HantekDsoControl::getBulkCommand(BulkCode code) const {
+    return command[(uint8_t)code];
+}
+
+void HantekDsoControl::addCommand(ControlCode code, ControlCommand *command, bool pending) {
+    command->pending = pending;
+    this->control[(uint8_t)code] = command;
+    command->next = firstControlCommand;
+    firstControlCommand = command;
+}
+
+const ControlCommand *HantekDsoControl::getBulkCommand(ControlCode code) const {
+    return control[(uint8_t)code];
 }
 
 void HantekDsoControl::run() {
     int errorCode = 0;
 
     // Send all pending bulk commands
-    for (int cIndex = 0; cIndex < (uint8_t)BulkCode::COUNT; ++cIndex) {
-        if (!commandPending[cIndex]) continue;
+    BulkCommand* bulkCommand = firstBulkCommand;
+    while (bulkCommand) {
+        if (bulkCommand->pending) {
+            timestampDebug(
+                        QString("Sending bulk command:%1").arg(hexDump(bulkCommand->data(), bulkCommand->getSize())));
 
-        timestampDebug(
-            QString("Sending bulk command:%1").arg(hexDump(command[cIndex]->data(), command[cIndex]->getSize())));
-
-        errorCode = device->bulkCommand(command[cIndex]);
-        if (errorCode < 0) {
-            qWarning("Sending bulk command %02x failed: %s", cIndex, libUsbErrorString(errorCode).toLocal8Bit().data());
-            emit communicationError();
-            return;
-        } else
-            commandPending[cIndex] = false;
+            errorCode = device->bulkCommand(bulkCommand);
+            if (errorCode < 0) {
+                qWarning() << "Sending bulk command failed: " << libUsbErrorString(errorCode);
+                emit communicationError();
+                return;
+            } else
+                bulkCommand->pending = false;
+        }
+        bulkCommand = bulkCommand->next;
     }
 
     // Send all pending control commands
-    for (int cIndex = 0; cIndex < CONTROLINDEX_COUNT; ++cIndex) {
-        if (!this->controlPending[cIndex]) continue;
-
-        timestampDebug(QString("Sending control command %1:%2")
-                           .arg(QString::number(this->controlCode[control], 16),
+    ControlCommand* controlCommand = firstControlCommand;
+    while (controlCommand) {
+        if (controlCommand->pending) {
+            timestampDebug(QString("Sending control command %1:%2")
+                           .arg(QString::number(control[cIndex], 16),
                                 hexDump(this->control[control]->data(), this->control[control]->getSize())));
 
-        errorCode = device->controlWrite(this->controlCode[cIndex], this->control[cIndex]->data(),
-                                         this->control[cIndex]->getSize());
-        if (errorCode < 0) {
-            qWarning("Sending control command %2x failed: %s", this->controlCode[cIndex],
-                     libUsbErrorString(errorCode).toLocal8Bit().data());
+            errorCode = device->controlWrite((uint8_t)controlCommand->code, controlCommand->data(),
+                                             controlCommand->getSize());
+            if (errorCode < 0) {
+                qWarning("Sending control command %2x failed: %s", (uint8_t)controlCommand->code,
+                         libUsbErrorString(errorCode).toLocal8Bit().data());
 
-            if (errorCode == LIBUSB_ERROR_NO_DEVICE) {
-                emit communicationError();
-                return;
-            }
-        } else
-            this->controlPending[cIndex] = false;
+                if (errorCode == LIBUSB_ERROR_NO_DEVICE) {
+                    emit communicationError();
+                    return;
+                }
+            } else
+                controlCommand->pending = false;
+        }
+        controlCommand = controlCommand->next;
     }
 
     // State machine for the device communication
@@ -1209,7 +1177,7 @@ void HantekDsoControl::run() {
             // Sampling hasn't started, update the expected sample count
             this->previousSampleCount = this->getSampleCount();
 
-            errorCode = device->bulkCommand(command[(uint8_t)BulkCode::STARTSAMPLING]);
+            errorCode = device->bulkCommand(getBulkCommand(BulkCode::STARTSAMPLING));
             if (errorCode < 0) {
                 if (errorCode == LIBUSB_ERROR_NO_DEVICE) {
                     emit communicationError();
@@ -1225,7 +1193,7 @@ void HantekDsoControl::run() {
             break;
 
         case RollState::ENABLETRIGGER:
-            errorCode = device->bulkCommand(command[(uint8_t)BulkCode::ENABLETRIGGER]);
+            errorCode = device->bulkCommand(getBulkCommand(BulkCode::ENABLETRIGGER));
             if (errorCode < 0) {
                 if (errorCode == LIBUSB_ERROR_NO_DEVICE) {
                     emit communicationError();
@@ -1239,7 +1207,7 @@ void HantekDsoControl::run() {
             break;
 
         case RollState::FORCETRIGGER:
-            errorCode = device->bulkCommand(command[(uint8_t)BulkCode::FORCETRIGGER]);
+            errorCode = device->bulkCommand(getBulkCommand(BulkCode::FORCETRIGGER));
             if (errorCode < 0) {
                 if (errorCode == LIBUSB_ERROR_NO_DEVICE) {
                     emit communicationError();
@@ -1322,7 +1290,7 @@ void HantekDsoControl::run() {
                 if (this->cycleCounter == this->startCycle && !isRollMode()) {
                     // Buffer refilled completely since start of sampling, enable the
                     // trigger now
-                    errorCode = device->bulkCommand(command[(uint8_t)BulkCode::ENABLETRIGGER]);
+                    errorCode = device->bulkCommand(getBulkCommand(BulkCode::ENABLETRIGGER));
                     if (errorCode < 0) {
                         if (errorCode == LIBUSB_ERROR_NO_DEVICE) {
                             emit communicationError();
@@ -1335,7 +1303,7 @@ void HantekDsoControl::run() {
                 } else if (this->cycleCounter >= 8 + this->startCycle &&
                            controlsettings.trigger.mode == Dso::TRIGGERMODE_AUTO) {
                     // Force triggering
-                    errorCode = device->bulkCommand(command[(uint8_t)BulkCode::FORCETRIGGER]);
+                    errorCode = device->bulkCommand(getBulkCommand(BulkCode::FORCETRIGGER));
                     if (errorCode < 0) {
                         if (errorCode == LIBUSB_ERROR_NO_DEVICE) {
                             emit communicationError();
@@ -1351,7 +1319,7 @@ void HantekDsoControl::run() {
             }
 
             // Start capturing
-            errorCode = device->bulkCommand(command[(uint8_t)BulkCode::STARTSAMPLING]);
+            errorCode = device->bulkCommand(getBulkCommand(BulkCode::STARTSAMPLING));
             if (errorCode < 0) {
                 if (errorCode == LIBUSB_ERROR_NO_DEVICE) {
                     emit communicationError();

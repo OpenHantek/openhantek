@@ -1,7 +1,6 @@
 #include "modelDSO6022.h"
 #include "usb/usbdevice.h"
 #include "hantekprotocol/controlStructs.h"
-#include "controlindexes.h"
 #include "hantekdsocontrol.h"
 
 using namespace Hantek;
@@ -38,24 +37,10 @@ ModelDSO6022BE::ModelDSO6022BE() : DSOModel(ID, 0x04b5, 0x6022, 0x04b4, 0x6022, 
 void ModelDSO6022BE::applyRequirements(HantekDsoControl *dsoControl) const {
     dsoControl->getDevice()->overwriteInPacketLength(16384);
 
-    dsoControl->control[CONTROLINDEX_SETVOLTDIV_CH1] = new ControlSetVoltDIV_CH1();
-    dsoControl->controlCode[CONTROLINDEX_SETVOLTDIV_CH1] = CONTROL_SETVOLTDIV_CH1;
-    dsoControl->controlPending[CONTROLINDEX_SETVOLTDIV_CH1] = true;
-
-    dsoControl->control[CONTROLINDEX_SETVOLTDIV_CH2] = new ControlSetVoltDIV_CH2();
-    dsoControl->controlCode[CONTROLINDEX_SETVOLTDIV_CH2] = CONTROL_SETVOLTDIV_CH2;
-    dsoControl->controlPending[CONTROLINDEX_SETVOLTDIV_CH2] = true;
-
-    dsoControl->control[CONTROLINDEX_SETTIMEDIV] = new ControlSetTimeDIV();
-    dsoControl->controlCode[CONTROLINDEX_SETTIMEDIV] = CONTROL_SETTIMEDIV;
-    dsoControl->controlPending[CONTROLINDEX_SETTIMEDIV] = true;
-
-    dsoControl->control[CONTROLINDEX_ACQUIIRE_HARD_DATA] = new ControlAcquireHardData();
-    dsoControl->controlCode[CONTROLINDEX_ACQUIIRE_HARD_DATA] = CONTROL_ACQUIIRE_HARD_DATA;
-    dsoControl->controlPending[CONTROLINDEX_ACQUIIRE_HARD_DATA] = true;
-
-    dsoControl->controlPending[CONTROLINDEX_SETOFFSET] = false;
-    dsoControl->controlPending[CONTROLINDEX_SETRELAYS] = false;
+    dsoControl->addCommand(ControlCode::CONTROL_SETVOLTDIV_CH1, new ControlSetVoltDIV_CH1());
+    dsoControl->addCommand(ControlCode::CONTROL_SETVOLTDIV_CH2, new ControlSetVoltDIV_CH2());
+    dsoControl->addCommand(ControlCode::CONTROL_SETTIMEDIV, new ControlSetTimeDIV());
+    dsoControl->addCommand(ControlCode::CONTROL_ACQUIIRE_HARD_DATA, new ControlAcquireHardData());
 }
 
 ModelDSO6022LE::ModelDSO6022LE() {

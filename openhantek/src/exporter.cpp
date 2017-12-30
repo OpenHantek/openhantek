@@ -231,7 +231,7 @@ bool Exporter::exportSamples(const DataAnalyzerResult *result) {
             switch (settings->scope.horizontal.format) {
             case Dso::GRAPHFORMAT_TY:
                 // Add graphs for channels
-                for (int channel = 0; channel < settings->scope.voltage.size(); ++channel) {
+                for (unsigned channel = 0; channel < settings->scope.voltage.size(); ++channel) {
                     if (settings->scope.voltage[channel].used && result->data(channel)) {
                         painter.setPen(QPen(colorValues->voltage[channel], 0));
 

@@ -7,7 +7,6 @@
 #include "states.h"
 #include "controlspecification.h"
 #include "controlsettings.h"
-#include "controlindexes.h"
 #include "utils/printutils.h"
 
 #include <vector>
@@ -86,6 +85,19 @@ class HantekDsoControl : public QObject {
     /// \return See ::Dso::ErrorCode.
     Dso::ErrorCode stringCommand(const QString &commandString);
 
+    void addCommand(Hantek::BulkCode code, Hantek::BulkCommand* command, bool pending = true);
+    template<class T> T* modifyCommand(Hantek::BulkCode code) {
+        command[(uint8_t)code]->pending = true;
+        return static_cast<T*>(command[(uint8_t)code]);
+    }
+    const Hantek::BulkCommand* getBulkCommand(Hantek::BulkCode code) const;
+
+    void addCommand(Hantek::ControlCode code, Hantek::ControlCommand* command, bool pending = true);
+    template<class T> T* modifyCommand(Hantek::ControlCode code) {
+        control[(uint8_t)code]->pending = true;
+        return static_cast<T*>(control[(uint8_t)code]);
+    }
+    const Hantek::ControlCommand* getBulkCommand(Hantek::ControlCode code) const;
   private:
     bool isRollMode() const;
     bool isFastRate() const;
@@ -145,18 +157,15 @@ class HantekDsoControl : public QObject {
     /// \brief Update the minimum and maximum supported samplerate.
     void updateSamplerateLimits();
 
-  public: // TODO redo command queues
-    /// Pointers to bulk commands, ready to be transmitted
-    Hantek::BulkCommand *command[(uint8_t)Hantek::BulkCode::COUNT] = {0};
-    /// true, when the command should be executed
-    bool commandPending[(uint8_t)Hantek::BulkCode::COUNT] = {false};
-    ///< Pointers to control commands
-    Hantek::ControlCommand *control[Hantek::CONTROLINDEX_COUNT] = {0};
-    ///< Request codes for control commands
-    unsigned char controlCode[Hantek::CONTROLINDEX_COUNT];
-    ///< true, when the control command should be executed
-    bool controlPending[Hantek::CONTROLINDEX_COUNT] = {false};
   private:
+    /// Pointers to bulk/control commands
+    static constexpr size_t bulkCount = std::numeric_limits<typename std::underlying_type<Hantek::ControlCode>::type>::max();
+    Hantek::BulkCommand *command[bulkCount] = {0};
+    Hantek::BulkCommand* firstBulkCommand = nullptr;
+    static constexpr size_t controlCount = std::numeric_limits<typename std::underlying_type<Hantek::ControlCode>::type>::max();
+    Hantek::ControlCommand *control[controlCount] = {0};
+    Hantek::ControlCommand* firstControlCommand = nullptr;
+
     // Communication with device
     USBDevice *device;     ///< The USB device for the oscilloscope
     bool sampling = false; ///< true, if the oscilloscope is taking samples

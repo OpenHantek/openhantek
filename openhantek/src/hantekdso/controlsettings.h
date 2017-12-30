@@ -12,7 +12,10 @@ struct ControlSamplerateLimits;
 struct ControlSettingsSamplerateTarget {
     double samplerate;  ///< The target samplerate set via setSamplerate
     double duration;    ///< The target record time set via setRecordTime
-    bool samplerateSet; ///< true means samplerate was set last, false duration
+    enum SamplerrateSet {
+        Duration,
+        Samplerrate
+    } samplerateSet;
 };
 
 //////////////////////////////////////////////////////////////////////////////
