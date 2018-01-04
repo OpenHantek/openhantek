@@ -245,7 +245,7 @@ int USBDevice::controlTransfer(unsigned char type, unsigned char request, unsign
 int USBDevice::controlWrite(uint8_t request, unsigned char *data, unsigned int length, int value, int index,
                             int attempts) {
     if (!this->handle) return LIBUSB_ERROR_NO_DEVICE;
-
+    // std::cout << "control" << (int)request << " l:"<<length<<" d:"<<(int)data[0] << std::endl;
     return this->controlTransfer(LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_OUT, request, data, length, value, index,
                                  attempts);
 }

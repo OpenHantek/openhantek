@@ -2,6 +2,8 @@
 
 #include <QTimer>
 #include <QDesktopServices>
+#include <QFile>
+#include <QUrl>
 
 #include "utils/printutils.h"
 #include "usb/uploadFirmware.h"
@@ -64,7 +66,7 @@ std::unique_ptr<USBDevice> SelectSupportedDevice::showSelectDeviceModal(libusb_c
                                 "Don't forget to switch your device into oscilloscope mode if it has multiple modes.</p>"
                                 );
     #if defined(Q_OS_WIN)
-        generalMessage = generalMessage.arg("Please make sure you have installed the windows usb driver correctly");
+        messageNoDevices += tr("<p>Please make sure you have installed the windows usb driver correctly</p>");
     #elif defined(Q_OS_LINUX)
         QFile file("/lib/udev/rules.d/60-hantek.rules");
         if (!file.exists()) {

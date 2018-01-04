@@ -5,7 +5,7 @@
 
 using namespace Hantek;
 
-ModelDSO6022BE::ModelDSO6022BE() : DSOModel(ID, 0x04b5, 0x6022, 0x04b4, 0x6022, "dso6022be", "DSO-6022BE", Hantek::ControlSpecification()) {
+ModelDSO6022BE::ModelDSO6022BE() : DSOModel(ID, 0x04b5, 0x6022, 0x04b4, 0x6022, "dso6022be", "DSO-6022BE", Dso::ControlSpecification()) {
     // 6022BE do not support any bulk commands
     specification.useControlNoBulk = true;
     specification.isSoftwareTriggerDevice = true;
@@ -32,15 +32,17 @@ ModelDSO6022BE::ModelDSO6022BE() : DSOModel(ID, 0x04b5, 0x6022, 0x04b4, 0x6022, 
     specification.fixedSampleRates = { {10,1e5} , {20,2e5} , {50,5e5} , {1,1e6} , {2,2e6} , {4,4e6} , {8,8e6} ,
                                        {16,16e6} , {24,24e6} , {48,48e6} };
     specification.sampleSize = 8;
+
+    specification.couplings = {Dso::Coupling::DC};
 }
 
 void ModelDSO6022BE::applyRequirements(HantekDsoControl *dsoControl) const {
     dsoControl->getDevice()->overwriteInPacketLength(16384);
 
-    dsoControl->addCommand(ControlCode::CONTROL_SETVOLTDIV_CH1, new ControlSetVoltDIV_CH1());
-    dsoControl->addCommand(ControlCode::CONTROL_SETVOLTDIV_CH2, new ControlSetVoltDIV_CH2());
-    dsoControl->addCommand(ControlCode::CONTROL_SETTIMEDIV, new ControlSetTimeDIV());
     dsoControl->addCommand(ControlCode::CONTROL_ACQUIIRE_HARD_DATA, new ControlAcquireHardData());
+    dsoControl->addCommand(ControlCode::CONTROL_SETTIMEDIV, new ControlSetTimeDIV());
+    dsoControl->addCommand(ControlCode::CONTROL_SETVOLTDIV_CH2, new ControlSetVoltDIV_CH2());
+    dsoControl->addCommand(ControlCode::CONTROL_SETVOLTDIV_CH1, new ControlSetVoltDIV_CH1());
 }
 
 ModelDSO6022LE::ModelDSO6022LE() {

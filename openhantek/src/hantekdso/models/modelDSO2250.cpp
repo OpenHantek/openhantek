@@ -5,7 +5,7 @@
 
 using namespace Hantek;
 
-ModelDSO2250::ModelDSO2250() : DSOModel(ID, 0x04b5, 0x2250, 0x04b4, 0x2250, "dso2250x86", "DSO-2250", Hantek::ControlSpecification()) {
+ModelDSO2250::ModelDSO2250() : DSOModel(ID, 0x04b5, 0x2250, 0x04b4, 0x2250, "dso2250x86", "DSO-2250", Dso::ControlSpecification()) {
     specification.command.bulk.setRecordLength = BulkCode::DSETBUFFER;
     specification.command.bulk.setChannels = BulkCode::BSETCHANNELS;
     specification.command.bulk.setSamplerate = BulkCode::ESETTRIGGERORSAMPLERATE;
