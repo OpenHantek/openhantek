@@ -30,6 +30,7 @@ anyway, ignore it
 #include "DsoConfigColorsPage.h"
 #include "DsoConfigFilesPage.h"
 #include "DsoConfigScopePage.h"
+#include "DsoConfigProbePage.h"
 
 #include "settings.h"
 
@@ -58,11 +59,14 @@ DsoConfigDialog::DsoConfigDialog(DsoSettings *settings, QWidget *parent, Qt::Win
     this->colorsPage = new DsoConfigColorsPage(settings);
     this->filesPage = new DsoConfigFilesPage(settings);
     this->scopePage = new DsoConfigScopePage(settings);
+    this->probePage = new DsoConfigProbePage(this->settings);
+
     this->pagesWidget = new QStackedWidget;
     this->pagesWidget->addWidget(this->analysisPage);
     this->pagesWidget->addWidget(this->colorsPage);
     this->pagesWidget->addWidget(this->filesPage);
     this->pagesWidget->addWidget(this->scopePage);
+    this->pagesWidget->addWidget(this->probePage);
 
     this->acceptButton = new QPushButton(tr("&Ok"));
     this->acceptButton->setDefault(true);
@@ -116,6 +120,10 @@ void DsoConfigDialog::createIcons() {
     scopeButton->setIcon(QIcon(":config/scope.png"));
     scopeButton->setText(tr("Scope"));
 
+    QListWidgetItem *probeButton = new QListWidgetItem(contentsWidget);
+    probeButton->setIcon(QIcon(":config/scope.png"));
+    probeButton->setText(tr("Probes"));
+
     connect(contentsWidget, &QListWidget::currentItemChanged, this,
             &DsoConfigDialog::changePage);
 }
@@ -133,6 +141,7 @@ void DsoConfigDialog::apply() {
     this->colorsPage->saveSettings();
     this->filesPage->saveSettings();
     this->scopePage->saveSettings();
+    this->probePage->saveSettings();
 }
 
 /// \brief Change the config page.

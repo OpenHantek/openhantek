@@ -53,11 +53,14 @@ struct DsoSettingsScopeSpectrum {
 struct DsoSettingsScopeVoltage {
     unsigned gainStepIndex = 6; ///< The vertical resolution in V/div (default = 1.0)
     bool inverted = false;      ///< true if the channel is inverted (mirrored on cross-axis)
-    union {                     ///< Different enums, coupling for real- and mode for math-channels
-        Dso::MathMode math;
-        unsigned couplingIndex = 0;
-        int rawValue;
-    };
+                                ///< Different enums, coupling for real- and mode for math-channels
+    Dso::MathMode math;
+    unsigned int couplingIndex = 0;
+    int rawValue;
+
+    std::vector<double> probeGainSteps; ///< Probe gain steps for channel
+    double probe_gain = 1;
+
     QString name;         ///< Name of this channel
     double offset = 0.0;  ///< Vertical offset in divs
     double trigger = 0.0; ///< Trigger level in V

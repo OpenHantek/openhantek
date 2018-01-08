@@ -1078,9 +1078,9 @@ void HantekDsoControl::run() {
     ControlCommand *controlCommand = firstControlCommand;
     while (controlCommand) {
         if (controlCommand->pending) {
-            timestampDebug(QString("Sending control command %1:%2")
-                               .arg(QString::number(control[cIndex], 16),
-                                    hexDump(this->control[control]->data(), this->control[control]->getSize())));
+//            timestampDebug(QString("Sending control command %1:%2")
+//                               .arg(QString::number(control[cIndex], 16),
+//                                    hexDump(this->control[control]->data(), this->control[control]->getSize())));
 
             errorCode = device->controlWrite(controlCommand);
             if (errorCode < 0) {
@@ -1216,10 +1216,10 @@ void HantekDsoControl::run() {
             // Start next capture if necessary by leaving out the break statement
 
             if (!this->sampling) break;
-#if __has_cpp_attribute(fallthrough) // Make compiler happy
-            else
-                [[fallthrough]];
-#endif
+//#if __has_cpp_attribute(fallthrough) // Make compiler happy
+//            else
+//                [[fallthrough]];
+//#endif
         case CAPTURE_WAITING:
             // Sampling hasn't started, update the expected sample count
             expectedSampleCount = this->getSampleCount();

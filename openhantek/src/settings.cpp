@@ -4,6 +4,7 @@
 #include <QColor>
 #include <QDebug>
 #include <QSettings>
+#include <iostream>
 
 #include "settings.h"
 
