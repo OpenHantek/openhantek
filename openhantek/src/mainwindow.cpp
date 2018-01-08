@@ -149,11 +149,14 @@ MainWindow::MainWindow(HantekDsoControl *dsoControl, DataAnalyzer *dataAnalyser,
     connect(voltageDock, &VoltageDock::couplingChanged, dsoWidget, &DsoWidget::updateVoltageCoupling);
     connect(voltageDock, &VoltageDock::modeChanged, dsoWidget, &DsoWidget::updateMathMode);
     connect(voltageDock, &VoltageDock::gainChanged, [this](ChannelID channel, double gain) {
+
         if (channel >= this->settings->deviceSpecification->channels) return;
 
         this->dsoControl->setGain(channel, this->settings->scope.gain(channel) * DIVS_VOLTAGE);
     });
-    connect(voltageDock, &VoltageDock::gainChanged, dsoWidget, &DsoWidget::updateVoltageGain);
+
+//    connect(voltageDock, &VoltageDock::gainChanged, dsoWidget, &DsoWidget::updateVoltageGain);
+    connect(voltageDock, &VoltageDock::probeGainChanged, dsoWidget, &DsoWidget::updateProbeGain);
     connect(dsoWidget, &DsoWidget::offsetChanged, [this](ChannelID channel) {
         if (channel >= this->settings->deviceSpecification->channels) return;
         this->dsoControl->setOffset(channel, (this->settings->scope.voltage[channel].offset / DIVS_VOLTAGE) + 0.5);

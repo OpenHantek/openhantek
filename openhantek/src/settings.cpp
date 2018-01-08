@@ -14,6 +14,8 @@
 /// \param channels The new channel count, that will be applied to lists.
 DsoSettings::DsoSettings(const Dso::ControlSpecification* deviceSpecification)
     : deviceSpecification(deviceSpecification) {
+    // Qvariant for the list of probe settings
+    qRegisterMetaTypeStreamOperators<QList<double> >("QList<double>");
 
     // Add new channels to the list
     while (scope.spectrum.size() < deviceSpecification->channels) {
@@ -114,6 +116,21 @@ void DsoSettings::load() {
         if (store->contains("offset")) scope.voltage[channel].offset = store->value("offset").toDouble();
         if (store->contains("trigger")) scope.voltage[channel].trigger = store->value("trigger").toDouble();
         if (store->contains("used")) scope.voltage[channel].used = store->value("used").toBool();
+        if(store->contains("probeGainSteps")) {
+
+            QList<double> gains = QVariant(store->value("probeGainSteps")).value<QList<double>>();
+            for(double v: gains){
+                this->scope.voltage[channel].probeGainSteps.push_back(v);
+            }
+        }
+        if(this->scope.voltage[channel].probeGainSteps.empty()) {
+            for(double defaultValue: scope.voltage[channel].defaultValues) {
+                scope.voltage[channel].probeGainSteps.push_back(defaultValue);
+            }
+        }
+        if(store->contains("probeGain"))
+            this->scope.voltage[channel].probe_gain = store->value("probeGain").toDouble();
+        if(store->contains("probeGain")) scope.voltage[channel].probe_gain = store->value("probeGain").toDouble();
         store->endGroup();
     }
     if (store->contains("spectrumLimit")) scope.spectrumLimit = store->value("spectrumLimit").toDouble();
@@ -214,6 +231,8 @@ void DsoSettings::save() {
         store->setValue("offset", scope.voltage[channel].offset);
         store->setValue("trigger", scope.voltage[channel].trigger);
         store->setValue("used", scope.voltage[channel].used);
+        store->setValue("probeGainSteps", QVariant::fromValue(scope.voltage[channel].probeGainSteps));
+        store->setValue("probeGain", scope.voltage[channel].probe_gain);
         store->endGroup();
     }
     store->setValue("spectrumLimit", scope.spectrumLimit);

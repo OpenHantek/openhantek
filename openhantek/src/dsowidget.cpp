@@ -519,3 +519,11 @@ void DsoWidget::updateMarker(int marker, double value) {
 
     emit markerChanged(marker, value);
 }
+
+void DsoWidget::updateProbeGain(unsigned int channel) {
+    if(channel >= (unsigned int) scope->voltage.size())
+        return;
+
+    updateVoltageDetails(channel);
+
+}

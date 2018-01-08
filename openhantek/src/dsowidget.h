@@ -21,24 +21,32 @@ struct DsoSettingsView;
 /// \brief The widget for the oszilloscope-screen
 /// This widget contains the scopes and all level sliders.
 class DsoWidget : public QWidget {
-    Q_OBJECT
+Q_OBJECT
 
-  public:
+public:
     /// \brief Initializes the components of the oszilloscope-screen.
     /// \param settings The settings object containing the oscilloscope settings.
     /// \param dataAnalyzer The data analyzer that should be used as data source.
     /// \param parent The parent widget.
     /// \param flags Flags for the window manager.
-    DsoWidget(DsoSettingsScope* scope, DsoSettingsView* view, const Dso::ControlSpecification* spec, QWidget *parent = 0, Qt::WindowFlags flags = 0);
+    DsoWidget(DsoSettingsScope *scope, DsoSettingsView *view, const Dso::ControlSpecification *spec,
+              QWidget *parent = 0, Qt::WindowFlags flags = 0);
+
     void showNewData(std::unique_ptr<DataAnalyzerResult> data);
+
     void setExporterForNextFrame(std::unique_ptr<Exporter> exporter);
 
-  protected:
+protected:
     void adaptTriggerLevelSlider(ChannelID channel);
+
     void setMeasurementVisible(ChannelID channel, bool visible);
+
     void updateMarkerDetails();
+
     void updateSpectrumDetails(ChannelID channel);
+
     void updateTriggerDetails();
+
     void updateVoltageDetails(ChannelID channel);
 
     QGridLayout *mainLayout;            ///< The main layout for this widget
@@ -71,36 +79,47 @@ class DsoWidget : public QWidget {
     std::vector<QLabel *> measurementAmplitudeLabel; ///< Amplitude of the signal (V)
     std::vector<QLabel *> measurementFrequencyLabel; ///< Frequency of the signal (Hz)
 
-    DsoSettingsScope* scope;
-    DsoSettingsView* view;
-    const Dso::ControlSpecification* spec;
+    DsoSettingsScope *scope;
+    DsoSettingsView *view;
+    const Dso::ControlSpecification *spec;
 
     GlGenerator *generator; ///< The generator for the OpenGL vertex arrays
     GlScope *mainScope;     ///< The main scope screen
     GlScope *zoomScope;     ///< The optional magnified scope screen
     std::unique_ptr<Exporter> exportNextFrame;
     std::unique_ptr<DataAnalyzerResult> data;
-  public slots:
+public slots:
+
     // Horizontal axis
     // void horizontalFormatChanged(HorizontalFormat format);
     void updateFrequencybase(double frequencybase);
+
     void updateSamplerate(double samplerate);
+
     void updateTimebase(double timebase);
 
     // Trigger
     void updateTriggerMode();
+
     void updateTriggerSlope();
+
     void updateTriggerSource();
 
     // Spectrum
     void updateSpectrumMagnitude(ChannelID channel);
+
     void updateSpectrumUsed(ChannelID channel, bool used);
 
     // Vertical axis
     void updateVoltageCoupling(ChannelID channel);
+
     void updateMathMode();
+
     void updateVoltageGain(ChannelID channel);
+
     void updateVoltageUsed(ChannelID channel, bool used);
+    void updateProbeGain(ChannelID channel);
+
 
     // Menus
     void updateRecordLength(unsigned long size);
@@ -111,14 +130,19 @@ class DsoWidget : public QWidget {
     // Data analyzer
     void doShowNewData();
 
-  private slots:
+private slots:
+
     // Sliders
     void updateOffset(ChannelID channel, double value);
+
     void updateTriggerPosition(int index, double value);
+
     void updateTriggerLevel(ChannelID channel, double value);
+
     void updateMarker(int marker, double value);
 
-  signals:
+signals:
+
     // Sliders
     void offsetChanged(ChannelID channel, double value);       ///< A graph offset has been changed
     void triggerPositionChanged(double value);                    ///< The pretrigger has been changed

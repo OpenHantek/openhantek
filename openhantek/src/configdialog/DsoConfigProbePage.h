@@ -28,7 +28,6 @@ class DsoConfigProbePage: public QWidget {
     public:
     DsoConfigProbePage(DsoSettings *settings, QWidget *parent = 0);
     ~DsoConfigProbePage();
-    std::vector<double> defaultValues{1e0,2e0,5e0,10e0};
 
     public slots:
         void saveSettings();

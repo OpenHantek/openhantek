@@ -31,9 +31,9 @@ DsoConfigProbePage::DsoConfigProbePage(DsoSettings *settings, QWidget *parent ):
                     }
                 }
             }else{
-                for (unsigned int idx = 0; idx < this->defaultValues.size(); idx++) {
-                    values += QString::number(this->defaultValues[idx]);
-                    if (idx != this->defaultValues.size() - 1) {
+                for (unsigned int idx = 0; idx < this->settings->scope.voltage[channel].defaultValues.size(); idx++) {
+                    values += QString::number(this->settings->scope.voltage[channel].defaultValues[idx]);
+                    if (idx != this->settings->scope.voltage[channel].defaultValues.size() - 1) {
                         values += ",";
                     }
                 }
@@ -70,7 +70,7 @@ DsoConfigProbePage::~DsoConfigProbePage() {
 void DsoConfigProbePage::saveSettings() {
     //TODO find a way to refresh a widget
     for(unsigned int channel = 0; channel < this->settings->scope.voltage.size(); ++channel) {
-        if(channel < (int) this->settings->deviceSpecification->channels) {
+        if(channel < this->settings->deviceSpecification->channels) {
             // Clear the list
             this->settings->scope.voltage[channel].probeGainSteps.clear();
             QStringList values = this->probeAttenuations[channel]->text().split(',');
@@ -84,7 +84,7 @@ void DsoConfigProbePage::saveSettings() {
             }
             // Try to have a fallback solution in the case of non valid settings
             if(this->settings->scope.voltage[channel].probeGainSteps.empty()){
-                for(double defaultValue: this->defaultValues) {
+                for(double defaultValue: this->settings->scope.voltage[channel].defaultValues) {
                     this->settings->scope.voltage[channel].probeGainSteps.push_back(defaultValue);
                 }
             }

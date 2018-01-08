@@ -50,23 +50,39 @@ VoltageDock::VoltageDock(DsoSettingsScope *scope, const Dso::ControlSpecificatio
         b.gainComboBox=(new QComboBox());
         b.invertCheckBox=(new QCheckBox(tr("Invert")));
         b.usedCheckBox=(new QCheckBox(scope->voltage[channel].name));
+        b.probeGainCombobox=(new QComboBox());
 
         channelBlocks.push_back(std::move(b));
 
-        if (channel < spec->channels)
+        if (channel < spec->channels) {
             b.miscComboBox->addItems(couplingStrings);
+            QStringList probeGainStrings;
+            for(double probe_gain: scope->voltage[channel].probeGainSteps)
+                probeGainStrings << valueToString(probe_gain, UNIT_TIMES, 0);
+            b.probeGainCombobox->addItems(probeGainStrings);
+
+        }
         else
             b.miscComboBox->addItems(modeStrings);
 
         b.gainComboBox->addItems(gainStrings);
 
-        dockLayout->addWidget(b.usedCheckBox, (int)channel * 3, 0);
-        dockLayout->addWidget(b.gainComboBox, (int)channel * 3, 1);
-        dockLayout->addWidget(b.miscComboBox, (int)channel * 3 + 1, 1);
-        dockLayout->addWidget(b.invertCheckBox, (int)channel * 3 + 2, 1);
+        dockLayout->addWidget(b.usedCheckBox, (int)channel * 4, 0);
+        dockLayout->addWidget(b.gainComboBox, (int)channel * 4, 1);
+        dockLayout->addWidget(b.miscComboBox, (int)channel * 4 + 1, 1);
 
-        if (channel < spec->channels)
+        if(channel < spec->channels){
+            dockLayout->addWidget(b.probeGainCombobox, (int) channel * 4 + 2, 1);
+            dockLayout->addWidget(b.invertCheckBox, (int)channel * 4 + 3, 1);
+        }
+        else {
+            dockLayout->addWidget(b.invertCheckBox, (int) channel * 4 + 2, 1);
+        }
+
+        if (channel < spec->channels) {
             setCoupling(channel, scope->voltage[channel].couplingIndex);
+            setProbeGain(channel, scope->voltage[channel].probe_gain);
+        }
         else
             setMode(scope->voltage[channel].math);
         setGain(channel, scope->voltage[channel].gainStepIndex);
@@ -92,6 +108,16 @@ VoltageDock::VoltageDock(DsoSettingsScope *scope, const Dso::ControlSpecificatio
             this->scope->voltage[channel].used = checked;
             emit usedChanged(channel, checked);
         });
+        connect(b.probeGainCombobox, SELECT<int>::OVERLOAD_OF(&QComboBox::currentIndexChanged), [this,channel,scope](int index){
+
+            this->scope->voltage[channel].probeStepIndex = (unsigned)index;
+            this->scope->voltage[channel].probe_gain = this->scope->voltage[channel].probeGainSteps[index];
+            emit probeGainChanged(channel, this->scope->voltage[channel].probe_gain);
+
+        });
+
+
+
     }
 
     dockWidget = new QWidget();
@@ -129,3 +155,32 @@ void VoltageDock::setUsed(ChannelID channel, bool used) {
     QSignalBlocker blocker(channelBlocks[channel].usedCheckBox);
     channelBlocks[channel].usedCheckBox->setChecked(used);
 }
+
+int VoltageDock::setProbeGain(int channel, double probeGain) {
+    if (channel < 0 ||channel >= spec->channels) return -1;
+
+    QSignalBlocker blocker(channelBlocks[channel].probeGainCombobox);
+    int index = (int) (std::find(scope->voltage[channel].probeGainSteps.begin(),
+                                 scope->voltage[channel].probeGainSteps.end(),
+                                 probeGain)
+                       - scope->voltage[channel].probeGainSteps.begin());
+    if(index != -1)
+        channelBlocks[channel].probeGainCombobox->setCurrentIndex(index);
+
+    return index;
+
+}
+
+//void VoltageDock::probeGainSettingsUpdated() {
+//    for(int channel = 0; channel < scope->voltage.count(); channel) {
+//        if(channel < (int) scope.) {
+//                //Remove all the old values
+//                        this->probeGainCombobox[channel]->clear();
+//                // Rebuild the combobox with the new values
+//                        QStringList probeGainStrings;
+//                for(double probe_gain: this->settings->scope.voltage[channel].probeGainSteps)
+//                        probeGainStrings << Helper::valueToString(probe_gain, Helper::UNIT_TIMES, 0);
+//                this->probeGainCombobox[channel]->addItems(probeGainStrings);
+//            }
+//    }
+//}

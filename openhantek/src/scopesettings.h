@@ -59,7 +59,9 @@ struct DsoSettingsScopeVoltage {
     int rawValue;
 
     std::vector<double> probeGainSteps; ///< Probe gain steps for channel
-    double probe_gain = 1;
+    double probe_gain = 1; ///< Default value for the probe gain
+    unsigned probeStepIndex=0;
+    std::vector<double> defaultValues{1e0,2e0,5e0,10e0}; ///< List of default values for the probe gains
 
     QString name;         ///< Name of this channel
     double offset = 0.0;  ///< Vertical offset in divs
