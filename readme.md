@@ -21,6 +21,8 @@ OpenHantek is a free software for Hantek and compatible (Voltcraft/Darkwire/Prot
 * A zoom view with a freely selectable range
 * All settings can be saved to a configuration file and loaded again
 * Multiple instances with a different device each can be started
+* The dock views on the main window can be customized by dragging them around and stacking them.
+  This allows a minimum window size of 640*480 for old workstation computers.
 
 ## Install prebuilt binary
 Navigate to the [Releases](https://github.com/OpenHantek/openhantek/releases) page 
