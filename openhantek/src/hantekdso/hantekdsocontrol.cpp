@@ -1225,6 +1225,7 @@ void HantekDsoControl::run() {
             // Start next capture if necessary by leaving out the break statement
 
             if (!this->sampling) break;
+#if defined(__clang__)
 #if __has_cpp_attribute(clang::fallthrough)
 #define FALLTHROUGH [[clang::fallthrough]];
 #elif __has_cpp_attribute(fallthrough)
@@ -1235,6 +1236,7 @@ void HantekDsoControl::run() {
             else {
                 FALLTHROUGH
             }
+#endif
         case CAPTURE_WAITING:
             // Sampling hasn't started, update the expected sample count
             expectedSampleCount = this->getSampleCount();

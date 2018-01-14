@@ -43,7 +43,7 @@ MainWindow::MainWindow(HantekDsoControl *dsoControl, DsoSettings *settings, QWid
     HorizontalDock *horizontalDock;
     TriggerDock *triggerDock;
     SpectrumDock *spectrumDock;
-    VoltageDock *voltageDock;
+
     horizontalDock = new HorizontalDock(scope, this);
     triggerDock = new TriggerDock(scope, spec, this);
     spectrumDock = new SpectrumDock(scope, this);
@@ -229,6 +229,7 @@ MainWindow::MainWindow(HantekDsoControl *dsoControl, DsoSettings *settings, QWid
         mSettings->mainWindowState = saveState();
 
         DsoConfigDialog* configDialog = new DsoConfigDialog(this->mSettings, this);
+        connect(configDialog, &QDialog::finished, voltageDock, &VoltageDock::probeGainSettingsUpdated);
         configDialog->setModal(true);
         configDialog->show();
     });
