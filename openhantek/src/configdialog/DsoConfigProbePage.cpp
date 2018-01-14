@@ -1,6 +1,4 @@
-//
-// Created by jacopo on 08/01/18.
-//
+// SPDX-License-Identifier: GPL-2.0+
 
 #include <QtWidgets/QApplication>
 #include "DsoConfigProbePage.h"

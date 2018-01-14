@@ -1,10 +1,6 @@
-//
-// Created by jacopo on 08/01/18.
-//
+// SPDX-License-Identifier: GPL-2.0+
 
-#ifndef OPENHANTEKPROJECT_DSOCONFIGPROBEPAGE_H
-#define OPENHANTEKPROJECT_DSOCONFIGPROBEPAGE_H
-
+#pragma once
 
 #include <QWidget>
 
@@ -43,5 +39,3 @@ class DsoConfigProbePage: public QWidget {
 };
 
 
-
-#endif //OPENHANTEKPROJECT_DSOCONFIGPROBEPAGE_H
