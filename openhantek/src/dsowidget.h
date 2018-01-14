@@ -118,6 +118,7 @@ public slots:
     void updateVoltageGain(ChannelID channel);
 
     void updateVoltageUsed(ChannelID channel, bool used);
+
     void updateProbeGain(ChannelID channel);
 
 

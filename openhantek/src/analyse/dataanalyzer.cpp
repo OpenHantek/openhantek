@@ -58,17 +58,19 @@ std::unique_ptr<DataAnalyzerResult> DataAnalyzer::convertData(const DSOsamples *
 
         // Physical channels
         if (channel < physicalChannels) {
-            // Copy the buffer of the oscilloscope into the sample buffer
+
+            // Copy the values in order to pay the memory access cost only once
             double probe_gain = scope->voltage[channel].probe_gain;
             unsigned long initial_position = channelData->voltage.sample.size();
+            // Copy the buffer of the oscilloscope into the sample buffer
             if (data->append)
                 channelData->voltage.sample.insert(channelData->voltage.sample.end(), data->data.at(channel).begin(),
                                                    data->data.at(channel).end());
             else
                 channelData->voltage.sample = data->data.at(channel);
 
-            unsigned int sampleCount = channelData->voltage.sample.size();
-            for (unsigned int position = 0 + initial_position; position < sampleCount; position++) {
+            unsigned long sampleCount = channelData->voltage.sample.size();
+            for (unsigned long position = 0 + initial_position; position < sampleCount; position++) {
                     channelData->voltage.sample[position] *= probe_gain;
                 }
         } else { // Math channel

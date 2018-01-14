@@ -155,7 +155,6 @@ MainWindow::MainWindow(HantekDsoControl *dsoControl, DataAnalyzer *dataAnalyser,
         this->dsoControl->setGain(channel, this->settings->scope.gain(channel) * DIVS_VOLTAGE);
     });
 
-//    connect(voltageDock, &VoltageDock::gainChanged, dsoWidget, &DsoWidget::updateVoltageGain);
     connect(voltageDock, &VoltageDock::probeGainChanged, dsoWidget, &DsoWidget::updateProbeGain);
     connect(dsoWidget, &DsoWidget::offsetChanged, [this](ChannelID channel) {
         if (channel >= this->settings->deviceSpecification->channels) return;
@@ -229,8 +228,9 @@ MainWindow::MainWindow(HantekDsoControl *dsoControl, DataAnalyzer *dataAnalyser,
         this->settings->mainWindowState = saveState();
 
         DsoConfigDialog* configDialog = new DsoConfigDialog(this->settings, this);
-        configDialog->setModal(true);
+        // Connect the finished event to the probe gain changed event in order to react
         connect(configDialog, &QDialog::finished, voltageDock, &VoltageDock::probeGainSettingsUpdated);
+        configDialog->setModal(true);
         configDialog->show();
 
     });

@@ -117,7 +117,6 @@ void DsoSettings::load() {
         if (store->contains("trigger")) scope.voltage[channel].trigger = store->value("trigger").toDouble();
         if (store->contains("used")) scope.voltage[channel].used = store->value("used").toBool();
         if(store->contains("probeGainSteps")) {
-
             QList<double> gains = QVariant(store->value("probeGainSteps")).value<QList<double>>();
             for(double v: gains){
                 this->scope.voltage[channel].probeGainSteps.push_back(v);

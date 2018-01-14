@@ -156,7 +156,7 @@ void VoltageDock::setUsed(ChannelID channel, bool used) {
     channelBlocks[channel].usedCheckBox->setChecked(used);
 }
 
-int VoltageDock::setProbeGain(int channel, double probeGain) {
+int VoltageDock::setProbeGain(ChannelID channel, double probeGain) {
     if (channel < 0 ||channel >= spec->channels) return -1;
 
     QSignalBlocker blocker(channelBlocks[channel].probeGainCombobox);
@@ -171,10 +171,11 @@ int VoltageDock::setProbeGain(int channel, double probeGain) {
 
 }
 
+/// \brief Update the combobox with the gain values for the probe
 void VoltageDock::probeGainSettingsUpdated() {
 
-    for(int channel = 0; channel < scope->voltage.size(); channel++) {
-        if(channel < (int) spec->channels) {
+    for(unsigned int channel = 0; channel < scope->voltage.size(); channel++) {
+        if(channel < spec->channels) {
                 QSignalBlocker blocker(channelBlocks[channel].probeGainCombobox);
                 //Remove all the old values
                 channelBlocks[channel].probeGainCombobox->clear();

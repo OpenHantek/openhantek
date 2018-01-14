@@ -129,6 +129,7 @@ QString valueToString(double value, Unit unit, int precision) {
                                                   (precision <= 0) ? precision : qMax(0, precision + 8 - logarithm));
     }
     case UNIT_TIMES: {
+        // Probe attenuation representation
         return QApplication::tr("X%L1").arg(value);
     }
     default:
