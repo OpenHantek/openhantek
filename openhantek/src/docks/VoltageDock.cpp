@@ -50,23 +50,39 @@ VoltageDock::VoltageDock(DsoSettingsScope *scope, const Dso::ControlSpecificatio
         b.gainComboBox=(new QComboBox());
         b.invertCheckBox=(new QCheckBox(tr("Invert")));
         b.usedCheckBox=(new QCheckBox(scope->voltage[channel].name));
+        b.probeGainCombobox=(new QComboBox());
 
         channelBlocks.push_back(std::move(b));
 
-        if (channel < spec->channels)
+        if (channel < spec->channels) {
             b.miscComboBox->addItems(couplingStrings);
+            QStringList probeGainStrings;
+            for(double probe_gain: scope->voltage[channel].probeGainSteps)
+                probeGainStrings << valueToString(probe_gain, UNIT_TIMES, 0);
+            b.probeGainCombobox->addItems(probeGainStrings);
+
+        }
         else
             b.miscComboBox->addItems(modeStrings);
 
         b.gainComboBox->addItems(gainStrings);
 
-        dockLayout->addWidget(b.usedCheckBox, (int)channel * 3, 0);
-        dockLayout->addWidget(b.gainComboBox, (int)channel * 3, 1);
-        dockLayout->addWidget(b.miscComboBox, (int)channel * 3 + 1, 1);
-        dockLayout->addWidget(b.invertCheckBox, (int)channel * 3 + 2, 1);
+        dockLayout->addWidget(b.usedCheckBox, (int)channel * 4, 0);
+        dockLayout->addWidget(b.gainComboBox, (int)channel * 4, 1);
+        dockLayout->addWidget(b.miscComboBox, (int)channel * 4 + 1, 1);
 
-        if (channel < spec->channels)
+        if(channel < spec->channels){
+            dockLayout->addWidget(b.probeGainCombobox, (int) channel * 4 + 2, 1);
+            dockLayout->addWidget(b.invertCheckBox, (int)channel * 4 + 3, 1);
+        }
+        else {
+            dockLayout->addWidget(b.invertCheckBox, (int) channel * 4 + 2, 1);
+        }
+
+        if (channel < spec->channels) {
             setCoupling(channel, scope->voltage[channel].couplingIndex);
+            setProbeGain(channel, scope->voltage[channel].probeStepIndex);
+        }
         else
             setMode(scope->voltage[channel].math);
         setGain(channel, scope->voltage[channel].gainStepIndex);
@@ -92,6 +108,15 @@ VoltageDock::VoltageDock(DsoSettingsScope *scope, const Dso::ControlSpecificatio
             this->scope->voltage[channel].used = checked;
             emit usedChanged(channel, checked);
         });
+        connect(b.probeGainCombobox, SELECT<int>::OVERLOAD_OF(&QComboBox::currentIndexChanged), [this,channel,scope](int index){
+
+            this->scope->voltage[channel].probeStepIndex = (unsigned)index;
+            emit probeGainChanged(channel, index);
+
+        });
+
+
+
     }
 
     dockWidget = new QWidget();
@@ -128,4 +153,39 @@ void VoltageDock::setUsed(ChannelID channel, bool used) {
     if (channel >= scope->voltage.size()) return;
     QSignalBlocker blocker(channelBlocks[channel].usedCheckBox);
     channelBlocks[channel].usedCheckBox->setChecked(used);
+}
+
+void VoltageDock::setProbeGain(ChannelID channel, unsigned int probeIndex) {
+    if (channel < 0 ||channel >= spec->channels) return ;
+    if(probeIndex > spec->channels) return;
+
+    QSignalBlocker blocker(channelBlocks[channel].probeGainCombobox);
+
+    channelBlocks[channel].probeGainCombobox->setCurrentIndex(probeIndex);
+
+}
+
+/// \brief Update the combobox with the gain values for the probe
+void VoltageDock::probeGainSettingsUpdated() {
+
+    for(unsigned int channel = 0; channel < scope->voltage.size(); channel++) {
+        if(channel < spec->channels) {
+            QSignalBlocker blocker(channelBlocks[channel].probeGainCombobox);
+            //Remove all the old values
+            channelBlocks[channel].probeGainCombobox->clear();
+            // Rebuild the combobox with the new values
+            QStringList probeGainStrings;
+            for(double probe_gain: scope->voltage[channel].probeGainSteps)
+                    probeGainStrings << valueToString(probe_gain, UNIT_TIMES, 0);
+            channelBlocks[channel].probeGainCombobox->addItems(probeGainStrings);
+            // If the index of the list is outside the new list, set index to 0 and notify others
+            if(scope->voltage[channel].probeStepIndex >= scope->voltage[channel].probeGainSteps.size()){
+                this->scope->voltage[channel].probeStepIndex = 0;
+                emit probeGainChanged(channel, 0);
+
+            }
+
+            }
+    }
+
 }

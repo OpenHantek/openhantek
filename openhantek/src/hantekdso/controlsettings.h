@@ -51,6 +51,7 @@ struct ControlSettings {
     ~ControlSettings();
     ControlSettingsSamplerate samplerate;        ///< The samplerate settings
     std::vector<ControlSettingsVoltage> voltage; ///< The amplification settings
+    std::vector<double> probeGain; ///< The gain probe gain for the current channel
     ControlSettingsTrigger trigger;              ///< The trigger settings
     RecordLengthID recordLengthId = 1;           ///< The id in the record length array
     unsigned usedChannels = 0;                   ///< Number of activated channels

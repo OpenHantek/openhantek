@@ -622,3 +622,13 @@ void DsoWidget::updateMarker(int marker, double value) {
 
     emit markerChanged(marker, value);
 }
+
+/// \brief Handles probeGainChanged signal from probe gain.
+/// \param channel The channel whose gain was changed
+void DsoWidget::updateProbeGain(ChannelID channel) {
+    if(channel >= (unsigned int) scope->voltage.size())
+        return;
+
+    updateVoltageDetails(channel);
+
+}

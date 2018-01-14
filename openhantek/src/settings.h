@@ -21,6 +21,7 @@ class DsoSettings {
 
     DsoSettingsExport exporting; ///< General options of the program
     DsoSettingsScope scope;     ///< All oscilloscope related settings
+
     DsoSettingsView view;       ///< All view related settings
     bool alwaysSave = true;            ///< Always save the settings on exit
 

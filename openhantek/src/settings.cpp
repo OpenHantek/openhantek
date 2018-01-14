@@ -11,7 +11,8 @@
 
 /// \brief Set the number of channels.
 /// \param channels The new channel count, that will be applied to lists.
-DsoSettings::DsoSettings(const Dso::ControlSpecification* deviceSpecification) {
+DsoSettings::DsoSettings(const Dso::ControlSpecification* deviceSpecification){
+    qRegisterMetaTypeStreamOperators<QList<double> >("QList<double>");
     // Add new channels to the list
     while (scope.spectrum.size() < deviceSpecification->channels) {
         // Spectrum
@@ -112,6 +113,22 @@ void DsoSettings::load() {
         if (store->contains("offset")) scope.voltage[channel].offset = store->value("offset").toDouble();
         if (store->contains("trigger")) scope.voltage[channel].trigger = store->value("trigger").toDouble();
         if (store->contains("used")) scope.voltage[channel].used = store->value("used").toBool();
+        if(store->contains("probeGainSteps")) {
+            QList<double> gains = QVariant(store->value("probeGainSteps")).value<QList<double>>();
+            for(double v: gains){
+                this->scope.voltage[channel].probeGainSteps.push_back(v);
+            }
+        }
+        if(this->scope.voltage[channel].probeGainSteps.empty()) {
+            for(double defaultValue: scope.voltage[channel].defaultValues) {
+                scope.voltage[channel].probeGainSteps.push_back(defaultValue);
+            }
+        }
+        if(store->contains("probeStepIndex"))
+            this->scope.voltage[channel].probeStepIndex = store->value("probeStepIndex").toInt();
+        //In any case check if the index is in range of the steps.
+        if(this->scope.voltage[channel].probeStepIndex >= scope.voltage[channel].probeGainSteps.size())
+            this->scope.voltage[channel].probeStepIndex = 0;
         store->endGroup();
     }
     if (store->contains("spectrumLimit")) scope.spectrumLimit = store->value("spectrumLimit").toDouble();
@@ -215,6 +232,10 @@ void DsoSettings::save() {
         store->setValue("offset", scope.voltage[channel].offset);
         store->setValue("trigger", scope.voltage[channel].trigger);
         store->setValue("used", scope.voltage[channel].used);
+        // TODO for now transform to Qlist until switched to proper class
+        QList<double> probeGainSteps = QList<double>::fromVector(QVector<double>::fromStdVector(scope.voltage[channel].probeGainSteps));
+        store->setValue("probeGainSteps", QVariant::fromValue(probeGainSteps));
+        store->setValue("probeStepIndex", scope.voltage[channel].probeStepIndex);
         store->endGroup();
     }
     store->setValue("spectrumLimit", scope.spectrumLimit);

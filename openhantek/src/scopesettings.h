@@ -55,14 +55,18 @@ struct DsoSettingsScopeVoltage {
     double offset = 0.0;        ///< Vertical offset in divs
     double trigger = 0.0;       ///< Trigger level in V
     unsigned gainStepIndex = 6; ///< The vertical resolution in V/div (default = 1.0)
-    union {                     ///< Different enums, coupling for real- and mode for math-channels
-        Dso::MathMode math;
-        unsigned couplingIndex = 0;
-        int rawValue;
-    };
-    QString name;          ///< Name of this channel
-    bool inverted = false; ///< true if the channel is inverted (mirrored on cross-axis)
-    bool used = false;     ///< true if this channel is enabled
+    bool inverted = false;      ///< true if the channel is inverted (mirrored on cross-axis)
+                   ///< Different enums, coupling for real- and mode for math-channels
+    Dso::MathMode math;
+    unsigned couplingIndex = 0;
+    int rawValue;
+
+    std::vector<double> probeGainSteps; ///< Probe gain steps for channel
+    unsigned probeStepIndex=0; ///< Current index of the probe gain list
+    std::vector<double> defaultValues{1e0,2e0,5e0,10e0}; ///< List of default values for the probe gains
+
+    QString name;         ///< Name of this channel
+    bool used = false;    ///< true if this channel is enabled
 };
 
 /// \brief Holds the settings for the oscilloscope.

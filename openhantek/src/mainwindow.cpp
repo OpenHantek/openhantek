@@ -44,6 +44,7 @@ MainWindow::MainWindow(HantekDsoControl *dsoControl, DsoSettings *settings, QWid
     TriggerDock *triggerDock;
     SpectrumDock *spectrumDock;
     VoltageDock *voltageDock;
+
     horizontalDock = new HorizontalDock(scope, this);
     triggerDock = new TriggerDock(scope, spec, this);
     spectrumDock = new SpectrumDock(scope, this);
@@ -155,6 +156,14 @@ MainWindow::MainWindow(HantekDsoControl *dsoControl, DsoSettings *settings, QWid
         dsoControl->setGain(channel, mSettings->scope.gain(channel) * DIVS_VOLTAGE);
     });
     connect(voltageDock, &VoltageDock::gainChanged, dsoWidget, &DsoWidget::updateVoltageGain);
+
+    connect(voltageDock, &VoltageDock::probeGainChanged, [this, dsoControl, spec, scope](ChannelID channel, unsigned probeGain) {
+        if (channel >= spec->channels) return;
+        // TODO move to the index
+        dsoControl->setProbeGain(channel, scope->voltage[channel].probeGainSteps[scope->voltage[channel].probeStepIndex]);
+    });
+
+    connect(voltageDock, &VoltageDock::probeGainChanged, dsoWidget, &DsoWidget::updateProbeGain);
     connect(dsoWidget, &DsoWidget::offsetChanged, [this, dsoControl, spec](ChannelID channel) {
         if (channel >= spec->channels) return;
         dsoControl->setOffset(channel, (mSettings->scope.voltage[channel].offset / DIVS_VOLTAGE) + 0.5);
@@ -222,11 +231,12 @@ MainWindow::MainWindow(HantekDsoControl *dsoControl, DsoSettings *settings, QWid
 
     connect(ui->actionExit, &QAction::triggered, this, &QWidget::close);
 
-    connect(ui->actionSettings, &QAction::triggered, [this]() {
+    connect(ui->actionSettings, &QAction::triggered, [this, voltageDock, spec]() {
         mSettings->mainWindowGeometry = saveGeometry();
         mSettings->mainWindowState = saveState();
 
-        DsoConfigDialog *configDialog = new DsoConfigDialog(this->mSettings, this);
+        DsoConfigDialog* configDialog = new DsoConfigDialog(this->mSettings, spec, this);
+        connect(configDialog, &QDialog::finished, voltageDock, &VoltageDock::probeGainSettingsUpdated);
         configDialog->setModal(true);
         configDialog->show();
     });

@@ -37,6 +37,7 @@ private:
     // Central widgets
     DsoWidget *dsoWidget;
 
+
     // Settings used for the whole program
     DsoSettings *mSettings;
 };
