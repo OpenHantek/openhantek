@@ -45,6 +45,11 @@ class VoltageDock : public QDockWidget {
     /// \param used True if the channel should be enabled, false otherwise.
     void setUsed(ChannelID channel, bool used);
 
+
+    int setProbeGain(int channel, double probeGain);
+
+
+
   protected:
     void closeEvent(QCloseEvent *event);
 
@@ -56,6 +61,7 @@ class VoltageDock : public QDockWidget {
         QComboBox * gainComboBox;   ///< Select the vertical gain for the channels
         QComboBox * miscComboBox;   ///< Select coupling for real and mode for math channels
         QCheckBox * invertCheckBox; ///< Select if the channels should be displayed inverted
+        QComboBox * probeGainCombobox;
     };
 
     std::vector<ChannelBlock> channelBlocks;
@@ -72,4 +78,8 @@ class VoltageDock : public QDockWidget {
     void gainChanged(ChannelID channel, double gain);                ///< A gain has been selected
     void modeChanged(Dso::MathMode mode);              ///< The mode for the math channels has been changed
     void usedChanged(ChannelID channel, bool used); ///< A channel has been enabled/disabled
+    void probeGainChanged(unsigned int channel, double gain);
+
+  public slots:
+    void probeGainSettingsUpdated();
 };

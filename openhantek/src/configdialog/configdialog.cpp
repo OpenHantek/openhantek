@@ -142,6 +142,7 @@ void DsoConfigDialog::apply() {
     this->filesPage->saveSettings();
     this->scopePage->saveSettings();
     this->probePage->saveSettings();
+
 }
 
 /// \brief Change the config page.

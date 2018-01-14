@@ -171,16 +171,18 @@ int VoltageDock::setProbeGain(int channel, double probeGain) {
 
 }
 
-//void VoltageDock::probeGainSettingsUpdated() {
-//    for(int channel = 0; channel < scope->voltage.count(); channel) {
-//        if(channel < (int) scope.) {
-//                //Remove all the old values
-//                        this->probeGainCombobox[channel]->clear();
-//                // Rebuild the combobox with the new values
-//                        QStringList probeGainStrings;
-//                for(double probe_gain: this->settings->scope.voltage[channel].probeGainSteps)
-//                        probeGainStrings << Helper::valueToString(probe_gain, Helper::UNIT_TIMES, 0);
-//                this->probeGainCombobox[channel]->addItems(probeGainStrings);
-//            }
-//    }
-//}
+void VoltageDock::probeGainSettingsUpdated() {
+
+    for(int channel = 0; channel < scope->voltage.size(); channel++) {
+        if(channel < (int) spec->channels) {
+                QSignalBlocker blocker(channelBlocks[channel].probeGainCombobox);
+                //Remove all the old values
+                channelBlocks[channel].probeGainCombobox->clear();
+                // Rebuild the combobox with the new values
+                        QStringList probeGainStrings;
+                for(double probe_gain: scope->voltage[channel].probeGainSteps)
+                        probeGainStrings << valueToString(probe_gain, UNIT_TIMES, 0);
+                channelBlocks[channel].probeGainCombobox->addItems(probeGainStrings);
+            }
+    }
+}

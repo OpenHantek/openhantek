@@ -230,7 +230,9 @@ MainWindow::MainWindow(HantekDsoControl *dsoControl, DataAnalyzer *dataAnalyser,
 
         DsoConfigDialog* configDialog = new DsoConfigDialog(this->settings, this);
         configDialog->setModal(true);
+        connect(configDialog, &QDialog::finished, voltageDock, &VoltageDock::probeGainSettingsUpdated);
         configDialog->show();
+
     });
 
     connect(this->ui->actionDigital_phosphor, &QAction::toggled, [this](bool enabled) {
