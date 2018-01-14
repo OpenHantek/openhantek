@@ -42,6 +42,7 @@ void applySettingsToDevice(HantekDsoControl *dsoControl, DsoSettingsScope *scope
         dsoControl->setOffset(channel, (scope->voltage[channel].offset / DIVS_VOLTAGE) + 0.5);
         dsoControl->setTriggerLevel(channel, scope->voltage[channel].trigger);
         dsoControl->setChannelUsed(channel, mathUsed | scope->anyUsed(channel));
+        dsoControl->setProbeGain(channel, scope->voltage[channel].probe_gain);
     }
 
     if (scope->horizontal.samplerateSource == DsoSettingsScopeHorizontal::Samplerrate)

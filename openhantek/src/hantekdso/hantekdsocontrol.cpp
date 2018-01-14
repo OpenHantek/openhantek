@@ -65,7 +65,7 @@ HantekDsoControl::HantekDsoControl(USBDevice *device)
 
     // Apply special requirements by the devices model
     device->getModel()->applyRequirements(this);
-    // TODO find the correct way to init this value
+    // Initialize the gain vector with standard and safe values
     controlsettings.probeGain.resize( specification.channels, 1);
 
 
