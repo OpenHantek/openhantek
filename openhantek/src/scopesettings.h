@@ -4,13 +4,14 @@
 
 #include <QString>
 
-#include "analyse/enums.h"
 #include "hantekdso/controlspecification.h"
 #include "hantekdso/enums.h"
 #include "hantekprotocol/definitions.h"
+#include "post/enums.h"
 #include <vector>
 
 #define MARKER_COUNT 2 ///< Number of markers
+#define MARKER_STEP (DIVS_TIME / 100.0)
 
 /// \brief Holds the settings for the horizontal axis.
 struct DsoSettingsScopeHorizontal {
@@ -21,9 +22,9 @@ struct DsoSettingsScopeHorizontal {
 
     unsigned int recordLength = 0; ///< Sample count
 
-    ///TODO Use ControlSettingsSamplerateTarget
-    double timebase = 1e-3;        ///< Timebase in s/div
-    double samplerate = 1e6;       ///< The samplerate of the oscilloscope in S
+    /// TODO Use ControlSettingsSamplerateTarget
+    double timebase = 1e-3;  ///< Timebase in s/div
+    double samplerate = 1e6; ///< The samplerate of the oscilloscope in S
     enum SamplerateSource { Samplerrate, Duration } samplerateSource = Samplerrate;
 };
 
@@ -31,12 +32,12 @@ struct DsoSettingsScopeHorizontal {
 /// TODO Use ControlSettingsTrigger
 struct DsoSettingsScopeTrigger {
     Dso::TriggerMode mode = Dso::TriggerMode::HARDWARE_SOFTWARE; ///< Automatic, normal or single trigger
-    double position = 0.0;                            ///< Horizontal position for pretrigger
-    Dso::Slope slope = Dso::Slope::Positive;          ///< Rising or falling edge causes trigger
-    unsigned int source = 0;                          ///< Channel that is used as trigger source
-    bool special = false;                             ///< true if the trigger source is not a standard channel
-    unsigned swTriggerThreshold = 7;                       ///< Software trigger, threshold
-    unsigned swTriggerSampleSet = 11;                      ///< Software trigger, sample set
+    double position = 0.0;                                       ///< Horizontal position for pretrigger
+    Dso::Slope slope = Dso::Slope::Positive;                     ///< Rising or falling edge causes trigger
+    unsigned int source = 0;                                     ///< Channel that is used as trigger source
+    bool special = false;             ///< true if the trigger source is not a standard channel
+    unsigned swTriggerThreshold = 7;  ///< Software trigger, threshold
+    unsigned swTriggerSampleSet = 11; ///< Software trigger, sample set
 };
 
 /// \brief Holds the settings for the spectrum analysis.
@@ -51,11 +52,13 @@ struct DsoSettingsScopeSpectrum {
 /// \brief Holds the settings for the normal voltage graphs.
 /// TODO Use ControlSettingsVoltage
 struct DsoSettingsScopeVoltage {
+    double offset = 0.0;        ///< Vertical offset in divs
+    double trigger = 0.0;       ///< Trigger level in V
     unsigned gainStepIndex = 6; ///< The vertical resolution in V/div (default = 1.0)
     bool inverted = false;      ///< true if the channel is inverted (mirrored on cross-axis)
-                                ///< Different enums, coupling for real- and mode for math-channels
+                   ///< Different enums, coupling for real- and mode for math-channels
     Dso::MathMode math;
-    unsigned int couplingIndex = 0;
+    unsigned couplingIndex = 0;
     int rawValue;
 
     std::vector<double> probeGainSteps; ///< Probe gain steps for channel
@@ -64,8 +67,6 @@ struct DsoSettingsScopeVoltage {
     std::vector<double> defaultValues{1e0,2e0,5e0,10e0}; ///< List of default values for the probe gains
 
     QString name;         ///< Name of this channel
-    double offset = 0.0;  ///< Vertical offset in divs
-    double trigger = 0.0; ///< Trigger level in V
     bool used = false;    ///< true if this channel is enabled
 };
 
@@ -87,4 +88,6 @@ struct DsoSettingsScope {
     Dso::Coupling coupling(ChannelID channel, const Dso::ControlSpecification *deviceSpecification) {
         return deviceSpecification->couplings[voltage[channel].couplingIndex];
     }
+    // Channels, including math channels
+    unsigned countChannels() { return (unsigned)voltage.size(); }
 };

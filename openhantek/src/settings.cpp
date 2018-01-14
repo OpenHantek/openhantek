@@ -4,7 +4,6 @@
 #include <QColor>
 #include <QDebug>
 #include <QSettings>
-#include <iostream>
 
 #include "settings.h"
 
@@ -12,11 +11,8 @@
 
 /// \brief Set the number of channels.
 /// \param channels The new channel count, that will be applied to lists.
-DsoSettings::DsoSettings(const Dso::ControlSpecification* deviceSpecification)
-    : deviceSpecification(deviceSpecification) {
-    // Qvariant for the list of probe settings
+DsoSettings::DsoSettings(const Dso::ControlSpecification* deviceSpecification) {
     qRegisterMetaTypeStreamOperators<QList<double> >("QList<double>");
-
     // Add new channels to the list
     while (scope.spectrum.size() < deviceSpecification->channels) {
         // Spectrum
@@ -66,10 +62,11 @@ bool DsoSettings::setFilename(const QString &filename) {
 void DsoSettings::load() {
     // General options
     store->beginGroup("options");
-    if (store->contains("alwaysSave")) options.alwaysSave = store->value("alwaysSave").toBool();
-    if (store->contains("imageSize")) options.imageSize = store->value("imageSize").toSize();
-    // If the window/* keys were found in this group, remove them from settings
-    store->remove("window");
+    if (store->contains("alwaysSave")) alwaysSave = store->value("alwaysSave").toBool();
+    store->endGroup();
+
+    store->beginGroup("exporting");
+    if (store->contains("imageSize")) exporting.imageSize = store->value("imageSize").toSize();
     store->endGroup();
 
     // Oscilloscope settings
@@ -187,8 +184,11 @@ void DsoSettings::load() {
 void DsoSettings::save() {
     // Main window layout and other general options
     store->beginGroup("options");
-    store->setValue("alwaysSave", options.alwaysSave);
-    store->setValue("imageSize", options.imageSize);
+    store->setValue("alwaysSave", alwaysSave);
+    store->endGroup();
+
+    store->beginGroup("exporting");
+    store->setValue("imageSize", exporting.imageSize);
     store->endGroup();
 
     // Oszilloskope settings
