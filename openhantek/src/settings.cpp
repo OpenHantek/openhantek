@@ -11,8 +11,7 @@
 
 /// \brief Set the number of channels.
 /// \param channels The new channel count, that will be applied to lists.
-DsoSettings::DsoSettings(const Dso::ControlSpecification* deviceSpecification): deviceSpecification(deviceSpecification)
-{
+DsoSettings::DsoSettings(const Dso::ControlSpecification* deviceSpecification){
     qRegisterMetaTypeStreamOperators<QList<double> >("QList<double>");
     // Add new channels to the list
     while (scope.spectrum.size() < deviceSpecification->channels) {

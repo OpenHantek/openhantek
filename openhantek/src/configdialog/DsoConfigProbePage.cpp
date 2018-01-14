@@ -9,14 +9,17 @@
 /// \brief Creates the widgets and sets their initial value.
 /// \param settings The target settings object.
 /// \param parent The parent widget.
-DsoConfigProbePage::DsoConfigProbePage(DsoSettings *settings, QWidget *parent ): QWidget(parent){
+DsoConfigProbePage::DsoConfigProbePage(DsoSettings *settings, const Dso::ControlSpecification *spec,
+                                       QWidget *parent) : QWidget(parent){
     this->settings = settings;
+    this->spec = spec;
+
 
     this->probeLayout = new QGridLayout();
 
     //Add the labels for each channel
     for(unsigned int channel = 0; channel < this->settings->scope.voltage.size(); ++channel) {
-        if(channel < this->settings->deviceSpecification->channels) {
+        if(channel < spec->channels) {
             this->probeLabel.append(new QLabel(QApplication::tr("Probe Gain for Channel %L1").arg(channel)));
             // Fast join
             QString values;
@@ -42,7 +45,7 @@ DsoConfigProbePage::DsoConfigProbePage(DsoSettings *settings, QWidget *parent ):
 
     //add the widgets the layout
     for(unsigned int channel = 0; channel < this->settings->scope.voltage.size(); ++channel) {
-        if(channel < this->settings->deviceSpecification->channels) {
+        if(channel < spec->channels) {
             this->probeLayout->addWidget(this->probeLabel[channel]);
             this->probeLayout->addWidget(this->probeAttenuations[channel]);
         }
@@ -68,7 +71,7 @@ DsoConfigProbePage::~DsoConfigProbePage() {
 void DsoConfigProbePage::saveSettings() {
     //TODO find a way to refresh a widget
     for(unsigned int channel = 0; channel < this->settings->scope.voltage.size(); ++channel) {
-        if(channel < this->settings->deviceSpecification->channels) {
+        if(channel < spec->channels) {
             // Clear the list
             this->settings->scope.voltage[channel].probeGainSteps.clear();
             QStringList values = this->probeAttenuations[channel]->text().split(',');

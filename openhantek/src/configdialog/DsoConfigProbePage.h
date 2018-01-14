@@ -22,7 +22,7 @@ class DsoConfigProbePage: public QWidget {
     Q_OBJECT
 
     public:
-    DsoConfigProbePage(DsoSettings *settings, QWidget *parent = 0);
+    DsoConfigProbePage(DsoSettings *settings, const Dso::ControlSpecification *spec, QWidget *parent = 0);
     ~DsoConfigProbePage();
 
     public slots:
@@ -33,9 +33,12 @@ class DsoConfigProbePage: public QWidget {
         QList<QLabel *> probeLabel;
         QList<QLineEdit*> probeAttenuations;
         DsoSettings *settings;
+        const Dso::ControlSpecification *spec;
+
         QGridLayout *probeLayout;
         QVBoxLayout *mainLayout;
         QGroupBox *probeGroup;
+
 };
 
 

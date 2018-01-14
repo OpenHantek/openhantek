@@ -40,8 +40,9 @@ anyway, ignore it
 /// \param settings The target settings object.
 /// \param parent The parent widget.
 /// \param flags Flags for the window manager.
-DsoConfigDialog::DsoConfigDialog(DsoSettings *settings, QWidget *parent, Qt::WindowFlags flags)
-    : QDialog(parent, flags), settings(settings) {
+DsoConfigDialog::DsoConfigDialog(DsoSettings *settings, const Dso::ControlSpecification *spec, QWidget *parent,
+                                 Qt::WindowFlags flags)
+    : QDialog(parent, flags), settings(settings), spec(spec) {
 
     this->setWindowTitle(tr("Settings"));
 
@@ -59,7 +60,7 @@ DsoConfigDialog::DsoConfigDialog(DsoSettings *settings, QWidget *parent, Qt::Win
     this->colorsPage = new DsoConfigColorsPage(settings);
     this->filesPage = new DsoConfigFilesPage(settings);
     this->scopePage = new DsoConfigScopePage(settings);
-    this->probePage = new DsoConfigProbePage(this->settings);
+    this->probePage = new DsoConfigProbePage(settings, spec);
 
     this->pagesWidget = new QStackedWidget;
     this->pagesWidget->addWidget(this->analysisPage);

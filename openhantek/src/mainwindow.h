@@ -37,7 +37,6 @@ private:
     // Central widgets
     DsoWidget *dsoWidget;
 
-    VoltageDock *voltageDock;
 
     // Settings used for the whole program
     DsoSettings *mSettings;

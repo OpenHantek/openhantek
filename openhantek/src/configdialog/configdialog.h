@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0+
 
 #include <QDialog>
+#include <src/hantekdso/controlspecification.h>
 
 class DsoConfigAnalysisPage;
 class DsoConfigColorsPage;
@@ -23,7 +24,8 @@ class DsoConfigDialog : public QDialog {
     Q_OBJECT
 
   public:
-    DsoConfigDialog(DsoSettings *settings, QWidget *parent = 0, Qt::WindowFlags flags = 0);
+    DsoConfigDialog(DsoSettings *settings, const Dso::ControlSpecification *specification, QWidget *parent = 0,
+                    Qt::WindowFlags flags = 0);
     ~DsoConfigDialog();
 
   public slots:
@@ -36,6 +38,7 @@ class DsoConfigDialog : public QDialog {
     void createIcons();
 
     DsoSettings *settings;
+    const Dso::ControlSpecification *spec;
 
     QVBoxLayout *mainLayout;
     QHBoxLayout *horizontalLayout;
