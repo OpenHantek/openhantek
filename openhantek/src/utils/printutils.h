@@ -9,7 +9,7 @@
 //////////////////////////////////////////////////////////////////////////////
 /// \enum Unit utils/printutils.h
 /// \brief The various units supported by valueToString.
-enum Unit { UNIT_VOLTS, UNIT_DECIBEL, UNIT_SECONDS, UNIT_HERTZ, UNIT_SAMPLES, UNIT_COUNT, UNIT_TIMES};
+enum Unit { UNIT_VOLTS, UNIT_DECIBEL, UNIT_SECONDS, UNIT_HERTZ, UNIT_SAMPLES, UNIT_TIMES, UNIT_COUNT};
 
 /// \brief Returns string representation for libusb errors.
 /// \param error The error code.
