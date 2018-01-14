@@ -154,9 +154,13 @@ MainWindow::MainWindow(HantekDsoControl *dsoControl, DsoSettings *settings, QWid
 
         dsoControl->setGain(channel, mSettings->scope.gain(channel) * DIVS_VOLTAGE);
     });
+    connect(voltageDock, &VoltageDock::gainChanged, dsoWidget, &DsoWidget::updateVoltageGain);
+    connect(voltageDock, &VoltageDock::probeGainChanged, [this, dsoControl, spec](ChannelID channel, double probeGain) {
+        if (channel >= spec->channels) return;
+        dsoControl->setProbeGain(channel, probeGain);
+    });
 
     connect(voltageDock, &VoltageDock::probeGainChanged, dsoWidget, &DsoWidget::updateProbeGain);
-    connect(voltageDock, &VoltageDock::gainChanged, dsoWidget, &DsoWidget::updateVoltageGain);
     connect(dsoWidget, &DsoWidget::offsetChanged, [this, dsoControl, spec](ChannelID channel) {
         if (channel >= spec->channels) return;
         dsoControl->setOffset(channel, (mSettings->scope.voltage[channel].offset / DIVS_VOLTAGE) + 0.5);

@@ -269,6 +269,9 @@ class HantekDsoControl : public QObject {
     Dso::ErrorCode setPretriggerPosition(double position);
     void forceTrigger();
 
+    // TODO refactor to adapt to the the API
+    void setProbeGain(ChannelID channel, double probeGain);
+
   signals:
     void samplingStarted();                                  ///< The oscilloscope started sampling/waiting for trigger
     void samplingStopped();                                  ///< The oscilloscope stopped sampling/waiting for trigger

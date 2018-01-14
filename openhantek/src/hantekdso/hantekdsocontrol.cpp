@@ -65,6 +65,9 @@ HantekDsoControl::HantekDsoControl(USBDevice *device)
 
     // Apply special requirements by the devices model
     device->getModel()->applyRequirements(this);
+    // TODO find the correct way to init this value
+    controlsettings.probeGain.resize( specification.channels, 1);
+
 
     retrieveChannelLevelData();
 }
@@ -257,6 +260,7 @@ void HantekDsoControl::convertRawDataToSamples(const std::vector<unsigned char> 
         const unsigned short limit = specification.voltageLimit[channel][gainID];
         const double offset = controlsettings.voltage[channel].offsetReal;
         const double gainStep = specification.gain[gainID].gainSteps;
+        const double probeGain = controlsettings.probeGain[channel];
 
         // Convert data from the oscilloscope and write it into the sample buffer
         unsigned bufferPosition = controlsettings.trigger.point * 2;
@@ -271,14 +275,14 @@ void HantekDsoControl::convertRawDataToSamples(const std::vector<unsigned char> 
                     ((unsigned short int)rawData[totalSampleCount + bufferPosition - extraBitsPosition] << shift) &
                     extraBitsMask;
 
-                result.data[channel][pos] = ((double)(low + high) / limit - offset) * gainStep;
+                result.data[channel][pos] = ((double)(low + high) / limit - offset) * gainStep * probeGain;
             }
         } else {
             for (unsigned pos = 0; pos < totalSampleCount; ++pos, ++bufferPosition) {
                 if (bufferPosition >= totalSampleCount) bufferPosition %= totalSampleCount;
 
                 double dataBuf = (double)((int)rawData[bufferPosition]);
-                result.data[channel][pos] = (dataBuf / limit - offset) * gainStep;
+                result.data[channel][pos] = (dataBuf / limit - offset) * gainStep * probeGain;
             }
         }
     } else {
@@ -290,6 +294,7 @@ void HantekDsoControl::convertRawDataToSamples(const std::vector<unsigned char> 
             const unsigned short limit = specification.voltageLimit[channel][gainID];
             const double offset = controlsettings.voltage[channel].offsetReal;
             const double gainStep = specification.gain[gainID].gainSteps;
+            const double probeGain = controlsettings.probeGain[channel];
             int shiftDataBuf = 0;
 
             // Convert data from the oscilloscope and write it into the sample buffer
@@ -307,7 +312,7 @@ void HantekDsoControl::convertRawDataToSamples(const std::vector<unsigned char> 
                         ((unsigned short int)rawData[totalSampleCount + bufferPosition] << extraBitsIndex) &
                         extraBitsMask;
 
-                    result.data[channel][realPosition] = ((double)(low + high) / limit - offset) * gainStep;
+                    result.data[channel][realPosition] = ((double)(low + high) / limit - offset) * gainStep * probeGain;
                 }
             } else if (device->getModel()->ID == ModelDSO6022BE::ID) {
                 // if device is 6022BE, drop heading & trailing samples
@@ -326,7 +331,7 @@ void HantekDsoControl::convertRawDataToSamples(const std::vector<unsigned char> 
             for (unsigned pos = 0; pos < result.data[channel].size(); ++pos, bufferPosition += specification.channels) {
                 if (bufferPosition >= totalSampleCount) bufferPosition %= totalSampleCount;
                 double dataBuf = (double)((int)(rawData[bufferPosition] - shiftDataBuf));
-                result.data[channel][pos] = (dataBuf / limit - offset) * gainStep;
+                result.data[channel][pos] = (dataBuf / limit - offset) * gainStep * probeGain;
             }
         }
     }
@@ -816,6 +821,11 @@ Dso::ErrorCode HantekDsoControl::setGain(ChannelID channel, double gain) {
     return Dso::ErrorCode::NONE;
 }
 
+void HantekDsoControl::setProbeGain(ChannelID channel, double probeGain){
+    controlsettings.probeGain[channel] = probeGain;
+
+}
+
 Dso::ErrorCode HantekDsoControl::setOffset(ChannelID channel, const double offset) {
     if (!device->isConnected()) return Dso::ErrorCode::CONNECTION;
 
@@ -1223,7 +1233,6 @@ void HantekDsoControl::run() {
             this->_samplingStarted = false;
 
             // Start next capture if necessary by leaving out the break statement
-
             if (!this->sampling) break;
 #if defined(__clang__)
 #if __has_cpp_attribute(clang::fallthrough)
