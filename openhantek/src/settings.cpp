@@ -231,7 +231,9 @@ void DsoSettings::save() {
         store->setValue("offset", scope.voltage[channel].offset);
         store->setValue("trigger", scope.voltage[channel].trigger);
         store->setValue("used", scope.voltage[channel].used);
-        store->setValue("probeGainSteps", QVariant::fromValue(scope.voltage[channel].probeGainSteps));
+        // TODO for now transform to Qlist until switched to proper class
+        QList<double> probeGainSteps = QList<double>::fromVector(QVector<double>::fromStdVector(scope.voltage[channel].probeGainSteps));
+        store->setValue("probeGainSteps", QVariant::fromValue(probeGainSteps));
         store->setValue("probeGain", scope.voltage[channel].probe_gain);
         store->endGroup();
     }
