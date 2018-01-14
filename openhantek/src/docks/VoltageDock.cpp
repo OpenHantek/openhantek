@@ -81,7 +81,7 @@ VoltageDock::VoltageDock(DsoSettingsScope *scope, const Dso::ControlSpecificatio
 
         if (channel < spec->channels) {
             setCoupling(channel, scope->voltage[channel].couplingIndex);
-            setProbeGain(channel, scope->voltage[channel].probe_gain);
+            setProbeGain(channel, scope->voltage[channel].probeStepIndex);
         }
         else
             setMode(scope->voltage[channel].math);
@@ -111,8 +111,7 @@ VoltageDock::VoltageDock(DsoSettingsScope *scope, const Dso::ControlSpecificatio
         connect(b.probeGainCombobox, SELECT<int>::OVERLOAD_OF(&QComboBox::currentIndexChanged), [this,channel,scope](int index){
 
             this->scope->voltage[channel].probeStepIndex = (unsigned)index;
-            this->scope->voltage[channel].probe_gain = this->scope->voltage[channel].probeGainSteps[index];
-            emit probeGainChanged(channel, this->scope->voltage[channel].probe_gain);
+            emit probeGainChanged(channel, index);
 
         });
 
@@ -156,18 +155,13 @@ void VoltageDock::setUsed(ChannelID channel, bool used) {
     channelBlocks[channel].usedCheckBox->setChecked(used);
 }
 
-int VoltageDock::setProbeGain(ChannelID channel, double probeGain) {
-    if (channel < 0 ||channel >= spec->channels) return -1;
+void VoltageDock::setProbeGain(ChannelID channel, unsigned int probeIndex) {
+    if (channel < 0 ||channel >= spec->channels) return ;
+    if(probeIndex > spec->channels) return;
 
     QSignalBlocker blocker(channelBlocks[channel].probeGainCombobox);
-    int index = (int) (std::find(scope->voltage[channel].probeGainSteps.begin(),
-                                 scope->voltage[channel].probeGainSteps.end(),
-                                 probeGain)
-                       - scope->voltage[channel].probeGainSteps.begin());
-    if(index != -1)
-        channelBlocks[channel].probeGainCombobox->setCurrentIndex(index);
 
-    return index;
+    channelBlocks[channel].probeGainCombobox->setCurrentIndex(probeIndex);
 
 }
 

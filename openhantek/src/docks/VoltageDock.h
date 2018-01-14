@@ -47,8 +47,8 @@ class VoltageDock : public QDockWidget {
 
     /// \brief Set the correct value for the probe gain
     /// \param channel The channel originationg the event
-    /// \param probeGain The value of the probe gain to set
-    int setProbeGain(ChannelID channel, double probeGain);
+    /// \param probeIndex The value of the probe gain index to set
+    void setProbeGain(ChannelID channel, unsigned int probeIndex);
 
 
 
@@ -80,7 +80,7 @@ class VoltageDock : public QDockWidget {
     void gainChanged(ChannelID channel, double gain);                ///< A gain has been selected
     void modeChanged(Dso::MathMode mode);              ///< The mode for the math channels has been changed
     void usedChanged(ChannelID channel, bool used); ///< A channel has been enabled/disabled
-    void probeGainChanged(unsigned int channel, double gain); ///< A probe gain has been changed
+    void probeGainChanged(unsigned int channel, unsigned int gainIndex); ///< A probe gain has been changed
 
   public slots:
     void probeGainSettingsUpdated(); ///< The list of the probe gains has been changed

@@ -124,9 +124,11 @@ void DsoSettings::load() {
                 scope.voltage[channel].probeGainSteps.push_back(defaultValue);
             }
         }
-        if(store->contains("probeGain"))
-            this->scope.voltage[channel].probe_gain = store->value("probeGain").toDouble();
-        if(store->contains("probeGain")) scope.voltage[channel].probe_gain = store->value("probeGain").toDouble();
+        if(store->contains("probeStepIndex"))
+            this->scope.voltage[channel].probeStepIndex = store->value("probeStepIndex").toInt();
+        //In any case check if the index is in range of the steps.
+        if(this->scope.voltage[channel].probeStepIndex >= scope.voltage[channel].probeGainSteps.size())
+            this->scope.voltage[channel].probeStepIndex = 0;
         store->endGroup();
     }
     if (store->contains("spectrumLimit")) scope.spectrumLimit = store->value("spectrumLimit").toDouble();
@@ -233,7 +235,7 @@ void DsoSettings::save() {
         // TODO for now transform to Qlist until switched to proper class
         QList<double> probeGainSteps = QList<double>::fromVector(QVector<double>::fromStdVector(scope.voltage[channel].probeGainSteps));
         store->setValue("probeGainSteps", QVariant::fromValue(probeGainSteps));
-        store->setValue("probeGain", scope.voltage[channel].probe_gain);
+        store->setValue("probeStepIndex", scope.voltage[channel].probeStepIndex);
         store->endGroup();
     }
     store->setValue("spectrumLimit", scope.spectrumLimit);
