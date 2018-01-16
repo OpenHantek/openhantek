@@ -13,6 +13,7 @@
 #include <QPainter>
 
 #include <QOpenGLFunctions>
+#include <QGLFormat>
 
 #include "glscope.h"
 
@@ -39,9 +40,11 @@ void GlScope::fixOpenGLversion(QSurfaceFormat::RenderableType t) {
 
     // Prefer full desktop OpenGL without fixed pipeline
     QSurfaceFormat format;
-    format.setSamples(4); // Antia-Aliasing, Multisampling
+    format.setSamples(4); // Anti-Aliasing, Multisampling
     format.setProfile(QSurfaceFormat::CoreProfile);
-    if (t==QSurfaceFormat::OpenGLES) {
+
+    if (!QGLFormat::openGLVersionFlags().testFlag(QGLFormat::OpenGL_Version_3_2)
+        || t == QSurfaceFormat::OpenGLES) {
         format.setVersion(2, 0);
         format.setRenderableType(QSurfaceFormat::OpenGLES);
         QCoreApplication::setAttribute(Qt::AA_UseOpenGLES, true);
@@ -129,7 +132,7 @@ void GlScope::initializeGL() {
 
     auto program = std::unique_ptr<QOpenGLShaderProgram>(new QOpenGLShaderProgram(context()));
 
-    const char *vshaderES = R"(
+    const char *vShader_1_0 = R"(
           #version 100
           attribute highp vec3 vertex;
           uniform mat4 matrix;
@@ -139,13 +142,13 @@ void GlScope::initializeGL() {
               gl_PointSize = 1.0;
           }
     )";
-    const char *fshaderES = R"(
+    const char *fShader_1_0 = R"(
           #version 100
           uniform highp vec4 colour;
           void main() { gl_FragColor = colour; }
     )";
 
-    const char *vshaderDesktop = R"(
+    const char *vShader_1_5 = R"(
           #version 150
           in highp vec3 vertex;
           uniform mat4 matrix;
@@ -155,7 +158,7 @@ void GlScope::initializeGL() {
               gl_PointSize = 1.0;
           }
     )";
-    const char *fshaderDesktop = R"(
+    const char *fShader_1_5 = R"(
           #version 150
           uniform highp vec4 colour;
           out vec4 flatColor;
@@ -164,9 +167,9 @@ void GlScope::initializeGL() {
 
     qDebug() << "compile shaders";
     // Compile vertex shader
-    bool usesOpenGL = QSurfaceFormat::defaultFormat().renderableType()==QSurfaceFormat::OpenGL;
-    if (!program->addShaderFromSourceCode(QOpenGLShader::Vertex, usesOpenGL ? vshaderDesktop : vshaderES) ||
-        !program->addShaderFromSourceCode(QOpenGLShader::Fragment, usesOpenGL ? fshaderDesktop : fshaderES)) {
+    bool usesVersion_1_5 = QGLFormat::openGLVersionFlags().testFlag(QGLFormat::OpenGL_Version_3_2);
+    if (!program->addShaderFromSourceCode(QOpenGLShader::Vertex, usesVersion_1_5 ? vShader_1_5 : vShader_1_0) ||
+        !program->addShaderFromSourceCode(QOpenGLShader::Fragment, usesVersion_1_5 ? fShader_1_5 : fShader_1_0)) {
         errorMessage = "Failed to compile OpenGL shader programs.\n" + program->log();
         return;
     }

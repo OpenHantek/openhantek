@@ -84,9 +84,9 @@ int main(int argc, char *argv[]) {
         useGles = p.isSet(useGlesOption);
     }
 
-    GlScope::fixOpenGLversion(useGles ? QSurfaceFormat::OpenGLES : QSurfaceFormat::OpenGL);
-
     QApplication openHantekApplication(argc, argv);
+
+    GlScope::fixOpenGLversion(useGles ? QSurfaceFormat::OpenGLES : QSurfaceFormat::OpenGL);
 
     //////// Load translations ////////
     QTranslator qtTranslator;
