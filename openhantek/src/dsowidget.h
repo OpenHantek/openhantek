@@ -16,10 +16,16 @@ class SpectrumGenerator;
 struct DsoSettingsScope;
 struct DsoSettingsView;
 
+class QPushButton;
+class QGroupBox;
+class QButtonGroup;
+
 /// \brief The widget for the oszilloscope-screen
 /// This widget contains the scopes and all level sliders.
 class DsoWidget : public QWidget {
     Q_OBJECT
+
+  public:
 
     struct Sliders {
         LevelSlider *offsetSlider;          ///< The sliders for the graph offsets
@@ -28,7 +34,18 @@ class DsoWidget : public QWidget {
         LevelSlider *markerSlider;          ///< The sliders for the markers
     };
 
-  public:
+    struct CursorInfo {
+        int index = -1;         ///< The position in QButtonGroup
+        QPushButton *selector;  ///< The name of the channel
+        QPushButton *shape;     ///< The cursor shape
+        QLabel *deltaXLabel;    ///< The horizontal distance between cursors
+        QLabel *deltaYLabel;    ///< The vertical distance between cursors
+
+        CursorInfo();
+        void configure(const QString &text, const QColor &bgColor, const QColor &fgColor);
+        void setupLayout(QGridLayout *layout, unsigned row);
+    };
+
     /// \brief Initializes the components of the oszilloscope-screen.
     /// \param settings The settings object containing the oscilloscope settings.
     /// \param dataAnalyzer The data analyzer that should be used as data source.
@@ -49,6 +66,9 @@ class DsoWidget : public QWidget {
     void updateSpectrumDetails(ChannelID channel);
     void updateTriggerDetails();
     void updateVoltageDetails(ChannelID channel);
+
+    double mainToZoom(double position) const;
+    double zoomToMain(double position) const;
 
     Sliders mainSliders;
     Sliders zoomSliders;
@@ -78,6 +98,13 @@ class DsoWidget : public QWidget {
     std::vector<QLabel *> measurementMiscLabel;      ///< Coupling or math mode
     std::vector<QLabel *> measurementAmplitudeLabel; ///< Amplitude of the signal (V)
     std::vector<QLabel *> measurementFrequencyLabel; ///< Frequency of the signal (Hz)
+
+    QGroupBox *cursorsGroupBox;
+    QButtonGroup *cursorsSelectorGroup;
+    QGridLayout *cursorsLayout;                 ///< The table for the cursor parameters
+    CursorInfo markerInfo;                      ///< The cursor info for horizontal axis markers
+    std::vector<CursorInfo> voltageCursors;     ///< The cursor info for voltage channels
+    std::vector<CursorInfo> spectrumCursors;    ///< The cursor info for spectrum channels
 
     DsoSettingsScope* scope;
     DsoSettingsView* view;
@@ -113,11 +140,12 @@ class DsoWidget : public QWidget {
 
     // Scope control
     void updateZoom(bool enabled);
+    void updateCursorGrid(bool enabled);
 
   private slots:
     // Sliders
     void updateOffset(ChannelID channel, double value);
-    void updateTriggerPosition(int index, double value);
+    void updateTriggerPosition(int index, double value, bool mainView = true);
     void updateTriggerLevel(ChannelID channel, double value);
     void updateMarker(int marker, double value);
 
@@ -126,5 +154,4 @@ class DsoWidget : public QWidget {
     void offsetChanged(ChannelID channel, double value);       ///< A graph offset has been changed
     void triggerPositionChanged(double value);                    ///< The pretrigger has been changed
     void triggerLevelChanged(ChannelID channel, double value); ///< A trigger level has been changed
-    void markerChanged(unsigned int marker, double value);        ///< A marker position has been changed
 };
