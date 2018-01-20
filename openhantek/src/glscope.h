@@ -20,6 +20,10 @@ struct DsoSettingsView;
 struct DsoSettingsScope;
 class PPresult;
 
+class GlScopeGridAndMarkers {
+
+};
+
 /// \brief OpenGL accelerated widget that displays the oscilloscope screen.
 class GlScope : public QOpenGLWidget {
     Q_OBJECT
@@ -66,13 +70,12 @@ class GlScope : public QOpenGLWidget {
     virtual void mouseReleaseEvent(QMouseEvent *event) override;
     virtual void paintEvent(QPaintEvent *event) override;
 
+    inline GlScopeGridAndMarkers* gridAndMarkers() { return mGridAndMarkers; }
+
     /// \brief Draw the grid.
     void drawGrid();
     /// Draw vertical lines at marker positions
     void drawMarkers();
-
-    void drawVoltageChannelGraph(ChannelID channel, Graph &graph, int historyIndex);
-    void drawSpectrumChannelGraph(ChannelID channel, Graph &graph, int historyIndex);
   signals:
     void markerMoved(unsigned marker, double position);
 
@@ -92,8 +95,8 @@ class GlScope : public QOpenGLWidget {
     #pragma pack(pop)
     std::vector<Line> vaMarker;
     unsigned selectedMarker = NO_MARKER;
-    QOpenGLBuffer m_marker;
-    QOpenGLVertexArrayObject m_vaoMarker;
+    QOpenGLBuffer markerVBO;
+    QOpenGLVertexArrayObject markerVAO;
 
     // Grid
     QOpenGLBuffer m_grid;
@@ -108,7 +111,10 @@ class GlScope : public QOpenGLWidget {
     // OpenGL shader, matrix, var-locations
     bool shaderCompileSuccess = false;
     QString errorMessage;
-    std::unique_ptr<QOpenGLShaderProgram> m_program;
+    std::unique_ptr<QOpenGLShaderProgram> shaderProgramColor;
+    std::unique_ptr<QOpenGLShaderProgram> shaderProgramTexture;
+    QOpenGLBuffer fullscreenVBO;
+    QOpenGLVertexArrayObject fullscreenVAO;
     QMatrix4x4 pmvMatrix; ///< projection, view matrix
     int colorLocation;
     int vertexLocation;
