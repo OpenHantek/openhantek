@@ -41,7 +41,7 @@ void GlScope::fixOpenGLversion(QSurfaceFormat::RenderableType t) {
     QSurfaceFormat format;
     format.setSamples(4); // Antia-Aliasing, Multisampling
     format.setProfile(QSurfaceFormat::CoreProfile);
-    if (t==QSurfaceFormat::OpenGLES) {
+    if (t == QSurfaceFormat::OpenGLES) {
         format.setVersion(2, 0);
         format.setRenderableType(QSurfaceFormat::OpenGLES);
         QCoreApplication::setAttribute(Qt::AA_UseOpenGLES, true);
@@ -57,7 +57,8 @@ GlScope::GlScope(DsoSettingsScope *scope, DsoSettingsView *view, QWidget *parent
     vaMarker.resize(MARKER_COUNT);
 }
 
-GlScope::~GlScope() {/* virtual destructor necessary */}
+GlScope::~GlScope() { /* virtual destructor necessary */
+}
 
 void GlScope::mousePressEvent(QMouseEvent *event) {
     if (!zoomed && event->button() == Qt::LeftButton) {
@@ -122,7 +123,7 @@ void GlScope::initializeGL() {
         errorMessage = tr("System does not support OpenGL Shading Language (GLSL)");
         return;
     }
-    if (m_program) {
+    if (shaderProgramColor) {
         qWarning() << "OpenGL init called twice!";
         return;
     }
@@ -157,6 +158,7 @@ void GlScope::initializeGL() {
     )";
     const char *fshaderDesktop = R"(
           #version 150
+          uniform sampler2D texture;
           uniform highp vec4 colour;
           out vec4 flatColor;
           void main() { flatColor = colour; }
@@ -164,7 +166,7 @@ void GlScope::initializeGL() {
 
     qDebug() << "compile shaders";
     // Compile vertex shader
-    bool usesOpenGL = QSurfaceFormat::defaultFormat().renderableType()==QSurfaceFormat::OpenGL;
+    bool usesOpenGL = QSurfaceFormat::defaultFormat().renderableType() == QSurfaceFormat::OpenGL;
     if (!program->addShaderFromSourceCode(QOpenGLShader::Vertex, usesOpenGL ? vshaderDesktop : vshaderES) ||
         !program->addShaderFromSourceCode(QOpenGLShader::Fragment, usesOpenGL ? fshaderDesktop : fshaderES)) {
         errorMessage = "Failed to compile OpenGL shader programs.\n" + program->log();
@@ -204,19 +206,36 @@ void GlScope::initializeGL() {
     generateGrid(program.get());
 
     {
-        m_vaoMarker.create();
-        QOpenGLVertexArrayObject::Binder b(&m_vaoMarker);
-        m_marker.create();
-        m_marker.bind();
-        m_marker.setUsagePattern(QOpenGLBuffer::StaticDraw);
-        m_marker.allocate(int(vaMarker.size() * sizeof(Line)));
+        markerVAO.create();
+        QOpenGLVertexArrayObject::Binder b(&markerVAO);
+        markerVBO.create();
+        markerVBO.bind();
+        markerVBO.setUsagePattern(QOpenGLBuffer::StaticDraw);
+        markerVBO.allocate(int(vaMarker.size() * sizeof(Line)));
+        program->enableAttributeArray(vertexLocation);
+        program->setAttributeBuffer(vertexLocation, GL_FLOAT, 0, 3, 0);
+    }
+
+    {
+        const GLfloat fullRectVert[] = {
+            0.5f,  0.5f,  0.0f, // Top Right
+            0.5f,  -0.5f, 0.0f, // Bottom Right
+            -0.5f, -0.5f, 0.0f, // Bottom Left
+            -0.5f, 0.5f,  0.0f  // Top Left
+        };
+        fullscreenVAO.create();
+        QOpenGLVertexArrayObject::Binder b(&fullscreenVAO);
+        fullscreenVBO.create();
+        fullscreenVBO.bind();
+        fullscreenVBO.setUsagePattern(QOpenGLBuffer::StaticDraw);
+        fullscreenVBO.allocate(int(sizeof(fullRectVert)));
         program->enableAttributeArray(vertexLocation);
         program->setAttributeBuffer(vertexLocation, GL_FLOAT, 0, 3, 0);
     }
 
     markerUpdated();
 
-    m_program = std::move(program);
+    shaderProgramColor = std::move(program);
     shaderCompileSuccess = true;
 }
 
@@ -227,16 +246,20 @@ void GlScope::showData(std::shared_ptr<PPresult> data) {
     while (view->digitalPhosphorDraws() < m_GraphHistory.size()) m_GraphHistory.pop_back();
 
     // Add if missing
-    if (view->digitalPhosphorDraws() > m_GraphHistory.size()) { m_GraphHistory.resize(m_GraphHistory.size() + 1); }
+    if (view->digitalPhosphorDraws() > m_GraphHistory.size()) {
+        m_GraphHistory.resize(m_GraphHistory.size() + 1);
+        Graph &graph = m_GraphHistory.back();
+        graph.create(rect(), shaderProgramColor.get(), context(), view, vertexLocation, colorLocation);
+        connect(&graph, &Graph::fboReady, this, static_cast<void (GlScope::*)()>(&GlScope::update));
+    }
 
     // Move last item to front
     m_GraphHistory.splice(m_GraphHistory.begin(), m_GraphHistory, std::prev(m_GraphHistory.end()));
 
-    // Add new entry
-    m_GraphHistory.front().writeData(data.get(), m_program.get(), vertexLocation);
-    // doneCurrent();
+    m_GraphHistory.front().assignData(data);
 
-    update();
+    // Draw data to a framebuffer
+    if (isVisible()) m_GraphHistory.front().redraw();
 }
 
 void GlScope::markerUpdated() {
@@ -249,8 +272,8 @@ void GlScope::markerUpdated() {
 
     // Write coordinates to GPU
     makeCurrent();
-    m_marker.bind();
-    m_marker.write(0, vaMarker.data(), vaMarker.size() * sizeof(Line));
+    markerVBO.bind();
+    markerVBO.write(0, vaMarker.data(), vaMarker.size() * sizeof(Line));
 }
 
 void GlScope::paintGL() {
@@ -259,11 +282,10 @@ void GlScope::paintGL() {
     auto *gl = context()->functions();
 
     // Clear OpenGL buffer and configure settings
-    // TODO Don't clear if view->digitalPhosphorDraws()>1
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     gl->glLineWidth(1);
 
-    m_program->bind();
+    shaderProgramColor->bind();
 
     // Apply zoom settings via matrix transformation
     if (zoomed) {
@@ -271,26 +293,38 @@ void GlScope::paintGL() {
         m.scale(QVector3D(DIVS_TIME / (GLfloat)fabs(scope->horizontal.marker[1] - scope->horizontal.marker[0]), 1.0f,
                           1.0f));
         m.translate((GLfloat) - (scope->horizontal.marker[0] + scope->horizontal.marker[1]) / 2, 0.0f, 0.0f);
-        m_program->setUniformValue(matrixLocation, pmvMatrix * m);
+        shaderProgramColor->setUniformValue(matrixLocation, pmvMatrix * m);
     }
 
     unsigned historyIndex = 0;
+
+    static const GLuint indices[] = {
+        0, 3, 2, // First Triangle
+        2, 1, 0  // Second Triangle
+    };
     for (Graph &graph : m_GraphHistory) {
-        for (ChannelID channel = 0; channel < scope->voltage.size(); ++channel) {
-            if (scope->horizontal.format == Dso::GraphFormat::TY) {
-                drawSpectrumChannelGraph(channel, graph, (int)historyIndex);
-            }
-            drawVoltageChannelGraph(channel, graph, (int)historyIndex);
+        if (!graph.isReady()) {
+            graph.redraw();
+            continue;
         }
+        QReadLocker l(graph.getLock());
+        graph.getFBO()->bind();
+        gl->glEnable(GL_TEXTURE_2D);
+        gl->glBindTexture(GL_TEXTURE_2D, graph.getFBO()->texture());
+        QOpenGLVertexArrayObject::Binder b(&fullscreenVAO);
+        gl->glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, indices);
+        graph.getFBO()->release();
+        gl->glBindTexture(GL_TEXTURE_2D, 0);
+        gl->glDisable(GL_TEXTURE_2D);
         ++historyIndex;
     }
 
-    if (zoomed) { m_program->setUniformValue(matrixLocation, pmvMatrix); }
+    if (zoomed) { shaderProgramColor->setUniformValue(matrixLocation, pmvMatrix); }
 
     if (!this->zoomed) drawMarkers();
 
     drawGrid();
-    m_program->release();
+    shaderProgramColor->release();
 }
 
 void GlScope::resizeGL(int width, int height) {
@@ -307,9 +341,9 @@ void GlScope::resizeGL(int width, int height) {
                     -(DIVS_VOLTAGE / 2.0f) * pixelizationHeightCorrection,
                     (DIVS_VOLTAGE / 2.0f) * pixelizationHeightCorrection, -1.0f, 1.0f);
 
-    m_program->bind();
-    m_program->setUniformValue(matrixLocation, pmvMatrix);
-    m_program->release();
+    shaderProgramColor->bind();
+    shaderProgramColor->setUniformValue(matrixLocation, pmvMatrix);
+    shaderProgramColor->release();
 }
 
 void GlScope::generateGrid(QOpenGLShaderProgram *program) {
@@ -415,19 +449,19 @@ void GlScope::drawGrid() {
 
     // Grid
     m_vaoGrid[0].bind();
-    m_program->setUniformValue(colorLocation, view->screen.grid);
+    shaderProgramColor->setUniformValue(colorLocation, view->screen.grid);
     gl->glDrawArrays(GL_POINTS, 0, gridDrawCounts[0]);
     m_vaoGrid[0].release();
 
     // Axes
     m_vaoGrid[1].bind();
-    m_program->setUniformValue(colorLocation, view->screen.axes);
+    shaderProgramColor->setUniformValue(colorLocation, view->screen.axes);
     gl->glDrawArrays(GL_LINES, 0, gridDrawCounts[1]);
     m_vaoGrid[1].release();
 
     // Border
     m_vaoGrid[2].bind();
-    m_program->setUniformValue(colorLocation, view->screen.border);
+    shaderProgramColor->setUniformValue(colorLocation, view->screen.border);
     gl->glDrawArrays(GL_LINE_LOOP, 0, gridDrawCounts[2]);
     m_vaoGrid[2].release();
 }
@@ -435,9 +469,9 @@ void GlScope::drawGrid() {
 void GlScope::drawMarkers() {
     auto *gl = context()->functions();
     QColor trColor = view->screen.markers;
-    m_program->setUniformValue(colorLocation, trColor);
+    shaderProgramColor->setUniformValue(colorLocation, trColor);
 
-    m_vaoMarker.bind();
+    markerVAO.bind();
 
     // Draw all
     gl->glLineWidth(1);
@@ -449,27 +483,5 @@ void GlScope::drawMarkers() {
         gl->glDrawArrays(GL_LINES, selectedMarker * 2, (GLsizei)2);
     }
 
-    m_vaoMarker.release();
-}
-
-void GlScope::drawVoltageChannelGraph(ChannelID channel, Graph &graph, int historyIndex) {
-    if (!scope->voltage[channel].used) return;
-
-    m_program->setUniformValue(colorLocation, view->screen.voltage[channel].darker(100 + 10 * historyIndex));
-    Graph::VaoCount &v = graph.vaoVoltage[channel];
-
-    QOpenGLVertexArrayObject::Binder b(v.first);
-    const GLenum dMode = (view->interpolation == Dso::INTERPOLATION_OFF) ? GL_POINTS : GL_LINE_STRIP;
-    context()->functions()->glDrawArrays(dMode, 0, v.second);
-}
-
-void GlScope::drawSpectrumChannelGraph(ChannelID channel, Graph &graph, int historyIndex) {
-    if (!scope->spectrum[channel].used) return;
-
-    m_program->setUniformValue(colorLocation, view->screen.spectrum[channel].darker(100 + 10 * historyIndex));
-    Graph::VaoCount &v = graph.vaoSpectrum[channel];
-
-    QOpenGLVertexArrayObject::Binder b(v.first);
-    const GLenum dMode = (view->interpolation == Dso::INTERPOLATION_OFF) ? GL_POINTS : GL_LINE_STRIP;
-    context()->functions()->glDrawArrays(dMode, 0, v.second);
+    markerVAO.release();
 }
