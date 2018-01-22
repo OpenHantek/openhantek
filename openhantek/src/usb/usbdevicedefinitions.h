@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include <inttypes.h>
+
 #define HANTEK_TIMEOUT 500       ///< Timeout for USB transfers in ms
 #define HANTEK_TIMEOUT_MULTI 100 ///< Timeout for multi packet USB transfers in ms
 #define HANTEK_ATTEMPTS 3        ///< The number of transfer attempts
@@ -11,7 +13,8 @@
 #define HANTEK_EP_IN 0x86  ///< IN Endpoint for bulk transfers
 
 /// \brief The speed level of the USB connection.
-enum ConnectionSpeed {
-    CONNECTION_FULLSPEED = 0, ///< FullSpeed USB, 64 byte bulk transfers
-    CONNECTION_HIGHSPEED = 1  ///< HighSpeed USB, 512 byte bulk transfers
+enum class ConnectionSpeed : uint8_t {
+    FULLSPEED = 0, ///< FullSpeed USB, 64 byte bulk transfers
+    HIGHSPEED = 1, ///< HighSpeed USB, 512 byte bulk transfers
+    UNKNOWNSPEED = UINT8_MAX
 };

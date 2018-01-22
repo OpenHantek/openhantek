@@ -1,6 +1,6 @@
 #pragma once
 
-#include "controlcode.h"
+#include "codes.h"
 #include "controlcommand.h"
 #include "types.h"
 #include "usb/usbdevicedefinitions.h"
@@ -9,7 +9,6 @@
 #include <memory>
 
 namespace Hantek {
-struct OffsetsPerGainStep;
 
 /// \enum BulkIndex
 /// \brief Can be set by CONTROL_BEGINCOMMAND, maybe it allows multiple commands
@@ -51,17 +50,17 @@ struct ControlSetOffset : public ControlCommand {
     /// \brief Get the offset for the given channel.
     /// \param channel The channel whose offset should be returned.
     /// \return The channel offset value.
-    uint16_t getChannel(ChannelID channel);
+    uint16_t offset(ChannelID channel);
     /// \brief Set the offset for the given channel.
     /// \param channel The channel that should be set.
     /// \param offset The new channel offset value.
-    void setChannel(ChannelID channel, uint16_t offset);
+    void setOffset(ChannelID channel, uint16_t offset);
     /// \brief Get the trigger level.
     /// \return The trigger level value.
-    uint16_t getTrigger();
+    uint16_t triggerLevel();
     /// \brief Set the trigger level.
     /// \param level The new trigger level value.
-    void setTrigger(uint16_t level);
+    void setTriggerLevel(uint16_t level);
 };
 
 struct ControlSetRelays : public ControlCommand {
@@ -129,8 +128,18 @@ struct ControlAcquireHardData : public ControlCommand {
 };
 
 struct ControlGetLimits : public ControlCommand {
+    constexpr static unsigned HANTEK_GAIN_STEPS = 9;
+#pragma pack(push, 1)
+    struct Offset {
+        unsigned short start;
+        unsigned short end;
+    };
+    struct OffsetsPerGainStep {
+        Offset step[HANTEK_GAIN_STEPS];
+    };
+#pragma pack(pop)
+
     std::unique_ptr<OffsetsPerGainStep[]> offsetLimit;
     ControlGetLimits(size_t channels);
-    inline uint8_t *offsetLimitData() { return (uint8_t *)offsetLimit.get(); }
 };
 }

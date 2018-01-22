@@ -12,25 +12,23 @@
 #include <QPrintDialog>
 #include <QPrinter>
 
-ExporterPrint::ExporterPrint() {}
+namespace Exporter {
+Print::Print() {}
 
-void ExporterPrint::create(ExporterRegistry *registry) { this->registry = registry; data.reset(); }
+QIcon Print::icon() { return iconFont->icon(fa::print); }
 
-QIcon ExporterPrint::icon() { return iconFont->icon(fa::print); }
+QString Print::name() { return QCoreApplication::tr("Print"); }
 
-QString ExporterPrint::name() { return QCoreApplication::tr("Print"); }
+ExporterInterface::Type Print::type() { return Type::SnapshotExport; }
 
-ExporterInterface::Type ExporterPrint::type() { return Type::SnapshotExport; }
+float Print::samples(const std::shared_ptr<PPresult>) { return 1; }
 
-bool ExporterPrint::samples(const std::shared_ptr<PPresult> data) {
-    this->data = std::move(data);
-    return false;
-}
-
-bool ExporterPrint::save() {
+bool Print::exportNow(Registry *registry) {
+    auto data = registry->lastDataSet();
+    if (!data) return false;
     // We need a QPrinter for printing, pdf- and ps-export
     std::unique_ptr<QPrinter> printer = std::unique_ptr<QPrinter>(new QPrinter(QPrinter::HighResolution));
-    printer->setOrientation(registry->settings->view.zoom ? QPrinter::Portrait : QPrinter::Landscape);
+    printer->setOrientation(QPrinter::Landscape);
     printer->setPageMargins(20, 20, 20, 20, QPrinter::Millimeter);
 
     // Show the printing dialog
@@ -38,12 +36,13 @@ bool ExporterPrint::save() {
     dialog.setWindowTitle(QCoreApplication::tr("Print oscillograph"));
     if (dialog.exec() != QDialog::Accepted) { return false; }
 
-    const DsoSettingsColorValues *colorValues = &(registry->settings->view.print);
+    const Settings::Colors *colorValues = &(registry->settings->view.print);
 
-    LegacyExportDrawer::exportSamples(data.get(), printer.get(), registry->deviceSpecification, registry->settings,
-                                      true, colorValues);
+    LegacyExportDrawer::exportSamples(data, printer.get(), registry->deviceSpecification, registry->settings,
+                                      colorValues);
 
     return true;
 }
 
-float ExporterPrint::progress() { return data ? 1.0f : 0; }
+QKeySequence Print::shortcut() { return QKeySequence(Qt::CTRL | Qt::Key_P); }
+}

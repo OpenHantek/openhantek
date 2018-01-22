@@ -15,20 +15,18 @@
 #include <QSpinBox>
 #include <QVBoxLayout>
 
-////////////////////////////////////////////////////////////////////////////////
-/// \class DsoConfigFilesPage                                      configpages.h
 /// \brief Config page for file loading/saving.
 class DsoConfigFilesPage : public QWidget {
     Q_OBJECT
 
   public:
-    DsoConfigFilesPage(DsoSettings *settings, QWidget *parent = 0);
+    DsoConfigFilesPage(Settings::DsoSettings *settings, QWidget *parent = 0);
 
   public slots:
     void saveSettings();
 
   private:
-    DsoSettings *settings;
+    Settings::DsoSettings *settings;
 
     QVBoxLayout *mainLayout;
 

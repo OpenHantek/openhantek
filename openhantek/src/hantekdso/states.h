@@ -4,8 +4,6 @@
 
 namespace Hantek {
 
-//////////////////////////////////////////////////////////////////////////////
-/// \enum RollState
 /// \brief The states of the roll cycle (Since capture state isn't valid).
 enum class RollState : int {
     STARTSAMPLING = 0, ///< Start sampling
@@ -16,8 +14,6 @@ enum class RollState : int {
     _COUNT // Used for mod operator
 };
 
-//////////////////////////////////////////////////////////////////////////////
-/// \enum CaptureState                                          hantek/types.h
 /// \brief The different capture states which the oscilloscope returns.
 enum CaptureState {
     CAPTURE_WAITING = 0,   ///< The scope is waiting for a trigger event
@@ -27,5 +23,4 @@ enum CaptureState {
     CAPTURE_READY5200 = 7, ///< Sampling data is available (DSO-5200/DSO-5200A)
     CAPTURE_ERROR = 1000
 };
-
 }

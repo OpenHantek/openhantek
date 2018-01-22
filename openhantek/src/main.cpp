@@ -5,6 +5,7 @@
 #include <QDebug>
 #include <QLibraryInfo>
 #include <QLocale>
+#include <QOpenGLContext>
 #include <QSurfaceFormat>
 #include <QTranslator>
 
@@ -17,19 +18,20 @@
 #include "viewconstants.h"
 
 // DSO core logic
+#include "dsocontrol.h"
+#include "dsoloop.h"
 #include "dsomodel.h"
-#include "hantekdsocontrol.h"
 #include "usb/usbdevice.h"
 
 // Post processing
 #include "post/graphgenerator.h"
 #include "post/mathchannelgenerator.h"
 #include "post/postprocessing.h"
+#include "post/selfcalibration.h"
 #include "post/spectrumgenerator.h"
 
 // Exporter
 #include "exporting/exportcsv.h"
-#include "exporting/exporterprocessor.h"
 #include "exporting/exporterregistry.h"
 #include "exporting/exportimage.h"
 #include "exporting/exportprint.h"
@@ -39,45 +41,11 @@
 #include "mainwindow.h"
 #include "selectdevice/selectsupporteddevice.h"
 
-// OpenGL setup
-#include "glscope.h"
-
 #ifndef VERSION
 #error "You need to run the cmake buildsystem!"
 #endif
 
 using namespace Hantek;
-
-/// \brief Initialize the device with the current settings.
-void applySettingsToDevice(HantekDsoControl *dsoControl, DsoSettingsScope *scope,
-                           const Dso::ControlSpecification *spec) {
-    bool mathUsed = scope->anyUsed(spec->channels);
-    for (ChannelID channel = 0; channel < spec->channels; ++channel) {
-        dsoControl->setCoupling(channel, scope->coupling(channel, spec));
-        dsoControl->setGain(channel, scope->gain(channel) * DIVS_VOLTAGE);
-        dsoControl->setOffset(channel, (scope->voltage[channel].offset / DIVS_VOLTAGE) + 0.5);
-        dsoControl->setTriggerLevel(channel, scope->voltage[channel].trigger);
-        dsoControl->setChannelUsed(channel, mathUsed | scope->anyUsed(channel));
-    }
-
-    if (scope->horizontal.samplerateSource == DsoSettingsScopeHorizontal::Samplerrate)
-        dsoControl->setSamplerate(scope->horizontal.samplerate);
-    else
-        dsoControl->setRecordTime(scope->horizontal.timebase * DIVS_TIME);
-
-    if (dsoControl->getAvailableRecordLengths().empty())
-        dsoControl->setRecordLength(scope->horizontal.recordLength);
-    else {
-        auto recLenVec = dsoControl->getAvailableRecordLengths();
-        ptrdiff_t index = std::distance(recLenVec.begin(),
-                                        std::find(recLenVec.begin(), recLenVec.end(), scope->horizontal.recordLength));
-        dsoControl->setRecordLength(index < 0 ? 1 : (unsigned)index);
-    }
-    dsoControl->setTriggerMode(scope->trigger.mode);
-    dsoControl->setPretriggerPosition(scope->trigger.position * scope->horizontal.timebase * DIVS_TIME);
-    dsoControl->setTriggerSlope(scope->trigger.slope);
-    dsoControl->setTriggerSource(scope->trigger.special, scope->trigger.source);
-}
 
 /// \brief Initialize resources and translations and show the main window.
 int main(int argc, char *argv[]) {
@@ -87,9 +55,8 @@ int main(int argc, char *argv[]) {
     QCoreApplication::setApplicationName("OpenHantek");
     QCoreApplication::setApplicationVersion(VERSION);
     QCoreApplication::setAttribute(Qt::AA_UseHighDpiPixmaps, true);
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 6, 0))
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);
-#endif
+    QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts, false);
 
     bool useGles = false;
     {
@@ -102,8 +69,22 @@ int main(int argc, char *argv[]) {
         p.process(parserApp);
         useGles = p.isSet(useGlesOption);
     }
-
-    GlScope::fixOpenGLversion(useGles ? QSurfaceFormat::OpenGLES : QSurfaceFormat::OpenGL);
+    // Prefer full desktop OpenGL without fixed pipeline
+    QSurfaceFormat format;
+    format.setSamples(4); // Antia-Aliasing, Multisampling
+    format.setDepthBufferSize(24);
+    format.setStencilBufferSize(8);
+    format.setProfile(QSurfaceFormat::CoreProfile);
+    if (useGles || QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES) {
+        format.setVersion(2, 0);
+        format.setRenderableType(QSurfaceFormat::OpenGLES);
+        QCoreApplication::setAttribute(Qt::AA_UseOpenGLES, true);
+    } else {
+        format.setVersion(3, 2);
+        format.setRenderableType(QSurfaceFormat::OpenGL);
+        QCoreApplication::setAttribute(Qt::AA_UseOpenGLES, false);
+    }
+    QSurfaceFormat::setDefaultFormat(format);
 
     QApplication openHantekApplication(argc, argv);
 
@@ -133,28 +114,29 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
+    //////// Create settings object ////////
+    Settings::DsoSettings settings(device->getModel()->spec());
+
     //////// Create DSO control object and move it to a separate thread ////////
     QThread dsoControlThread;
     dsoControlThread.setObjectName("dsoControlThread");
-    HantekDsoControl dsoControl(device.get());
+    DsoControl dsoControl(device.get(), settings.deviceSettings);
+    settings.load(dsoControl.channelUsage());
     dsoControl.moveToThread(&dsoControlThread);
-    QObject::connect(&dsoControlThread, &QThread::started, &dsoControl, &HantekDsoControl::run);
-    QObject::connect(&dsoControl, &HantekDsoControl::communicationError, QCoreApplication::instance(),
+    QObject::connect(&dsoControlThread, &QThread::started, &dsoControl, &DsoControl::start);
+    QObject::connect(&dsoControl, &DsoControl::communicationError, QCoreApplication::instance(),
                      &QCoreApplication::quit);
     QObject::connect(device.get(), &USBDevice::deviceDisconnected, QCoreApplication::instance(),
                      &QCoreApplication::quit);
 
-    //////// Create settings object ////////
-    DsoSettings settings(device->getModel()->spec());
+    SelfCalibration selfCalibration(&dsoControl);
 
     //////// Create exporters ////////
-    ExporterRegistry exportRegistry(device->getModel()->spec(), &settings);
+    Exporter::Registry exportRegistry(device->getModel()->spec(), &settings);
 
-    ExporterCSV exporterCSV;
-    ExporterImage exportImage;
-    ExporterPrint exportPrint;
-
-    ExporterProcessor samplesToExportRaw(&exportRegistry);
+    Exporter::CSV exporterCSV;
+    Exporter::Image exportImage;
+    Exporter::Print exportPrint;
 
     exportRegistry.registerExporter(&exporterCSV);
     exportRegistry.registerExporter(&exportImage);
@@ -163,37 +145,34 @@ int main(int argc, char *argv[]) {
     //////// Create post processing objects ////////
     QThread postProcessingThread;
     postProcessingThread.setObjectName("postProcessingThread");
-    PostProcessing postProcessing(settings.scope.countChannels());
+    PostProcessing::Executor postProcessing(&settings.scope);
 
-    SpectrumGenerator spectrumGenerator(&settings.scope, &settings.post);
-    MathChannelGenerator mathchannelGenerator(&settings.scope, device->getModel()->spec()->channels);
-    GraphGenerator graphGenerator(&settings.scope, device->getModel()->spec()->isSoftwareTriggerDevice);
+    PostProcessing::SpectrumGenerator spectrumGenerator(&settings.scope, &settings.post);
+    PostProcessing::MathChannelGenerator mathchannelGenerator(&settings.scope);
+    PostProcessing::GraphGenerator graphGenerator(&settings.scope, settings.deviceSettings.get(),
+                                                  dsoControl.channelUsage());
 
-    postProcessing.registerProcessor(&samplesToExportRaw);
+    postProcessing.registerProcessor(&selfCalibration);
     postProcessing.registerProcessor(&mathchannelGenerator);
     postProcessing.registerProcessor(&spectrumGenerator);
     postProcessing.registerProcessor(&graphGenerator);
 
     postProcessing.moveToThread(&postProcessingThread);
-    QObject::connect(&dsoControl, &HantekDsoControl::samplesAvailable, &postProcessing, &PostProcessing::input);
-    QObject::connect(&postProcessing, &PostProcessing::processingFinished, &exportRegistry, &ExporterRegistry::input,
-                     Qt::DirectConnection);
+    QObject::connect(&dsoControl, &DsoControl::samplesAvailable, &postProcessing, &PostProcessing::Executor::input);
+    QObject::connect(&postProcessing, &PostProcessing::Executor::processingFinished, &exportRegistry,
+                     &Exporter::Registry::input, Qt::DirectConnection);
 
     //////// Create main window ////////
     iconFont->initFontAwesome();
-    MainWindow openHantekMainWindow(&dsoControl, &settings, &exportRegistry);
-    QObject::connect(&postProcessing, &PostProcessing::processingFinished, &openHantekMainWindow,
+    MainWindow openHantekMainWindow(&dsoControl, &settings, &exportRegistry, &selfCalibration);
+    QObject::connect(&postProcessing, &PostProcessing::Executor::processingFinished, &openHantekMainWindow,
                      &MainWindow::showNewData);
-    QObject::connect(&exportRegistry, &ExporterRegistry::exporterProgressChanged, &openHantekMainWindow,
-                     &MainWindow::exporterProgressChanged);
-    QObject::connect(&exportRegistry, &ExporterRegistry::exporterStatusChanged, &openHantekMainWindow,
+    QObject::connect(&exportRegistry, &Exporter::Registry::exporterStatusChanged, &openHantekMainWindow,
                      &MainWindow::exporterStatusChanged);
     openHantekMainWindow.show();
 
-    applySettingsToDevice(&dsoControl, &settings.scope, device->getModel()->spec());
-
     //////// Start DSO thread and go into GUI main loop
-    dsoControl.enableSampling(true);
+    dsoControl.loopControl()->enableSampling(true);
     postProcessingThread.start();
     dsoControlThread.start();
     int res = openHantekApplication.exec();
@@ -205,7 +184,10 @@ int main(int argc, char *argv[]) {
     postProcessingThread.quit();
     postProcessingThread.wait(10000);
 
-    if (context && device != nullptr) { libusb_exit(context); }
+    if (context && device != nullptr) {
+        device.reset();
+        libusb_exit(context);
+    }
 
     return res;
 }

@@ -1,11 +1,23 @@
 // SPDX-License-Identifier: GPL-2.0+
 
 #include "DsoConfigColorsPage.h"
+#include "widgets/colorbox.h"
 
-DsoConfigColorsPage::DsoConfigColorsPage(DsoSettings *settings, QWidget *parent) : QWidget(parent), settings(settings) {
+DsoConfigColorsPage::DsoConfigColorsPage(Settings::DsoSettings *settings, QWidget *parent)
+    : QWidget(parent), settings(settings) {
     // Initialize elements
-    DsoSettingsView &colorSettings = settings->view;
+    Settings::View &colorSettings = settings->view;
     enum { COL_LABEL = 0, COL_SCR_CHANNEL, COL_SCR_SPECTRUM, COL_PRT_CHANNEL, COL_PRT_SPECTRUM };
+
+    QVBoxLayout *mainLayout;
+
+    QGroupBox *colorsGroup;
+    QGridLayout *colorsLayout;
+
+    QLabel *screenColorsLabel, *printColorsLabel;
+    QLabel *axesLabel, *backgroundLabel, *borderLabel, *gridLabel, *markersLabel, *textLabel;
+    QLabel *graphLabel;
+    QLabel *screenChannelLabel, *screenSpectrumLabel, *printChannelLabel, *printSpectrumLabel;
 
     // Plot Area
     graphLabel = new QLabel(tr("<hr width=\"100%\"/>")); // 4*80
@@ -18,28 +30,28 @@ DsoConfigColorsPage::DsoConfigColorsPage(DsoSettings *settings, QWidget *parent)
     printColorsLabel->setAlignment(Qt::AlignHCenter);
 
     axesLabel = new QLabel(tr("Axes"));
-    axesColorBox = new ColorBox(colorSettings.screen.axes);
-    printAxesColorBox = new ColorBox(colorSettings.print.axes);
+    axesColorBox = new ColorBox(colorSettings.screen.axes());
+    printAxesColorBox = new ColorBox(colorSettings.print.axes());
 
     backgroundLabel = new QLabel(tr("Background"));
-    backgroundColorBox = new ColorBox(colorSettings.screen.background);
-    printBackgroundColorBox = new ColorBox(colorSettings.print.background);
+    backgroundColorBox = new ColorBox(colorSettings.screen.background());
+    printBackgroundColorBox = new ColorBox(colorSettings.print.background());
 
     borderLabel = new QLabel(tr("Border"));
-    borderColorBox = new ColorBox(colorSettings.screen.border);
-    printBorderColorBox = new ColorBox(colorSettings.print.border);
+    borderColorBox = new ColorBox(colorSettings.screen.border());
+    printBorderColorBox = new ColorBox(colorSettings.print.border());
 
     gridLabel = new QLabel(tr("Grid"));
-    gridColorBox = new ColorBox(colorSettings.screen.grid);
-    printGridColorBox = new ColorBox(colorSettings.print.grid);
+    gridColorBox = new ColorBox(colorSettings.screen.grid());
+    printGridColorBox = new ColorBox(colorSettings.print.grid());
 
     markersLabel = new QLabel(tr("Markers"));
-    markersColorBox = new ColorBox(colorSettings.screen.markers);
-    printMarkersColorBox = new ColorBox(colorSettings.print.markers);
+    markersColorBox = new ColorBox(colorSettings.screen.markers());
+    printMarkersColorBox = new ColorBox(colorSettings.print.markers());
 
     textLabel = new QLabel(tr("Text"));
-    textColorBox = new ColorBox(colorSettings.screen.text);
-    printTextColorBox = new ColorBox(colorSettings.print.text);
+    textColorBox = new ColorBox(colorSettings.screen.text());
+    printTextColorBox = new ColorBox(colorSettings.print.text());
 
     // Graph category
     screenChannelLabel = new QLabel(tr("Channel"));
@@ -50,14 +62,6 @@ DsoConfigColorsPage::DsoConfigColorsPage(DsoSettings *settings, QWidget *parent)
     printChannelLabel->setAlignment(Qt::AlignHCenter);
     printSpectrumLabel = new QLabel(tr("Spectrum"));
     printSpectrumLabel->setAlignment(Qt::AlignHCenter);
-
-    for (ChannelID channel = 0; channel < settings->scope.voltage.size(); ++channel) {
-        colorLabel.push_back(new QLabel(settings->scope.voltage[channel].name));
-        screenChannelColorBox.push_back(new ColorBox(colorSettings.screen.voltage[channel]));
-        screenSpectrumColorBox.push_back(new ColorBox(colorSettings.screen.spectrum[channel]));
-        printChannelColorBox.push_back(new ColorBox(colorSettings.print.voltage[channel]));
-        printSpectrumColorBox.push_back(new ColorBox(colorSettings.print.spectrum[channel]));
-    }
 
     // Plot Area Layout
     colorsLayout = new QGridLayout();
@@ -106,12 +110,21 @@ DsoConfigColorsPage::DsoConfigColorsPage(DsoSettings *settings, QWidget *parent)
     colorsLayout->addWidget(printSpectrumLabel, row, COL_PRT_SPECTRUM);
     ++row;
 
-    for (ChannelID channel = 0; channel < settings->scope.voltage.size(); ++channel, ++row) {
-        colorsLayout->addWidget(colorLabel[channel], row, COL_LABEL);
-        colorsLayout->addWidget(screenChannelColorBox[channel], row, COL_SCR_CHANNEL);
-        colorsLayout->addWidget(screenSpectrumColorBox[channel], row, COL_SCR_SPECTRUM);
-        colorsLayout->addWidget(printChannelColorBox[channel], row, COL_PRT_CHANNEL);
-        colorsLayout->addWidget(printSpectrumColorBox[channel], row, COL_PRT_SPECTRUM);
+    for (auto *channelSettings : settings->scope) {
+        ChannelColors *cc = new ChannelColors(this);
+        QLabel *colorLabel = new QLabel(channelSettings->name());
+        cc->screenChannelColorBox = new ColorBox(colorSettings.screen.voltage(channelSettings->channelID()));
+        cc->screenSpectrumColorBox = new ColorBox(colorSettings.screen.spectrum(channelSettings->channelID()));
+        cc->printChannelColorBox = new ColorBox(colorSettings.print.voltage(channelSettings->channelID()));
+        cc->printSpectrumColorBox = new ColorBox(colorSettings.print.spectrum(channelSettings->channelID()));
+        m_channelColorMap.insert(std::make_pair(channelSettings->channelID(), cc));
+
+        colorsLayout->addWidget(colorLabel, row, COL_LABEL);
+        colorsLayout->addWidget(cc->screenChannelColorBox, row, COL_SCR_CHANNEL);
+        colorsLayout->addWidget(cc->screenSpectrumColorBox, row, COL_SCR_SPECTRUM);
+        colorsLayout->addWidget(cc->printChannelColorBox, row, COL_PRT_CHANNEL);
+        colorsLayout->addWidget(cc->printSpectrumColorBox, row, COL_PRT_SPECTRUM);
+        ++row;
     }
 
     colorsGroup = new QGroupBox(tr("Screen and Print Colors"));
@@ -127,29 +140,34 @@ DsoConfigColorsPage::DsoConfigColorsPage(DsoSettings *settings, QWidget *parent)
 
 /// \brief Saves the new settings.
 void DsoConfigColorsPage::saveSettings() {
-    DsoSettingsView &colorSettings = settings->view;
+    Settings::View &colorSettings = settings->view;
 
     // Screen category
-    colorSettings.screen.axes = axesColorBox->getColor();
-    colorSettings.screen.background = backgroundColorBox->getColor();
-    colorSettings.screen.border = borderColorBox->getColor();
-    colorSettings.screen.grid = gridColorBox->getColor();
-    colorSettings.screen.markers = markersColorBox->getColor();
-    colorSettings.screen.text = textColorBox->getColor();
+    colorSettings.screen._axes = axesColorBox->getColor();
+    colorSettings.screen._background = backgroundColorBox->getColor();
+    colorSettings.screen._border = borderColorBox->getColor();
+    colorSettings.screen._grid = gridColorBox->getColor();
+    colorSettings.screen._markers = markersColorBox->getColor();
+    colorSettings.screen._text = textColorBox->getColor();
 
     // Print category
-    colorSettings.print.axes = printAxesColorBox->getColor();
-    colorSettings.print.background = printBackgroundColorBox->getColor();
-    colorSettings.print.border = printBorderColorBox->getColor();
-    colorSettings.print.grid = printGridColorBox->getColor();
-    colorSettings.print.markers = printMarkersColorBox->getColor();
-    colorSettings.print.text = printTextColorBox->getColor();
+    colorSettings.print._axes = printAxesColorBox->getColor();
+    colorSettings.print._background = printBackgroundColorBox->getColor();
+    colorSettings.print._border = printBorderColorBox->getColor();
+    colorSettings.print._grid = printGridColorBox->getColor();
+    colorSettings.print._markers = printMarkersColorBox->getColor();
+    colorSettings.print._text = printTextColorBox->getColor();
 
     // Graph category
-    for (ChannelID channel = 0; channel < settings->scope.voltage.size(); ++channel) {
-        colorSettings.screen.voltage[channel] = screenChannelColorBox[channel]->getColor();
-        colorSettings.screen.spectrum[channel] = screenSpectrumColorBox[channel]->getColor();
-        colorSettings.print.voltage[channel] = printChannelColorBox[channel]->getColor();
-        colorSettings.print.spectrum[channel] = printSpectrumColorBox[channel]->getColor();
+    for (auto &c : m_channelColorMap) {
+        colorSettings.screen.setVoltage(c.first, c.second->screenChannelColorBox->getColor());
+        colorSettings.screen.setSpectrum(c.first, c.second->screenSpectrumColorBox->getColor());
+        colorSettings.print.setVoltage(c.first, c.second->printChannelColorBox->getColor());
+        colorSettings.print.setSpectrum(c.first, c.second->printSpectrumColorBox->getColor());
     }
+
+    colorSettings.screen.observer()->update();
+    colorSettings.print.observer()->update();
 }
+
+ChannelColors::ChannelColors(QObject *parent) : QObject(parent) {}

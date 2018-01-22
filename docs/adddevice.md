@@ -6,10 +6,13 @@ We only accept new devices whoms firmware is hantek protocol compatible.
 Codewise you will only need to touch files within `openhantek/src/hantekdso`.
 
 ## Firmware and usb access
-The firmware goes to `openhantek/res/firmware` in the hex format. Please keep to the filename
+The firmware goes to `openhantek/res/firmware` in intel hex format. Please keep to the filename
 convention devicename-firmware.hex and devicename-loader.hex.
 The `openhantek/res/firmwares.qrc` should list the new files.
-The firmware/60-hantek.rules file needs the usb vendor/device id to add access permissions.
+
+The firmware/60-hantek.rules file needs the usb vendor/device id to add access permissions for linux users.
+MacOS users do not have access restrictions. On Windows there need to be a driver installed that
+also manages the usb access.
 
 ## The hantek protocol
 The hantek protocol itself is encoded in the `src/hantekprotocol` files.
@@ -24,7 +27,7 @@ You will only need to touch files within `openhantek/src/hantekdso/models`.
 struct ModelDSO2090 : public DSOModel {
     static const int ID = 0x2090; // Freely chooseable but unique id
     ModelDSO2090();
-    void applyRequirements(HantekDsoControl* dsoControl) const override;
+    void applyRequirements(DsoCommandQueue* commandQueue) const override;
 };
 ```
 
@@ -37,7 +40,7 @@ DSOModel(int ID, long vendorID, long productID, long vendorIDnoFirmware, long pr
 ```
 
 * You need to find out the usb vendor id and product id for your digital oscilloscope after it has received
-  the firmware (for ``long vendorID``, ``long productID``) and before it has a valid firmware
+  the firmware (for ``long vendorID``, ``long productID``) and also before it has a valid firmware
   (for ``long vendorIDnoFirmware``, ``long productIDnoFirmware``).
 * The firmware token is just the devicename part of the firmware
   (remember that we used `devicename-firmware.hex` and `devicename-loader.hex`).
@@ -56,7 +59,7 @@ DSOModel(int ID, long vendorID, long productID, long vendorIDnoFirmware, long pr
     specification.samplerate.multi.recordLengths = {UINT_MAX, 20480, 65536};
 ```
 
-4. The actual commands that are send, need to be defined as well, for instance:
+4. The command prototypes that are used need to be defined, for instance:
 
 ``` c++
     specification.command.control.setOffset = CONTROL_SETOFFSET;
@@ -69,7 +72,28 @@ DSOModel(int ID, long vendorID, long productID, long vendorIDnoFirmware, long pr
     specification.command.bulk.setPretrigger = BulkCode::SETTRIGGERANDSAMPLERATE;
 ```
 
-5. Add an instance of your class to the cpp file. The `DSOModel` constructor will register
+5. You need to register the actual commands to the DsoCommandQueue object like this:
+
+``` c++
+void ModelDSO2150::applyRequirements(DsoCommandQueue *commandQueue) const {
+    commandQueue->addCommand(new BulkForceTrigger(), false);
+    commandQueue->addCommand(new BulkCaptureStart(), false);
+    commandQueue->addCommand(new BulkTriggerEnabled(), false);
+    commandQueue->addCommand(new BulkGetData(), false);
+    commandQueue->addCommand(new BulkGetCaptureState(), false);
+    commandQueue->addCommand(new BulkSetGain(), false);
+
+    commandQueue->addCommand(new BulkSetTriggerAndSamplerate(), false);
+    commandQueue->addCommand(new ControlSetOffset(), false);
+    commandQueue->addCommand(new ControlSetRelays(), false);
+}
+```
+
+If you define a command prototype in (4) but do not register the actual command in (5), the application
+will crash. Guaranteed!
+Always create new heap objects for the command queue. The queue will clean up after itself.
+
+6. Add an object instance of your class to the cpp file as last line. The `DSOModel` constructor will register
    your new model automatically to the ModelRegistry:
 
 ```

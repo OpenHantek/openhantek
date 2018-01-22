@@ -38,8 +38,8 @@
      <string>&amp;View</string>
     </property>
     <addaction name="actionDigital_phosphor"/>
-    <addaction name="actionZoom"/>
-    <addaction name="actionManualCommand"/>
+    <addaction name="actionAddMarker"/>
+    <addaction name="actionDocks"/>
    </widget>
    <widget class="QMenu" name="menuOscilloscope">
     <property name="title">
@@ -77,14 +77,15 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
-   <addaction name="actionOpen"/>
-   <addaction name="actionSave"/>
    <addaction name="separator"/>
    <addaction name="actionSampling"/>
    <addaction name="separator"/>
    <addaction name="actionDigital_phosphor"/>
-   <addaction name="actionZoom"/>
    <addaction name="separator"/>
+   <addaction name="actionAddMarker"/>
+   <addaction name="actionRemoveMarker"/>
+   <addaction name="separator"/>
+   <addaction name="actionReport_an_issue"/>
   </widget>
   <action name="actionOpen">
    <property name="text">
@@ -106,10 +107,16 @@
    <property name="text">
     <string>Save as ...</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+S</string>
+   </property>
   </action>
   <action name="actionExit">
    <property name="text">
     <string>Exit</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Q</string>
    </property>
   </action>
   <action name="actionDigital_phosphor">
@@ -120,27 +127,12 @@
     <string>Digital phosphor</string>
    </property>
   </action>
-  <action name="actionZoom">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Zoom</string>
-   </property>
-  </action>
-  <action name="actionDocking_windows">
-   <property name="text">
-    <string>Docking windows</string>
-   </property>
-  </action>
-  <action name="actionToolbars">
-   <property name="text">
-    <string>Toolbars</string>
-   </property>
-  </action>
   <action name="actionAbout">
    <property name="text">
     <string>About</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+A</string>
    </property>
   </action>
   <action name="actionSettings">
@@ -159,12 +151,27 @@
     <string>Space</string>
    </property>
   </action>
-  <action name="actionManualCommand">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
+  <action name="actionAddMarker">
    <property name="text">
-    <string>Manual command</string>
+    <string>Add marker/zoom view</string>
+   </property>
+  </action>
+  <action name="actionDocks">
+   <property name="text">
+    <string>Docks</string>
+   </property>
+  </action>
+  <action name="actionReport_an_issue">
+   <property name="text">
+    <string>Report an issue</string>
+   </property>
+  </action>
+  <action name="actionRemoveMarker">
+   <property name="text">
+    <string>Remove Marker</string>
+   </property>
+   <property name="toolTip">
+    <string>Remove current marker and zoomview</string>
    </property>
   </action>
  </widget>

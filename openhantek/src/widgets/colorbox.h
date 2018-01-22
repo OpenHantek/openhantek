@@ -10,13 +10,21 @@ class ColorBox : public QPushButton {
     Q_OBJECT
 
   public:
+    /// \brief Initializes the widget.
+    /// \param color Initial color value.
+    /// \param parent The parent widget.
     ColorBox(QColor color, QWidget *parent = 0);
-    ~ColorBox();
 
-    const QColor getColor();
+    /// \brief Get the current color.
+    /// \return The current color as QColor.
+    inline const QColor getColor() { return color; }
 
   public slots:
-    void setColor(QColor color);
+    /// \brief Sets the color.
+    /// \param color The new color.
+    void setColor(QColor newColor);
+
+    /// \brief Wait for the color dialog and apply chosen color.
     void waitForColor();
 
   private:

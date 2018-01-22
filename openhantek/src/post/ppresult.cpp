@@ -1,33 +1,30 @@
 // SPDX-License-Identifier: GPL-2.0+
 
 #include "ppresult.h"
+#include "utils/getwithdefault.h"
 #include <QDebug>
 #include <stdexcept>
 
-PPresult::PPresult(unsigned int channelCount) { analyzedData.resize(channelCount); }
+PPresult::PPresult() : inUse(false) {}
 
-const DataChannel *PPresult::data(ChannelID channel) const {
-    if (channel >= this->analyzedData.size()) return 0;
-
-    return &this->analyzedData[(size_t)channel];
+const DataChannel *PPresult::data(ChannelID channelID) const {
+    auto it = analyzedData.find(channelID);
+    if (it == analyzedData.end()) return nullptr;
+    return &it->second;
 }
 
-DataChannel *PPresult::modifyData(ChannelID channel) { return &this->analyzedData[(size_t)channel]; }
-
-unsigned int PPresult::sampleCount() const { return (unsigned)analyzedData[0].voltage.sample.size(); }
-
-unsigned int PPresult::channelCount() const { return (unsigned)analyzedData.size(); }
-
-double DataChannel::computeAmplitude() const {
-    double minimalVoltage, maximalVoltage;
-    minimalVoltage = maximalVoltage = voltage.sample[0];
-
-    for (unsigned int position = 1; position < voltage.sample.size(); ++position) {
-        if (voltage.sample[position] < minimalVoltage)
-            minimalVoltage = voltage.sample[position];
-        else if (voltage.sample[position] > maximalVoltage)
-            maximalVoltage = voltage.sample[position];
-    }
-
-    return maximalVoltage - minimalVoltage;
+DataChannel *PPresult::modifyData(ChannelID channelID) {
+    auto it = analyzedData.find(channelID);
+    if (it == analyzedData.end()) return nullptr;
+    return &it->second;
 }
+
+DataChannel *PPresult::addChannel(ChannelID channelID, bool deviceChannel,
+                                  std::shared_ptr<Settings::Channel> channelSettings) {
+    auto it = analyzedData.find(channelID);
+    if (it != analyzedData.end()) return &it->second;
+    analyzedData.insert(std::make_pair(channelID, DataChannel(channelID, deviceChannel, channelSettings)));
+    return &analyzedData.find(channelID)->second;
+}
+
+unsigned int PPresult::sampleCount() const { return (unsigned)analyzedData.begin()->second.voltage.sample.size(); }

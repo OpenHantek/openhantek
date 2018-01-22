@@ -1,49 +1,30 @@
+// SPDX-License-Identifier: GPL-2.0+
+
 #pragma once
 
-#include "utils/enumclass.h"
-#include <QMetaType>
-namespace Dso {
+#include "enums.h"
 
-/// \enum MathMode
-/// \brief The different math modes for the math-channel.
-enum class MathMode : unsigned { ADD_CH1_CH2, SUB_CH2_FROM_CH1, SUB_CH1_FROM_CH2 };
-extern Enum<Dso::MathMode, Dso::MathMode::ADD_CH1_CH2, Dso::MathMode::SUB_CH1_FROM_CH2> MathModeEnum;
+class QSettings;
+class DsoConfigAnalysisPage;
 
-template<class T>
-inline MathMode getMathMode(T& t) { return (MathMode)t.couplingOrMathIndex; }
+namespace PostProcessing {
+struct Settings {
+    friend class ::DsoConfigAnalysisPage;
+    friend struct SettingsIO;
 
-/// \enum WindowFunction
-/// \brief The supported window functions.
-/// These are needed for spectrum analysis and are applied to the sample values
-/// before calculating the DFT.
-enum class WindowFunction : int {
-    RECTANGULAR,  ///< Rectangular window (aka Dirichlet)
-    HAMMING,      ///< Hamming window
-    HANN,         ///< Hann window
-    COSINE,       ///< Cosine window (aka Sine)
-    LANCZOS,      ///< Lanczos window (aka Sinc)
-    BARTLETT,     ///< Bartlett window (Endpoints == 0)
-    TRIANGULAR,   ///< Triangular window (Endpoints != 0)
-    GAUSS,        ///< Gauss window (simga = 0.4)
-    BARTLETTHANN, ///< Bartlett-Hann window
-    BLACKMAN,     ///< Blackman window (alpha = 0.16)
-    // KAISER,                      ///< Kaiser window (alpha = 3.0)
-    NUTTALL,         ///< Nuttall window, cont. first deriv.
-    BLACKMANHARRIS,  ///< Blackman-Harris window
-    BLACKMANNUTTALL, ///< Blackman-Nuttall window
-    FLATTOP          ///< Flat top window
+    inline ::PostProcessing::WindowFunction spectrumWindow() const { return m_spectrumWindow; }
+    inline double spectrumReference() const { return m_spectrumReference; }
+    inline double spectrumLimit() const { return m_spectrumLimit; }
+
+  private:
+    ::PostProcessing::WindowFunction m_spectrumWindow = //
+        ::PostProcessing::WindowFunction::HANN;         ///< Window function for DFT
+    double m_spectrumReference = 0.0;                   ///< Reference level for spectrum in dBm
+    double m_spectrumLimit = -20.0;                     ///< Minimum magnitude of the spectrum (Avoids peaks)
 };
-extern Enum<Dso::WindowFunction, Dso::WindowFunction::RECTANGULAR, Dso::WindowFunction::FLATTOP> WindowFunctionEnum;
 
-QString mathModeString(MathMode mode);
-QString windowFunctionString(WindowFunction window);
+struct SettingsIO {
+    static void read(QSettings *io, Settings &post);
+    static void write(QSettings *io, const Settings &post);
+};
 }
-
-Q_DECLARE_METATYPE(Dso::MathMode)
-Q_DECLARE_METATYPE(Dso::WindowFunction)
-
-struct DsoSettingsPostProcessing {
-    Dso::WindowFunction spectrumWindow = Dso::WindowFunction::HANN; ///< Window function for DFT
-    double spectrumReference = 0.0;                                 ///< Reference level for spectrum in dBm
-    double spectrumLimit = -20.0; ///< Minimum magnitude of the spectrum (Avoids peaks)
-};

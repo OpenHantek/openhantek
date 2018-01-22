@@ -3,205 +3,240 @@
 #include <QCheckBox>
 #include <QCloseEvent>
 #include <QComboBox>
+#include <QCoreApplication>
 #include <QDockWidget>
+#include <QDoubleSpinBox>
 #include <QLabel>
 #include <QSignalBlocker>
-#include <QCoreApplication>
+#include <QStringListModel>
 
 #include <cmath>
 
 #include "HorizontalDock.h"
 #include "dockwindows.h"
-
+#include "hantekdso/devicesettings.h"
+#include "hantekdso/dsocontrol.h"
+#include "hantekdso/enums.h"
+#include "hantekdso/modelspecification.h"
 #include "scopesettings.h"
-#include "sispinbox.h"
+#include "utils/enumhelper.h"
 #include "utils/printutils.h"
+#include "widgets/sispinbox.h"
 
-template<typename... Args> struct SELECT {
-    template<typename C, typename R>
-    static constexpr auto OVERLOAD_OF( R (C::*pmf)(Args...) ) -> decltype(pmf) {
+Q_DECLARE_METATYPE(std::vector<unsigned>)
+Q_DECLARE_METATYPE(std::vector<double>)
+
+template <typename... Args> struct SELECT {
+    template <typename C, typename R> static constexpr auto OVERLOAD_OF(R (C::*pmf)(Args...)) -> decltype(pmf) {
         return pmf;
     }
 };
 
-HorizontalDock::HorizontalDock(DsoSettingsScope *scope, QWidget *parent, Qt::WindowFlags flags)
-    : QDockWidget(tr("Horizontal"), parent, flags), scope(scope) {
+/// A simple Qt Model with the fixed samplerates as display values
+class FixedSamplerateModel : public QAbstractListModel {
+    Q_OBJECT
+  public:
+    FixedSamplerateModel(const std::vector<Dso::FixedSampleRate> &steps, QObject *parent = nullptr)
+        : QAbstractListModel(parent), steps(steps) {
+        for (const Dso::FixedSampleRate &v : steps) {
+            stepStrings.push_back(valueToString(v.samplerate, Unit::SAMPLES, 3));
+        }
+    }
+
+  private:
+    const std::vector<Dso::FixedSampleRate> steps;
+    std::vector<QString> stepStrings;
+
+    // QAbstractItemModel interface
+  public:
+    virtual int rowCount(const QModelIndex &) const override { return (int)steps.size(); }
+    virtual QVariant data(const QModelIndex &index, int role) const override {
+        if (role == Qt::DisplayRole) { return stepStrings[(unsigned)index.row()]; }
+        return QVariant();
+    }
+};
+#include "HorizontalDock.moc"
+
+HorizontalDock::HorizontalDock(Settings::Scope *scope, DsoControl *dsocontrol, QWidget *parent, Qt::WindowFlags flags)
+    : QDockWidget(tr("Horizontal"), parent, flags) {
+
+    QGridLayout *dockLayout;           ///< The main layout for the dock window
+    QWidget *dockWidget;               ///< The main widget for the dock window
+    QLabel *samplerateLabel;           ///< The label for the samplerate spinbox
+    QLabel *timebaseLabel;             ///< The label for the timebase spinbox
+    QLabel *frequencybaseLabel;        ///< The label for the frequencybase spinbox
+    QLabel *recordLengthLabel;         ///< The label for the record length combobox
+    QLabel *formatLabel;               ///< The label for the format combobox
+    SiSpinBox *samplerateSiSpinBox;    ///< Selects the samplerate for aquisitions
+    QComboBox *fixedSamplerateBox;     ///< Selects the samplerate for aquisitions (fixed samplerrates)
+    SiSpinBox *timebaseSiSpinBox;      ///< Selects the timebase for voltage graphs
+    SiSpinBox *frequencybaseSiSpinBox; ///< Selects the frequencybase for spectrum graphs
+    QComboBox *recordLengthComboBox;   ///< Selects the record length for aquisitions
+    QComboBox *formatComboBox;         ///< Selects the way the sampled data is
+                                       /// interpreted and shown
 
     // Initialize elements
-    this->samplerateLabel = new QLabel(tr("Samplerate"));
-    this->samplerateSiSpinBox = new SiSpinBox(UNIT_SAMPLES);
-    this->samplerateSiSpinBox->setMinimum(1);
-    this->samplerateSiSpinBox->setMaximum(1e8);
-    this->samplerateSiSpinBox->setUnitPostfix("/s");
+    samplerateLabel = new QLabel(tr("Samplerate"), this);
+    samplerateSiSpinBox = new SiSpinBox(Unit::SAMPLES, this);
+    samplerateSiSpinBox->setRange(0, 0);
+    samplerateSiSpinBox->setUnitPostfix("/s");
 
-    timebaseSteps << 1.0 << 2.0 << 4.0 << 10.0;
+    fixedSamplerateBox = new QComboBox(this);
 
-    this->timebaseLabel = new QLabel(tr("Timebase"));
-    this->timebaseSiSpinBox = new SiSpinBox(UNIT_SECONDS);
-    this->timebaseSiSpinBox->setSteps(timebaseSteps);
-    this->timebaseSiSpinBox->setMinimum(1e-9);
-    this->timebaseSiSpinBox->setMaximum(3.6e3);
+    std::vector<double> timebaseSteps = {1.0, 2.0, 4.0, 10.0};
 
-    this->frequencybaseLabel = new QLabel(tr("Frequencybase"));
-    this->frequencybaseSiSpinBox = new SiSpinBox(UNIT_HERTZ);
-    this->frequencybaseSiSpinBox->setMinimum(1.0);
-    this->frequencybaseSiSpinBox->setMaximum(100e6);
+    timebaseLabel = new QLabel(tr("Timebase"));
+    timebaseSiSpinBox = new SiSpinBox(Unit::SECONDS, this);
+    timebaseSiSpinBox->setSteps(timebaseSteps);
 
-    this->recordLengthLabel = new QLabel(tr("Record length"));
-    this->recordLengthComboBox = new QComboBox();
+    frequencybaseLabel = new QLabel(tr("Frequencybase"));
+    frequencybaseSiSpinBox = new SiSpinBox(Unit::HERTZ, this);
+    frequencybaseSiSpinBox->setMinimum(1.0);
+    frequencybaseSiSpinBox->setMaximum(100e6);
+    frequencybaseSiSpinBox->setToolTip(
+        tr("From %1 to %2")
+            .arg(frequencybaseSiSpinBox->textFromValue(frequencybaseSiSpinBox->minimum()))
+            .arg(frequencybaseSiSpinBox->textFromValue(frequencybaseSiSpinBox->maximum())));
 
-    this->formatLabel = new QLabel(tr("Format"));
-    this->formatComboBox = new QComboBox();
-    for (Dso::GraphFormat format: Dso::GraphFormatEnum)
-        this->formatComboBox->addItem(Dso::graphFormatString(format));
+    recordLengthLabel = new QLabel(tr("Record length"), this);
+    recordLengthComboBox = new QComboBox(this);
 
-    this->dockLayout = new QGridLayout();
-    this->dockLayout->setColumnMinimumWidth(0, 64);
-    this->dockLayout->setColumnStretch(1, 1);
-    this->dockLayout->addWidget(this->samplerateLabel, 0, 0);
-    this->dockLayout->addWidget(this->samplerateSiSpinBox, 0, 1);
-    this->dockLayout->addWidget(this->timebaseLabel, 1, 0);
-    this->dockLayout->addWidget(this->timebaseSiSpinBox, 1, 1);
-    this->dockLayout->addWidget(this->frequencybaseLabel, 2, 0);
-    this->dockLayout->addWidget(this->frequencybaseSiSpinBox, 2, 1);
-    this->dockLayout->addWidget(this->recordLengthLabel, 3, 0);
-    this->dockLayout->addWidget(this->recordLengthComboBox, 3, 1);
-    this->dockLayout->addWidget(this->formatLabel, 4, 0);
-    this->dockLayout->addWidget(this->formatComboBox, 4, 1);
+    formatLabel = new QLabel(tr("Format"), this);
+    formatComboBox = new QComboBox(this);
+    for (Dso::GraphFormat format : Enum<Dso::GraphFormat>()) formatComboBox->addItem(Dso::graphFormatString(format));
 
-    this->dockWidget = new QWidget();
+    dockLayout = new QGridLayout;
+    dockLayout->setColumnMinimumWidth(0, 64);
+    dockLayout->setColumnStretch(1, 1);
+    dockLayout->addWidget(samplerateLabel, 0, 0);
+    dockLayout->addWidget(samplerateSiSpinBox, 0, 1);
+    dockLayout->addWidget(fixedSamplerateBox, 0, 1);
+    dockLayout->addWidget(timebaseLabel, 1, 0);
+    dockLayout->addWidget(timebaseSiSpinBox, 1, 1);
+    dockLayout->addWidget(frequencybaseLabel, 2, 0);
+    dockLayout->addWidget(frequencybaseSiSpinBox, 2, 1);
+    dockLayout->addWidget(recordLengthLabel, 3, 0);
+    dockLayout->addWidget(recordLengthComboBox, 3, 1);
+    dockLayout->addWidget(formatLabel, 4, 0);
+    dockLayout->addWidget(formatComboBox, 4, 1);
+
+    dockWidget = new QWidget(this);
     SetupDockWidget(this, dockWidget, dockLayout);
 
-    // Connect signals and slots
-    connect(this->samplerateSiSpinBox, SELECT<double>::OVERLOAD_OF(&QDoubleSpinBox::valueChanged), this, &HorizontalDock::samplerateSelected);
-    connect(this->timebaseSiSpinBox, SELECT<double>::OVERLOAD_OF(&QDoubleSpinBox::valueChanged), this, &HorizontalDock::timebaseSelected);
-    connect(this->frequencybaseSiSpinBox, SELECT<double>::OVERLOAD_OF(&QDoubleSpinBox::valueChanged), this, &HorizontalDock::frequencybaseSelected);
-    connect(this->recordLengthComboBox, SELECT<int>::OVERLOAD_OF(&QComboBox::currentIndexChanged), this, &HorizontalDock::recordLengthSelected);
-    connect(this->formatComboBox, SELECT<int>::OVERLOAD_OF(&QComboBox::currentIndexChanged), this, &HorizontalDock::formatSelected);
+    auto deviceSettings = dsocontrol->deviceSettings().get();
 
     // Set values
-    this->setSamplerate(scope->horizontal.samplerate);
-    this->setTimebase(scope->horizontal.timebase);
-    this->setFrequencybase(scope->horizontal.frequencybase);
-    // this->setRecordLength(scope->horizontal.recordLength);
-    this->setFormat(scope->horizontal.format);
+    if (dsocontrol->specification()->isFixedSamplerateDevice) {
+        samplerateSiSpinBox->setVisible(false);
+        fixedSamplerateBox->setVisible(true);
+        fixedSamplerateBox->setModel(new FixedSamplerateModel(dsocontrol->specification()->fixedSampleRates, this));
+        fixedSamplerateBox->setCurrentIndex((int)deviceSettings->samplerate().fixedSamperateId);
+    } else {
+        samplerateSiSpinBox->setVisible(true);
+        fixedSamplerateBox->setVisible(false);
+        samplerateSiSpinBox->setMinimum(dsocontrol->minSamplerate());
+        samplerateSiSpinBox->setMaximum(dsocontrol->maxSamplerate());
+        samplerateSiSpinBox->setValue(deviceSettings->samplerate().samplerate);
+    }
+    formatComboBox->setCurrentIndex((int)scope->format());
+    frequencybaseSiSpinBox->setValue(scope->frequencybase());
+    timebaseSiSpinBox->setValue(deviceSettings->samplerate().timebase); // /DIVS_TIME
+    for (auto &entry : deviceSettings->limits->recordLengths) {
+        recordLengthComboBox->addItem(
+            entry.recordLength == UINT_MAX ? tr("Roll") : valueToString(entry.recordLength, Unit::SAMPLES, 3),
+            entry.recordLength);
+    }
+    recordLengthComboBox->setCurrentIndex((int)deviceSettings->recordLengthId());
+
+    // Connect signals and slots
+    connect(samplerateSiSpinBox, SELECT<double>::OVERLOAD_OF(&QDoubleSpinBox::valueChanged), this,
+            [this, dsocontrol](double samplerate) { dsocontrol->setSamplerate(samplerate); });
+    connect(fixedSamplerateBox, SELECT<int>::OVERLOAD_OF(&QComboBox::currentIndexChanged), this,
+            [this, dsocontrol](int index) { dsocontrol->setFixedSamplerate((unsigned)index); });
+    connect(timebaseSiSpinBox, SELECT<double>::OVERLOAD_OF(&QDoubleSpinBox::valueChanged), this,
+            [this, dsocontrol, timebaseSiSpinBox, deviceSettings](double recordTime) {
+                QSignalBlocker timebaseBlocker(timebaseSiSpinBox);
+                dsocontrol->setRecordTime(recordTime); /* *DIVS_TIME */
+            });
+    connect(frequencybaseSiSpinBox, SELECT<double>::OVERLOAD_OF(&QDoubleSpinBox::valueChanged), this,
+            [this, scope](double frequencybase) { scope->setFrequencybase(frequencybase); });
+    connect(recordLengthComboBox, SELECT<int>::OVERLOAD_OF(&QComboBox::currentIndexChanged), this,
+            [this, dsocontrol](int index) { dsocontrol->setRecordLengthByIndex(index); });
+    connect(formatComboBox, SELECT<int>::OVERLOAD_OF(&QComboBox::currentIndexChanged), this,
+            [this, scope](int index) { scope->setFormat((Dso::GraphFormat)index); });
+
+    connect(deviceSettings, &Dso::DeviceSettings::samplerateLimitsChanged, this,
+            [samplerateSiSpinBox, fixedSamplerateBox, timebaseSiSpinBox](double minimum, double maximum) {
+                QSignalBlocker blocker(samplerateSiSpinBox);
+                QSignalBlocker blocker2(fixedSamplerateBox);
+                QSignalBlocker timebaseBlocker(timebaseSiSpinBox);
+                samplerateSiSpinBox->setVisible(true);
+                fixedSamplerateBox->setVisible(false);
+                samplerateSiSpinBox->setMinimum(minimum);
+                samplerateSiSpinBox->setMaximum(maximum);
+                timebaseSiSpinBox->setMinimum(1e-9);
+                timebaseSiSpinBox->setMaximum(3.6e3);
+                timebaseSiSpinBox->setToolTip(tr("From %1 to %2")
+                                                  .arg(timebaseSiSpinBox->textFromValue(timebaseSiSpinBox->minimum()))
+                                                  .arg(timebaseSiSpinBox->textFromValue(timebaseSiSpinBox->maximum())));
+            });
+    connect(deviceSettings, &Dso::DeviceSettings::fixedSampleratesChanged, this,
+            [samplerateSiSpinBox, fixedSamplerateBox, timebaseSiSpinBox,
+             deviceSettings](const std::vector<Dso::FixedSampleRate> &sampleSteps) {
+                QSignalBlocker blocker(samplerateSiSpinBox);
+                QSignalBlocker blocker2(fixedSamplerateBox);
+                samplerateSiSpinBox->setVisible(false);
+                fixedSamplerateBox->setVisible(true);
+                fixedSamplerateBox->setModel(new FixedSamplerateModel(sampleSteps, fixedSamplerateBox));
+                QSignalBlocker timebaseBlocker(timebaseSiSpinBox);
+                const double reducedRecLen =
+                    deviceSettings->getRecordLength() - deviceSettings->trigger.swSampleMargin();
+                timebaseSiSpinBox->setMinimum(reducedRecLen / sampleSteps.back().samplerate);
+                timebaseSiSpinBox->setMaximum(reducedRecLen / sampleSteps.front().samplerate);
+                timebaseSiSpinBox->setToolTip(tr("From %1 to %2")
+                                                  .arg(timebaseSiSpinBox->textFromValue(timebaseSiSpinBox->minimum()))
+                                                  .arg(timebaseSiSpinBox->textFromValue(timebaseSiSpinBox->maximum())));
+            });
+    connect(deviceSettings, &Dso::DeviceSettings::availableRecordLengthsChanged, this, [recordLengthComboBox,
+                                                                                        deviceSettings]() {
+        QSignalBlocker blocker(recordLengthComboBox);
+        recordLengthComboBox->clear();
+        for (auto entry : deviceSettings->limits->recordLengths) {
+            recordLengthComboBox->addItem(
+                entry.recordLength == UINT_MAX ? tr("Roll") : valueToString(entry.recordLength, Unit::SAMPLES, 3),
+                entry.recordLength);
+        }
+    });
+
+    connect(deviceSettings, &Dso::DeviceSettings::samplerateChanged, this,
+            [samplerateSiSpinBox, timebaseSiSpinBox, fixedSamplerateBox](Dso::Samplerate samplerate) {
+                QSignalBlocker blocker(samplerateSiSpinBox);
+                QSignalBlocker blocker2(timebaseSiSpinBox);
+                QSignalBlocker blocker3(fixedSamplerateBox);
+                samplerateSiSpinBox->setValue(samplerate.samplerate);
+                timebaseSiSpinBox->setValue(samplerate.timebase); // /DIVS_TIME
+                fixedSamplerateBox->setCurrentIndex(samplerate.fixedSamperateId);
+            });
+    connect(deviceSettings, &Dso::DeviceSettings::recordLengthChanged, this,
+            [recordLengthComboBox](unsigned recordLengthId) {
+                QSignalBlocker blocker(recordLengthComboBox);
+                recordLengthComboBox->setCurrentIndex((int)recordLengthId);
+            });
+
+    connect(scope, &Settings::Scope::frequencybaseChanged, this,
+            [frequencybaseSiSpinBox](const Settings::Scope *scope) {
+                QSignalBlocker blocker(frequencybaseSiSpinBox);
+                frequencybaseSiSpinBox->setValue(scope->frequencybase());
+            });
+    connect(scope, &Settings::Scope::formatChanged, this, [formatComboBox](const Settings::Scope *scope) {
+        QSignalBlocker blocker(formatComboBox);
+        formatComboBox->setCurrentIndex((int)scope->format());
+    });
 }
 
 /// \brief Don't close the dock, just hide it.
 /// \param event The close event that should be handled.
 void HorizontalDock::closeEvent(QCloseEvent *event) {
-    this->hide();
-
+    hide();
     event->accept();
-}
-
-void HorizontalDock::setFrequencybase(double frequencybase) {
-    QSignalBlocker blocker(frequencybaseSiSpinBox);
-    frequencybaseSiSpinBox->setValue(frequencybase);
-}
-
-void HorizontalDock::setSamplerate(double samplerate) {
-    QSignalBlocker blocker(samplerateSiSpinBox);
-    samplerateSiSpinBox->setValue(samplerate);
-}
-
-double HorizontalDock::setTimebase(double timebase) {
-    QSignalBlocker blocker(timebaseSiSpinBox);
-    // timebaseSteps are repeated in each decade
-    double decade = pow(10, floor(log10(timebase)));
-    double vNorm = timebase / decade;
-    for (int i = 0; i < timebaseSteps.size() - 1; ++i) {
-        if (timebaseSteps.at(i) <= vNorm && vNorm < timebaseSteps.at(i + 1)) {
-            timebaseSiSpinBox->setValue(decade * timebaseSteps.at(i));
-            break;
-        }
-    }
-    return timebaseSiSpinBox->value();
-}
-
-int addRecordLength(QComboBox *recordLengthComboBox, unsigned recordLength) {
-    recordLengthComboBox->addItem(
-        recordLength == UINT_MAX ? QCoreApplication::translate("HorizontalDock","Roll") : valueToString(recordLength, UNIT_SAMPLES, 3), recordLength);
-    return recordLengthComboBox->count()-1;
-}
-
-void HorizontalDock::setRecordLength(unsigned int recordLength) {
-    QSignalBlocker blocker(recordLengthComboBox);
-    int index = recordLengthComboBox->findData(recordLength);
-    scope->horizontal.recordLength = recordLength;
-
-    if (index == -1) {
-        index = addRecordLength(recordLengthComboBox, recordLength);
-    }
-    recordLengthComboBox->setCurrentIndex(index);
-}
-
-int HorizontalDock::setFormat(Dso::GraphFormat format) {
-    QSignalBlocker blocker(formatComboBox);
-    if (format >= Dso::GraphFormat::TY && format <= Dso::GraphFormat::XY) {
-        formatComboBox->setCurrentIndex(format);
-        return format;
-    }
-
-    return -1;
-}
-
-void HorizontalDock::setAvailableRecordLengths(const std::vector<unsigned> &recordLengths) {
-    QSignalBlocker blocker(recordLengthComboBox);
-
-    recordLengthComboBox->clear();
-    for (auto recordLength : recordLengths) {
-        addRecordLength(recordLengthComboBox, recordLength);
-    }
-
-    setRecordLength(scope->horizontal.recordLength);
-}
-
-void HorizontalDock::setSamplerateLimits(double minimum, double maximum) {
-    QSignalBlocker blocker(samplerateSiSpinBox);
-    this->samplerateSiSpinBox->setMinimum(minimum);
-    this->samplerateSiSpinBox->setMaximum(maximum);
-}
-
-void HorizontalDock::setSamplerateSteps(int mode, QList<double> steps) {
-    QSignalBlocker blocker(samplerateSiSpinBox);
-    this->samplerateSiSpinBox->setMode(mode);
-    this->samplerateSiSpinBox->setSteps(steps);
-}
-
-/// \brief Called when the frequencybase spinbox changes its value.
-/// \param frequencybase The frequencybase in hertz.
-void HorizontalDock::frequencybaseSelected(double frequencybase) {
-    scope->horizontal.frequencybase = frequencybase;
-    emit frequencybaseChanged(frequencybase);
-}
-
-/// \brief Called when the samplerate spinbox changes its value.
-/// \param samplerate The samplerate in samples/second.
-void HorizontalDock::samplerateSelected(double samplerate) {
-    scope->horizontal.samplerate = samplerate;
-    scope->horizontal.samplerateSource = DsoSettingsScopeHorizontal::Samplerrate;
-    emit samplerateChanged(samplerate);
-}
-
-/// \brief Called when the timebase spinbox changes its value.
-/// \param timebase The timebase in seconds.
-void HorizontalDock::timebaseSelected(double timebase) {
-    scope->horizontal.timebase = timebase;
-    scope->horizontal.samplerateSource = DsoSettingsScopeHorizontal::Duration;
-    emit timebaseChanged(timebase);
-}
-
-/// \brief Called when the record length combo box changes its value.
-/// \param index The index of the combo box item.
-void HorizontalDock::recordLengthSelected(int index) {
-    scope->horizontal.recordLength = this->recordLengthComboBox->itemData(index).toUInt();
-    emit recordLengthChanged(index);
-}
-
-/// \brief Called when the format combo box changes its value.
-/// \param index The index of the combo box item.
-void HorizontalDock::formatSelected(int index) {
-    scope->horizontal.format = (Dso::GraphFormat)index;
-    emit formatChanged(scope->horizontal.format);
 }

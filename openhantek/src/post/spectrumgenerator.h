@@ -8,29 +8,36 @@
 #include <QThread>
 #include <memory>
 
-#include "ppresult.h"
 #include "dsosamples.h"
+#include "ppresult.h"
 #include "utils/printutils.h"
-#include "postprocessingsettings.h"
 
+#include "enums.h"
 #include "processor.h"
 
+namespace Settings {
+class Scope;
 class DsoSettings;
-struct DsoSettingsScope;
+}
+
+namespace PostProcessing {
+struct Settings;
 
 /// \brief Analyzes the data from the dso.
 /// Calculates the spectrum and various data about the signal and saves the
 /// time-/frequencysteps between two values.
 class SpectrumGenerator : public Processor {
   public:
-    SpectrumGenerator(const DsoSettingsScope* scope, const DsoSettingsPostProcessing* postprocessing);
+    SpectrumGenerator(const ::Settings::Scope *scope, const Settings *postprocessing);
     virtual ~SpectrumGenerator();
     virtual void process(PPresult *data) override;
 
   private:
-    const DsoSettingsScope* scope;
-    const DsoSettingsPostProcessing* postprocessing;
-    unsigned int lastRecordLength = 0;                        ///< The record length of the previously analyzed data
-    Dso::WindowFunction lastWindow = (Dso::WindowFunction)-1; ///< The previously used dft window function
+    const ::Settings::Scope *scope;
+    const Settings *postprocessing;
+    unsigned int lastRecordLength = 0; ///< The record length of the previously analyzed data
+    PostProcessing::WindowFunction lastWindow =
+        (PostProcessing::WindowFunction)-1; ///< The previously used dft window function
     double *lastWindowBuffer = nullptr;
 };
+}

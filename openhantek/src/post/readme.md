@@ -7,4 +7,4 @@ This directory contains post processing algorithms, namely
 
 # Dependency
 * Files in this directory depend on structs in the `hantekprotocol` folder.
-* Classes in here probably depend on the user settings (../viewsetting.h, ../scopesetting.h)
+* Classes in here probably depend on user settings (../settings/)

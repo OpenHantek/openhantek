@@ -4,18 +4,22 @@
 #include <memory>
 
 class SpectrumGenerator;
-class HantekDsoControl;
+class DsoControl;
+namespace Settings {
 class DsoSettings;
-class ExporterRegistry;
+}
 class DsoWidget;
 class HorizontalDock;
 class TriggerDock;
 class SpectrumDock;
-class VoltageDock;
-
+class VoltageOrSpectrumDock;
+namespace Exporter {
+class Registry;
+}
 namespace Ui {
 class MainWindow;
 }
+class SelfCalibration;
 
 /// \brief The main window of the application.
 /// The main window contains the classic oszilloscope-screen and the gui
@@ -24,13 +28,12 @@ class MainWindow : public QMainWindow {
     Q_OBJECT
 
   public:
-    explicit MainWindow(HantekDsoControl *dsoControl, DsoSettings *mSettings, ExporterRegistry *exporterRegistry,
-                        QWidget *parent = 0);
+    explicit MainWindow(DsoControl *dsoControl, Settings::DsoSettings *mSettings,
+                        Exporter::Registry *exporterRegistry, SelfCalibration *selfCalibration, QWidget *parent = 0);
     ~MainWindow();
   public slots:
     void showNewData(std::shared_ptr<PPresult> data);
     void exporterStatusChanged(const QString &exporterName, const QString &status);
-    void exporterProgressChanged();
 
   protected:
     void closeEvent(QCloseEvent *event) override;
@@ -42,6 +45,6 @@ class MainWindow : public QMainWindow {
     DsoWidget *dsoWidget;
 
     // Settings used for the whole program
-    DsoSettings *mSettings;
-    ExporterRegistry *exporterRegistry;
+    Settings::DsoSettings *mSettings;
+    Exporter::Registry *exporterRegistry;
 };

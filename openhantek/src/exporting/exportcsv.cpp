@@ -2,31 +2,30 @@
 
 #include "exportcsv.h"
 #include "exporterregistry.h"
+#include "iconfont/QtAwesome.h"
 #include "post/ppresult.h"
 #include "settings.h"
-#include "iconfont/QtAwesome.h"
 
 #include <QCoreApplication>
-#include <QTextStream>
 #include <QFile>
 #include <QFileDialog>
+#include <QTextStream>
 
-ExporterCSV::ExporterCSV() {}
+namespace Exporter {
+CSV::CSV() {}
 
-void ExporterCSV::create(ExporterRegistry *registry) { this->registry = registry; data.reset(); }
+QIcon CSV::icon() { return iconFont->icon(fa::filetexto); }
 
-QIcon ExporterCSV::icon() { return iconFont->icon(fa::filetexto); }
+QString CSV::name() { return QCoreApplication::tr("Export CSV"); }
 
-QString ExporterCSV::name() { return QCoreApplication::tr("Export CSV"); }
+ExporterInterface::Type CSV::type() { return Type::SnapshotExport; }
 
-ExporterInterface::Type ExporterCSV::type() { return Type::SnapshotExport; }
+float CSV::samples(const std::shared_ptr<PPresult>) { return 1; }
 
-bool ExporterCSV::samples(const std::shared_ptr<PPresult> data) {
-    this->data = std::move(data);
-    return false;
-}
+bool CSV::exportNow(Registry *registry) {
+    auto data = registry->lastDataSet();
+    if (!data) return false;
 
-bool ExporterCSV::save() {
     QStringList filters;
     filters << QCoreApplication::tr("Comma-Separated Values (*.csv)");
 
@@ -42,63 +41,49 @@ bool ExporterCSV::save() {
     csvStream.setRealNumberNotation(QTextStream::FixedNotation);
     csvStream.setRealNumberPrecision(10);
 
-    size_t chCount = registry->settings->scope.voltage.size();
-    std::vector<const SampleValues *> voltageData(size_t(chCount), nullptr);
-    std::vector<const SampleValues *> spectrumData(size_t(chCount), nullptr);
+    std::map<ChannelID, const std::vector<double> *> voltageData;
+    std::map<ChannelID, const std::vector<double> *> spectrumData;
     size_t maxRow = 0;
-    bool isSpectrumUsed = false;
     double timeInterval = 0;
     double freqInterval = 0;
 
-    for (ChannelID channel = 0; channel < chCount; ++channel) {
-        if (data->data(channel)) {
-            if (registry->settings->scope.voltage[channel].used) {
-                voltageData[channel] = &(data->data(channel)->voltage);
-                maxRow = std::max(maxRow, voltageData[channel]->sample.size());
-                timeInterval = data->data(channel)->voltage.interval;
-            }
-            if (registry->settings->scope.spectrum[channel].used) {
-                spectrumData[channel] = &(data->data(channel)->spectrum);
-                maxRow = std::max(maxRow, spectrumData[channel]->sample.size());
-                freqInterval = data->data(channel)->spectrum.interval;
-                isSpectrumUsed = true;
-            }
+    const Settings::Scope *scope = &registry->settings->scope;
+    for (const Settings::Channel *c : *scope) {
+        const DataChannel *dataChannel = data->data(c->channelID());
+        if (!dataChannel) continue;
+        if (c->visible()) {
+            const std::vector<double> *samples = &(dataChannel->voltage.sample);
+            voltageData[c->channelID()] = samples;
+            maxRow = std::max(maxRow, samples->size());
+            timeInterval = dataChannel->voltage.interval;
+        }
+        if (c->spectrum()->visible()) {
+            const std::vector<double> *samples = &(dataChannel->spectrum.sample);
+            spectrumData[c->channelID()] = samples;
+            maxRow = std::max(maxRow, samples->size());
+            freqInterval = dataChannel->spectrum.interval;
         }
     }
 
     // Start with channel names
     csvStream << "\"t\"";
-    for (ChannelID channel = 0; channel < chCount; ++channel) {
-        if (voltageData[channel] != nullptr) { csvStream << ",\"" << registry->settings->scope.voltage[channel].name << "\""; }
-    }
-    if (isSpectrumUsed) {
-        csvStream << ",\"f\"";
-        for (ChannelID channel = 0; channel < chCount; ++channel) {
-            if (spectrumData[channel] != nullptr) {
-                csvStream << ",\"" << registry->settings->scope.spectrum[channel].name << "\"";
-            }
-        }
-    }
+    for (auto &c : voltageData) { csvStream << ",\"" << scope->channel(c.first)->name() << "\""; }
+    csvStream << ",\"f\"";
+    for (auto &c : spectrumData) { csvStream << ",\"" << scope->channel(c.first)->name() << "\""; }
     csvStream << "\n";
 
     for (unsigned int row = 0; row < maxRow; ++row) {
 
         csvStream << timeInterval * row;
-        for (ChannelID channel = 0; channel < chCount; ++channel) {
-            if (voltageData[channel] != nullptr) {
-                csvStream << ",";
-                if (row < voltageData[channel]->sample.size()) { csvStream << voltageData[channel]->sample[row]; }
-            }
+        for (auto &c : voltageData) {
+            csvStream << ",";
+            if (row < c.second->size()) { csvStream << (*c.second)[row]; }
         }
 
-        if (isSpectrumUsed) {
-            csvStream << "," << freqInterval * row;
-            for (ChannelID channel = 0; channel < chCount; ++channel) {
-                if (spectrumData[channel] != nullptr) {
-                    csvStream << ",";
-                    if (row < spectrumData[channel]->sample.size()) { csvStream << spectrumData[channel]->sample[row]; }
-                }
-            }
+        csvStream << "," << freqInterval * row;
+        for (auto &c : spectrumData) {
+            csvStream << ",";
+            if (row < c.second->size()) { csvStream << (*c.second)[row]; }
         }
         csvStream << "\n";
     }
@@ -108,4 +93,5 @@ bool ExporterCSV::save() {
     return true;
 }
 
-float ExporterCSV::progress() { return data ? 1.0f : 0; }
+QKeySequence CSV::shortcut() { return QKeySequence(); }
+}

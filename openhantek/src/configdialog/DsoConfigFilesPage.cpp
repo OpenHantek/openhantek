@@ -2,7 +2,7 @@
 
 #include "DsoConfigFilesPage.h"
 
-DsoConfigFilesPage::DsoConfigFilesPage(DsoSettings *settings, QWidget *parent) : QWidget(parent), settings(settings) {
+DsoConfigFilesPage::DsoConfigFilesPage(Settings::DsoSettings *settings, QWidget *parent) : QWidget(parent), settings(settings) {
     // Export group
     screenColorCheckBox = new QCheckBox(tr("Export Images with Screen Colors"));
     screenColorCheckBox->setChecked(settings->view.screenColorImages);

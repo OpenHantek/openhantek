@@ -3,17 +3,15 @@
 #pragma once
 #include "exporterinterface.h"
 
-class ExporterCSV : public ExporterInterface
-{
-public:
-    ExporterCSV();
-    virtual void create(ExporterRegistry *registry) override;
+namespace Exporter {
+class CSV : public ExporterInterface {
+  public:
+    CSV();
+    virtual bool exportNow(Registry *registry) override;
     virtual QIcon icon() override;
     virtual QString name() override;
     virtual Type type() override;
-    virtual bool samples(const std::shared_ptr<PPresult>data) override;
-    virtual bool save() override;
-    virtual float progress() override;
-private:
-    std::shared_ptr<PPresult> data;
+    virtual float samples(const std::shared_ptr<PPresult> data) override;
+    virtual QKeySequence shortcut() override;
 };
+}

@@ -1,13 +1,14 @@
-
 // SPDX-License-Identifier: GPL-2.0+
 
 #pragma once
 
-#include "controlspecification.h"
 #include <list>
 #include <string>
 
-class HantekDsoControl;
+class DsoCommandQueue;
+namespace Dso {
+struct ModelSpec;
+}
 
 /**
  * @brief Describes a device
@@ -27,14 +28,14 @@ class DSOModel {
     std::string firmwareToken;
     std::string name; ///< User visible name. Does not need internationalisation/translation.
   protected:
-    Dso::ControlSpecification specification;
+    Dso::ModelSpec *specification;
 
   public:
-    /// This model may need to modify the HantekDsoControl class to work correctly
-    virtual void applyRequirements(HantekDsoControl *) const = 0;
+    /// Add available commands to the command queue object
+    virtual void applyRequirements(DsoCommandQueue *) const = 0;
     DSOModel(int id, long vendorID, long productID, long vendorIDnoFirmware, long productIDnoFirmware,
-             const std::string &firmwareToken, const std::string &name, const Dso::ControlSpecification &&specification);
-    virtual ~DSOModel() = default;
+             const std::string &firmwareToken, const std::string &name, Dso::ModelSpec *specification);
+    virtual ~DSOModel();
     /// Return the device specifications
-    inline const Dso::ControlSpecification *spec() const { return &specification; }
+    inline const Dso::ModelSpec *spec() const { return specification; }
 };

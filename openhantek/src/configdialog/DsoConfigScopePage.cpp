@@ -2,7 +2,8 @@
 
 #include "DsoConfigScopePage.h"
 
-DsoConfigScopePage::DsoConfigScopePage(DsoSettings *settings, QWidget *parent) : QWidget(parent), settings(settings) {
+DsoConfigScopePage::DsoConfigScopePage(Settings::DsoSettings *settings, QWidget *parent)
+    : QWidget(parent), settings(settings) {
     // Initialize lists for comboboxes
     QStringList interpolationStrings;
     interpolationStrings << tr("Off") << tr("Linear");
@@ -11,12 +12,12 @@ DsoConfigScopePage::DsoConfigScopePage(DsoSettings *settings, QWidget *parent) :
     interpolationLabel = new QLabel(tr("Interpolation"));
     interpolationComboBox = new QComboBox();
     interpolationComboBox->addItems(interpolationStrings);
-    interpolationComboBox->setCurrentIndex(settings->view.interpolation);
+    interpolationComboBox->setCurrentIndex((unsigned)settings->view.interpolation());
     digitalPhosphorDepthLabel = new QLabel(tr("Digital phosphor depth"));
     digitalPhosphorDepthSpinBox = new QSpinBox();
     digitalPhosphorDepthSpinBox->setMinimum(2);
     digitalPhosphorDepthSpinBox->setMaximum(99);
-    digitalPhosphorDepthSpinBox->setValue(settings->view.digitalPhosphorDepth);
+    digitalPhosphorDepthSpinBox->setValue(settings->view.digitalPhosphor());
 
     graphLayout = new QGridLayout();
     graphLayout->addWidget(interpolationLabel, 1, 0);
@@ -36,6 +37,6 @@ DsoConfigScopePage::DsoConfigScopePage(DsoSettings *settings, QWidget *parent) :
 
 /// \brief Saves the new settings.
 void DsoConfigScopePage::saveSettings() {
-    settings->view.interpolation = (Dso::InterpolationMode)interpolationComboBox->currentIndex();
-    settings->view.digitalPhosphorDepth = digitalPhosphorDepthSpinBox->value();
+    settings->view.setInterpolation((Dso::InterpolationMode)interpolationComboBox->currentIndex());
+    settings->view.setDigitalPhosphor(settings->view.digitalPhosphor(), (unsigned)digitalPhosphorDepthSpinBox->value());
 }

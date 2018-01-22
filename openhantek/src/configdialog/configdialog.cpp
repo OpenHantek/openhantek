@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0+
 
 /*#if defined(OS_UNIX)
-#define CONFIG_PATH QDir::homePath() + "/.config/paranoiacs.net/openhantek"
+#define CONFIG_PATH QDir::homePath() + "/.config/openhantek/openhantek"
 #define CONFIG_FILE CONFIG_PATH "/openhantek.conf"
 #elif defined(OS_DARWIN)
 #define CONFIG_PATH QDir::homePath() + "/Library/Application Support/OpenHantek"
@@ -9,7 +9,7 @@
 #elif defined(OS_WINDOWS)
 //#define CONFIG_PATH QDir::homePath() + "" // Too hard to get and this OS sucks
 anyway, ignore it
-#define CONFIG_FILE "HKEY_CURRENT_USER\\Software\\paranoiacs.net\\OpenHantek"
+#define CONFIG_FILE "HKEY_CURRENT_USER\\Software\\OpenHantek\\OpenHantek"
 #endif*/
 
 #define CONFIG_LIST_WIDTH 128     ///< The width of the page selection widget
@@ -39,7 +39,7 @@ anyway, ignore it
 /// \param settings The target settings object.
 /// \param parent The parent widget.
 /// \param flags Flags for the window manager.
-DsoConfigDialog::DsoConfigDialog(DsoSettings *settings, QWidget *parent, Qt::WindowFlags flags)
+DsoConfigDialog::DsoConfigDialog(Settings::DsoSettings *settings, QWidget *parent, Qt::WindowFlags flags)
     : QDialog(parent, flags), settings(settings) {
 
     this->setWindowTitle(tr("Settings"));

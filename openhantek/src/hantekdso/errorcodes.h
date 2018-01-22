@@ -7,9 +7,10 @@ namespace Dso {
 /// \brief The return codes for device control methods.
 enum class ErrorCode {
     NONE = 0,         ///< Successful operation
-    CONNECTION = -1,  ///< Device not connected or communication error
+    CONNECTION = -1,  ///< Device not connected
     UNSUPPORTED = -2, ///< Not supported by this device
-    PARAMETER = -3    ///< Parameter out of range
+    PARAMETER = -3,   ///< Parameter out of range
+    UNCHANGED = -4,   ///< Not applied because unchanged
+    UNEXPECTED = -5   ///< The device responded with an (unexpected) usb error code
 };
-
 }

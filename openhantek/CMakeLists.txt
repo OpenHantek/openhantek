@@ -1,37 +1,60 @@
 project(OpenHantek CXX)
 
-find_package(Qt5Widgets REQUIRED)
-find_package(Qt5PrintSupport REQUIRED)
-find_package(Qt5OpenGL REQUIRED)
-find_package(OpenGL)
+find_package(Qt5 REQUIRED COMPONENTS Core Gui Widgets PrintSupport 3DCore 3DExtras 3DRender 3DInput)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
-if (Qt5Widgets_VERSION VERSION_LESS 5.4.0)
-    message(FATAL_ERROR "Minimum supported Qt5 version is 5.4.0!")
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+if (Qt5Widgets_VERSION VERSION_LESS 5.8.0)
+    message(FATAL_ERROR "Minimum supported Qt5 version is 5.8.0!")
 endif()
 
 # include directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-include_directories(src/ src/hantekdso src/widgets src/docks src/configdialog)
+include_directories(src/ src/hantekdso src/settings) # src/widgets src/scopeview
 
 # collect sources and other files
-file(GLOB_RECURSE SRC "src/*.cpp")
-file(GLOB_RECURSE HEADERS "src/*.h")
+file(GLOB_RECURSE SRC_CORE
+    "src/hantekdso/*.cpp" "src/hantekprotocol/*.cpp" "src/hantekprotocol/*.cpp" "src/usb/*.cpp" "src/utils/*.cpp"
+    "src/hantekdso/*.h"   "src/hantekprotocol/*.h"   "src/hantekprotocol/*.h"   "src/usb/*.h"   "src/utils/*.h")
+file(GLOB_RECURSE SRC_POST "src/post/*.cpp" "src/post/*.h")
+file(GLOB_RECURSE SRC_SETTINGS  "src/settings/*.cpp" "src/settings/*.h")
+file(GLOB_RECURSE SRC_EXPORT  "src/exporting/*.cpp" "src/exporting/*.h")
+file(GLOB_RECURSE SRC_SCOPEVIEW  "src/scopeview/*.cpp" "src/scopeview/*.h")
+file(GLOB SRC_UI "src/main.cpp"
+    "src/widgets/*.cpp" "src/widgets/*.h"
+    "src/mainwindow.cpp" "src/mainwindow.h"
+    "src/configdialog/*.cpp" "src/configdialog/*.h"
+    "src/docks/*.cpp" "src/docks/*.h"
+    "src/iconfont/*.cpp" "src/iconfont/*.h"
+    "src/selectdevice/*.cpp" "src/selectdevice/*.h")
+set(SRC ${SRC_CORE} ${SRC_POST} ${SRC_SETTINGS} ${SRC_EXPORT} ${SRC_SCOPEVIEW} ${SRC_UI})
+
 file(GLOB_RECURSE UI "src/*.ui")
 file(GLOB_RECURSE QRC "res/*.qrc")
 
 add_custom_target(format SOURCES ".clang-format"
-    COMMAND "clang-format" "-style=file" "-i" "-sort-includes" ${SRC} ${HEADERS})
+    COMMAND "clang-format" "-style=file" "-i" "-sort-includes" ${SRC})
 
 add_subdirectory(translations)
 
 add_definitions(-DVERSION="${CPACK_PACKAGE_VERSION}")
 
 # make executable
-add_executable(${PROJECT_NAME} ${SRC} ${HEADERS} ${UI} ${QRC} ${TRANSLATION_BIN_FILES} ${TRANSLATION_QRC})
-target_link_libraries(${PROJECT_NAME} Qt5::Widgets Qt5::PrintSupport Qt5::OpenGL ${OPENGL_LIBRARIES} )
+add_executable(${PROJECT_NAME} ${SRC} ${UI} ${QRC} ${TRANSLATION_BIN_FILES} ${TRANSLATION_QRC})
+target_link_libraries(${PROJECT_NAME}
+    Qt5::Core
+    Qt5::Gui
+    Qt5::Widgets
+    Qt5::3DCore
+    Qt5::3DExtras
+    Qt5::3DRender
+    Qt5::3DInput
+    Qt5::PrintSupport)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_range_for)
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE "/W4" "/wd4251" "/wd4127" "/wd4275" "/wd4200" "/nologo" "/J" "/Zi")

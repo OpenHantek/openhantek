@@ -8,9 +8,9 @@ This directory contains exporting functionality and exporters, namely
 All export classes (exportcsv, exportimage, exportprint) implement the
 ExporterInterface and are registered to the ExporterRegistry in the main.cpp.
 
-Some export classes are still using the legacyExportDrawer class to
-draw the grid and paint all the labels, values and graphs.
+At the moment export classes are still using the legacyExportDrawer class to
+paint all the labels. It is planned to unify this with the widget based solution of DsoWidget.
 
 # Dependency
 * Files in this directory depend on the result class of the post processing directory.
-* Classes in here depend on the user settings (../viewsetting.h, ../scopesetting.h)
+* Classes in here depend on the user settings (../settings/)

@@ -4,16 +4,21 @@
 
 #include "processor.h"
 
-struct DsoSettingsScope;
+namespace Settings {
+class Scope;
+}
 class PPresult;
+
+namespace PostProcessing {
 
 class MathChannelGenerator : public Processor
 {
 public:
-    MathChannelGenerator(const DsoSettingsScope *scope, unsigned physicalChannels);
+    MathChannelGenerator(const ::Settings::Scope *scope);
     virtual ~MathChannelGenerator();
     virtual void process(PPresult *) override;
 private:
-    const unsigned physicalChannels;
-    const DsoSettingsScope *scope;
+    const ::Settings::Scope *scope;
 };
+
+}

@@ -7,25 +7,17 @@
 
 #include <memory>
 
-class ExporterRegistry;
 class PPresult;
+
+namespace Exporter {
+class Registry;
 
 /**
  * Implement this interface and register your Exporter to the ExporterRegistry instance
  * in the main routine to make an Exporter available.
  */
 class ExporterInterface {
-public:
-
-    /**
-    * Starts up this exporter. Aquires resources etc. Do not call this directly, it
-    * will be called by the exporter registry at some point. Release your resources in the
-    * destructor as usual.
-    * @param registry The exporter registry instance. This is used to obtain a reference
-    *        to the settings.
-    */
-    virtual void create(ExporterRegistry *registry) = 0;
-
+  public:
     /**
      * @return Return the icon representation of this exporter. Will be used in graphical
      * interfaces.
@@ -39,6 +31,12 @@ public:
     virtual QString name() = 0;
 
     /**
+     * @return Return a shortcut for this exporter. Will be used in graphical
+     * interfaces.
+     */
+    virtual QKeySequence shortcut() = 0;
+
+    /**
      * Exporters can save only a single sample set or save data continously.
      */
     enum class Type { SnapshotExport, ContinousExport };
@@ -50,29 +48,37 @@ public:
     virtual Type type() = 0;
 
     /**
-     * A new sample set from the ExporterRegistry. The exporter needs to be active to receive samples.
-     * If it is a snapshot exporter, only one set of samples will be received.
-     * @return Return true if you want to receive another sample or false if you are done (progres()==1).
-     */
-    virtual bool samples(const std::shared_ptr<PPresult>) = 0;
-
-    /**
-     * Exporter: Save your received data and perform any conversions necessary.
-     * This method will be called in the
-     * GUI thread context and can create and show dialogs if required.
-     * @return Return true if saving succedded otherwise false.
-     */
-    virtual bool save() = 0;
-
-    /**
-     * @brief The progress of receiving and processing samples. If the exporter returns 1, it will
-     * be called back by the GUI via the save() method.
+     * A new sample set arrived at the ExporterRegistry. The exporter needs to be a continous exporter: See type().
+     * This method is called in the thread context of the ExporterRegistry.
      *
-     * @return A number between 0..1 indicating the used capacity of this exporter. If this is a
-     * snapshot exporter, only 0 for "no samples processed yet" or 1 for "finished" will be returned.
-     * A continous exporter may report the used memory / reservered memory ratio here.
+     * \return Report the used memory / reservered memory ratio here. If float>=1.0 then this exporter will be
+     * deactivated again and will not receive anymore sample data.
      */
-    virtual float progress() = 0;
-protected:
-    ExporterRegistry *registry;
+    virtual float samples(const std::shared_ptr<PPresult>) = 0;
+
+    /**
+     * Start the export process. If you are a snapshot exporter, now is the time to access the last sampleset
+     * from the ExporterRegistry, convert it, ask for a filename and save the data.
+     *
+     * If you are a continous exporter, you should show a dialog to the user to inform about the progress and provide
+     * a cancel option.
+     *
+     * This method will be called in the GUI thread context and can create and show dialogs if required.
+     *
+     * @param registry The exporter registry instance. This is used to obtain a reference
+     *        to the settings and sample data.
+     * @return Return true if saving or setting everything up succedded otherwise false. If this is a continous
+     *        exporter and false is returned, then no sample data will be send via samples(...).
+     */
+    virtual bool exportNow(Registry *registry) = 0;
+
+    /**
+     * Implement this if you are a continous exporter and want the user to be able to stop the export process
+     * via export checkbox in the main window.
+     */
+    virtual void stopContinous() {}
+
+  protected:
+    Registry *registry;
 };
+}

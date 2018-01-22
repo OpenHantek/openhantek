@@ -2,7 +2,7 @@
 
 #include "DsoConfigAnalysisPage.h"
 
-DsoConfigAnalysisPage::DsoConfigAnalysisPage(DsoSettings *settings, QWidget *parent)
+DsoConfigAnalysisPage::DsoConfigAnalysisPage(Settings::DsoSettings *settings, QWidget *parent)
     : QWidget(parent), settings(settings) {
     // Initialize lists for comboboxes
     QStringList windowFunctionStrings;
@@ -15,14 +15,14 @@ DsoConfigAnalysisPage::DsoConfigAnalysisPage(DsoSettings *settings, QWidget *par
     windowFunctionLabel = new QLabel(tr("Window function"));
     windowFunctionComboBox = new QComboBox();
     windowFunctionComboBox->addItems(windowFunctionStrings);
-    windowFunctionComboBox->setCurrentIndex((int)settings->post.spectrumWindow);
+    windowFunctionComboBox->setCurrentIndex((int)settings->post.spectrumWindow());
 
     referenceLevelLabel = new QLabel(tr("Reference level"));
     referenceLevelSpinBox = new QDoubleSpinBox();
     referenceLevelSpinBox->setDecimals(1);
     referenceLevelSpinBox->setMinimum(-40.0);
     referenceLevelSpinBox->setMaximum(100.0);
-    referenceLevelSpinBox->setValue(settings->post.spectrumReference);
+    referenceLevelSpinBox->setValue(settings->post.spectrumReference());
     referenceLevelUnitLabel = new QLabel(tr("dBm"));
     referenceLevelLayout = new QHBoxLayout();
     referenceLevelLayout->addWidget(referenceLevelSpinBox);
@@ -33,7 +33,7 @@ DsoConfigAnalysisPage::DsoConfigAnalysisPage(DsoSettings *settings, QWidget *par
     minimumMagnitudeSpinBox->setDecimals(1);
     minimumMagnitudeSpinBox->setMinimum(-40.0);
     minimumMagnitudeSpinBox->setMaximum(100.0);
-    minimumMagnitudeSpinBox->setValue(settings->post.spectrumLimit);
+    minimumMagnitudeSpinBox->setValue(settings->post.spectrumLimit());
     minimumMagnitudeUnitLabel = new QLabel(tr("dBm"));
     minimumMagnitudeLayout = new QHBoxLayout();
     minimumMagnitudeLayout->addWidget(minimumMagnitudeSpinBox);
@@ -59,7 +59,7 @@ DsoConfigAnalysisPage::DsoConfigAnalysisPage(DsoSettings *settings, QWidget *par
 
 /// \brief Saves the new settings.
 void DsoConfigAnalysisPage::saveSettings() {
-    settings->post.spectrumWindow = (Dso::WindowFunction)windowFunctionComboBox->currentIndex();
-    settings->post.spectrumReference = referenceLevelSpinBox->value();
-    settings->post.spectrumLimit = minimumMagnitudeSpinBox->value();
+    settings->post.m_spectrumWindow = (PostProcessing::WindowFunction)windowFunctionComboBox->currentIndex();
+    settings->post.m_spectrumReference = referenceLevelSpinBox->value();
+    settings->post.m_spectrumLimit = minimumMagnitudeSpinBox->value();
 }

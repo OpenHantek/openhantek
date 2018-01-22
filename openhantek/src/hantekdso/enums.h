@@ -1,24 +1,27 @@
+// SPDX-License-Identifier: GPL-2.0+
+
 #pragma once
 
-#include "utils/enumclass.h"
 #include <QMetaType>
 #include <QString>
 namespace Dso {
+Q_NAMESPACE
+
 /// \enum ChannelMode
 /// \brief The channel display modes.
 enum class ChannelMode {
     Voltage, ///< Standard voltage view
     Spectrum ///< Spectrum view
 };
+Q_ENUM_NS(ChannelMode)
 
 /// \enum GraphFormat
 /// \brief The possible viewing formats for the graphs on the scope.
-enum GraphFormat {
+enum class GraphFormat {
     TY, ///< The standard mode
     XY  ///< CH1 on X-axis, CH2 on Y-axis
 };
-
-extern Enum<Dso::GraphFormat, Dso::GraphFormat::TY, Dso::GraphFormat::XY> GraphFormatEnum;
+Q_ENUM_NS(GraphFormat)
 
 /// \enum Coupling
 /// \brief The coupling modes for the channels.
@@ -27,6 +30,7 @@ enum class Coupling {
     DC, ///< No filtering
     GND ///< Channel is grounded
 };
+Q_ENUM_NS(Coupling)
 
 /// \enum TriggerMode
 /// \brief The different triggering modes.
@@ -35,7 +39,7 @@ enum class TriggerMode {
     WAIT_FORCE,        ///< Automatic without trigger event
     SINGLE             ///< Stop after the first trigger event
 };
-extern Enum<Dso::TriggerMode, Dso::TriggerMode::HARDWARE_SOFTWARE, Dso::TriggerMode::SINGLE> TriggerModeEnum;
+Q_ENUM_NS(TriggerMode)
 
 /// \enum Slope
 /// \brief The slope that causes a trigger.
@@ -43,16 +47,16 @@ enum class Slope : uint8_t {
     Positive = 0, ///< From lower to higher voltage
     Negative = 1  ///< From higher to lower voltage
 };
-extern Enum<Dso::Slope, Dso::Slope::Positive, Dso::Slope::Negative> SlopeEnum;
+Q_ENUM_NS(Slope)
 
 /// \enum InterpolationMode
 /// \brief The different interpolation modes for the graphs.
-enum InterpolationMode {
-    INTERPOLATION_OFF = 0, ///< Just dots for each sample
-    INTERPOLATION_LINEAR,  ///< Sample dots connected by lines
-    INTERPOLATION_SINC,    ///< Smooth graph through the dots
-    INTERPOLATION_COUNT    ///< Total number of interpolation modes
+enum class InterpolationMode {
+    OFF = 0, ///< Just dots for each sample
+    LINEAR,  ///< Sample dots connected by lines
+    SINC,    ///< Smooth graph through the dots
 };
+Q_ENUM_NS(InterpolationMode)
 
 QString channelModeString(ChannelMode mode);
 QString graphFormatString(GraphFormat format);
@@ -61,10 +65,3 @@ QString triggerModeString(TriggerMode mode);
 QString slopeString(Slope slope);
 QString interpolationModeString(InterpolationMode interpolation);
 }
-
-Q_DECLARE_METATYPE(Dso::TriggerMode)
-Q_DECLARE_METATYPE(Dso::Slope)
-Q_DECLARE_METATYPE(Dso::Coupling)
-Q_DECLARE_METATYPE(Dso::GraphFormat)
-Q_DECLARE_METATYPE(Dso::ChannelMode)
-Q_DECLARE_METATYPE(Dso::InterpolationMode)

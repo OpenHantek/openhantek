@@ -30,7 +30,7 @@ Navigate to the [Releases](https://github.com/OpenHantek/openhantek/releases) pa
 ## Building OpenHantek from source
 You need the following software, to build OpenHantek from source:
 * [CMake 3.5+](https://cmake.org/download/)
-* [Qt 5.4+](https://www1.qt.io/download-open-source/)
+* [Qt 5.7+](https://www1.qt.io/download-open-source/)
 * [FFTW 3+ (prebuild files will be downloaded on windows)](http://www.fftw.org/)
 * libusb 1.x (prebuild files will be used on windows)
 * A compiler that supports C++11

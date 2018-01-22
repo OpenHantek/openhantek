@@ -12,105 +12,111 @@
 #include "TriggerDock.h"
 #include "dockwindows.h"
 
-#include "hantekdso/controlspecification.h"
+#include "hantekdso/devicesettings.h"
+#include "hantekdso/dsocontrol.h"
+#include "hantekdso/modelspecification.h"
 #include "settings.h"
-#include "sispinbox.h"
+#include "utils/enumhelper.h"
 #include "utils/printutils.h"
+#include "widgets/sispinbox.h"
 
-TriggerDock::TriggerDock(DsoSettingsScope *scope, const Dso::ControlSpecification *spec, QWidget *parent,
-                         Qt::WindowFlags flags)
-    : QDockWidget(tr("Trigger"), parent, flags), scope(scope), mSpec(spec) {
+TriggerDock::TriggerDock(Settings::Scope *scope, DsoControl *dsocontrol, QWidget *parent, Qt::WindowFlags flags)
+    : QDockWidget(tr("Trigger"), parent, flags) {
 
-    // Initialize lists for comboboxes
-    for (ChannelID channel = 0; channel < mSpec->channels; ++channel)
-        this->sourceStandardStrings << tr("CH%1").arg(channel + 1);
-    for (const Dso::SpecialTriggerChannel &specialTrigger : mSpec->specialTriggerChannels)
-        this->sourceSpecialStrings.append(QString::fromStdString(specialTrigger.name));
+    QGridLayout *dockLayout;   ///< The main layout for the dock window
+    QWidget *dockWidget;       ///< The main widget for the dock window
+    QLabel *modeLabel;         ///< The label for the trigger mode combobox
+    QLabel *sourceLabel;       ///< The label for the trigger source combobox
+    QLabel *slopeLabel;        ///< The label for the trigger slope combobox
+    QComboBox *modeComboBox;   ///< Select the triggering mode
+    QComboBox *sourceComboBox; ///< Select the source for triggering
+    QComboBox *slopeComboBox;  ///< Select the slope that causes triggering
+
+    auto spec = dsocontrol->deviceSettings()->spec;
 
     // Initialize elements
-    this->modeLabel = new QLabel(tr("Mode"));
-    this->modeComboBox = new QComboBox();
-    for (Dso::TriggerMode mode : mSpec->triggerModes) this->modeComboBox->addItem(Dso::triggerModeString(mode));
+    modeLabel = new QLabel(tr("Mode"));
+    modeComboBox = new QComboBox();
+    for (Dso::TriggerMode mode : spec->triggerModes) modeComboBox->addItem(Dso::triggerModeString(mode));
 
-    this->slopeLabel = new QLabel(tr("Slope"));
-    this->slopeComboBox = new QComboBox();
-    for (Dso::Slope slope : Dso::SlopeEnum) this->slopeComboBox->addItem(Dso::slopeString(slope));
+    slopeLabel = new QLabel(tr("Slope"));
+    slopeComboBox = new QComboBox();
+    for (Dso::Slope slope : Enum<Dso::Slope>()) slopeComboBox->addItem(Dso::slopeString(slope));
 
-    this->sourceLabel = new QLabel(tr("Source"));
-    this->sourceComboBox = new QComboBox();
-    this->sourceComboBox->addItems(this->sourceStandardStrings);
-    this->sourceComboBox->addItems(this->sourceSpecialStrings);
+    sourceLabel = new QLabel(tr("Source"));
+    sourceComboBox = new QComboBox();
+    for (auto *c : *scope)
+        if (!c->isMathChannel()) sourceComboBox->addItem(tr("CH%1").arg(c->channelID() + 1), (int)c->channelID());
+    int specialID = -1; // Assign negative (beginning with -1) ids for special channels
+    for (const Dso::SpecialTriggerChannel &specialTrigger : spec->specialTriggerChannels)
+        sourceComboBox->addItem(QString::fromStdString(specialTrigger.name), (int)specialID--);
 
-    this->dockLayout = new QGridLayout();
-    this->dockLayout->setColumnMinimumWidth(0, 64);
-    this->dockLayout->setColumnStretch(1, 1);
-    this->dockLayout->addWidget(this->modeLabel, 0, 0);
-    this->dockLayout->addWidget(this->modeComboBox, 0, 1);
-    this->dockLayout->addWidget(this->sourceLabel, 1, 0);
-    this->dockLayout->addWidget(this->sourceComboBox, 1, 1);
-    this->dockLayout->addWidget(this->slopeLabel, 2, 0);
-    this->dockLayout->addWidget(this->slopeComboBox, 2, 1);
+    dockLayout = new QGridLayout();
+    dockLayout->setColumnMinimumWidth(0, 64);
+    dockLayout->setColumnStretch(1, 1);
+    dockLayout->addWidget(modeLabel, 0, 0);
+    dockLayout->addWidget(modeComboBox, 0, 1);
+    dockLayout->addWidget(sourceLabel, 1, 0);
+    dockLayout->addWidget(sourceComboBox, 1, 1);
+    dockLayout->addWidget(slopeLabel, 2, 0);
+    dockLayout->addWidget(slopeComboBox, 2, 1);
 
-    this->dockWidget = new QWidget();
+    dockWidget = new QWidget();
     SetupDockWidget(this, dockWidget, dockLayout);
 
+    const Dso::DeviceSettings *devicesettings = dsocontrol->deviceSettings().get();
+
     // Set values
-    setMode(scope->trigger.mode);
-    setSlope(scope->trigger.slope);
-    setSource(scope->trigger.special, scope->trigger.source);
+    modeComboBox->setCurrentIndex(spec->indexOfTriggerMode(devicesettings->trigger.mode()));
+    slopeComboBox->setCurrentIndex((int)devicesettings->trigger.slope());
+    // A special channel is after all real channels
+    sourceComboBox->setCurrentIndex(devicesettings->trigger.special() ? (int)spec->channels
+                                                                      : 0 + (int)devicesettings->trigger.source());
 
-    // Connect signals and slots
-    connect(this->modeComboBox, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
-            [this, spec](int index) {
-                this->scope->trigger.mode = mSpec->triggerModes[(unsigned)index];
-                emit modeChanged(this->scope->trigger.mode);
+    // Connect widgets --> settings
+    connect(modeComboBox, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged), this,
+            [spec, dsocontrol, modeComboBox, devicesettings](int index) {
+                dsocontrol->setTriggerMode(spec->triggerModes[(unsigned)index]);
+                QSignalBlocker blocker(modeComboBox);
+                modeComboBox->setCurrentIndex(spec->indexOfTriggerMode(devicesettings->trigger.mode()));
             });
-    connect(this->slopeComboBox, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
-            [this](int index) {
-                this->scope->trigger.slope = (Dso::Slope)index;
-                emit slopeChanged(this->scope->trigger.slope);
+    connect(slopeComboBox, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged), this,
+            [dsocontrol, slopeComboBox, devicesettings](int index) {
+                dsocontrol->setTriggerSlope((Dso::Slope)index);
+                QSignalBlocker blocker(slopeComboBox);
+                slopeComboBox->setCurrentIndex((int)devicesettings->trigger.slope());
             });
-    connect(this->sourceComboBox, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
-            [this](int index) {
-                bool special = false;
-
-                if (index >= this->sourceStandardStrings.count()) {
-                    index -= this->sourceStandardStrings.count();
-                    special = true;
-                }
-
-                this->scope->trigger.source = (unsigned)index;
-                this->scope->trigger.special = special;
-                emit sourceChanged(special, (unsigned)index);
+    connect(sourceComboBox, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged), this,
+            [sourceComboBox, devicesettings, dsocontrol, spec](int index) {
+                int channelIndex = sourceComboBox->itemData(index, Qt::UserRole).toInt();
+                dsocontrol->setTriggerSource(channelIndex < 0,
+                                             channelIndex < 0 ? (unsigned)(1 + -channelIndex) : (unsigned)channelIndex);
+                QSignalBlocker blocker(sourceComboBox);
+                sourceComboBox->setCurrentIndex(devicesettings->trigger.special()
+                                                    ? (int)spec->channels
+                                                    : 0 + (int)devicesettings->trigger.source());
             });
+    // Connect settings --> widgets
+    connect(&devicesettings->trigger, &Dso::Trigger::modeChanged, this, [modeComboBox, spec](Dso::TriggerMode mode) {
+        QSignalBlocker blocker(modeComboBox);
+        modeComboBox->setCurrentIndex(spec->indexOfTriggerMode(mode));
+    });
+    connect(&devicesettings->trigger, &Dso::Trigger::sourceChanged, this,
+            [this, sourceComboBox, spec](bool special, unsigned int id) {
+                QSignalBlocker blocker(sourceComboBox);
+                // A special channel is after all real channels
+                sourceComboBox->setCurrentIndex(special ? (int)spec->channels : 0 + (int)id);
+            });
+    connect(&devicesettings->trigger, &Dso::Trigger::slopeChanged, this, [slopeComboBox](Dso::Slope slope) {
+        QSignalBlocker blocker(slopeComboBox);
+        slopeComboBox->setCurrentIndex((int)slope);
+    });
 }
 
 /// \brief Don't close the dock, just hide it
 /// \param event The close event that should be handled.
 void TriggerDock::closeEvent(QCloseEvent *event) {
-    this->hide();
+    hide();
 
     event->accept();
-}
-
-void TriggerDock::setMode(Dso::TriggerMode mode) {
-    int index = std::find(mSpec->triggerModes.begin(), mSpec->triggerModes.end(), mode) - mSpec->triggerModes.begin();
-    QSignalBlocker blocker(modeComboBox);
-    modeComboBox->setCurrentIndex(index);
-}
-
-void TriggerDock::setSlope(Dso::Slope slope) {
-    QSignalBlocker blocker(slopeComboBox);
-    slopeComboBox->setCurrentIndex((int)slope);
-}
-
-void TriggerDock::setSource(bool special, unsigned int id) {
-    if ((!special && id >= (unsigned int)this->sourceStandardStrings.count()) ||
-        (special && id >= (unsigned int)this->sourceSpecialStrings.count()))
-        return;
-
-    int index = (int)id;
-    if (special) index += this->sourceStandardStrings.count();
-    QSignalBlocker blocker(sourceComboBox);
-    sourceComboBox->setCurrentIndex(index);
 }

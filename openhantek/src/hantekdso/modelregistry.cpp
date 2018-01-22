@@ -2,9 +2,10 @@
 
 #include "modelregistry.h"
 
-ModelRegistry *ModelRegistry::instance = new ModelRegistry();
-
-ModelRegistry *ModelRegistry::get() { return instance; }
+ModelRegistry *ModelRegistry::get() {
+    static ModelRegistry *instance = new ModelRegistry();
+    return instance;
+}
 
 void ModelRegistry::add(DSOModel *model) { supportedModels.push_back(model); }
 

@@ -14,20 +14,18 @@
 #include <QSpinBox>
 #include <QVBoxLayout>
 
-////////////////////////////////////////////////////////////////////////////////
-/// \class DsoConfigAnalysisPage                                   configpages.h
 /// \brief Config page for the data analysis.
 class DsoConfigAnalysisPage : public QWidget {
     Q_OBJECT
 
   public:
-    DsoConfigAnalysisPage(DsoSettings *settings, QWidget *parent = 0);
+    DsoConfigAnalysisPage(Settings::DsoSettings *settings, QWidget *parent = 0);
 
   public slots:
     void saveSettings();
 
   private:
-    DsoSettings *settings;
+    Settings::DsoSettings *settings;
 
     QVBoxLayout *mainLayout;
 

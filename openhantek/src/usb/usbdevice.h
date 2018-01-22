@@ -13,7 +13,6 @@ class DSOModel;
 
 typedef unsigned long UniqueUSBid;
 
-
 /// \brief Returns string representation for libusb errors.
 /// \param error The error code.
 /// \return String explaining the error.
@@ -25,8 +24,8 @@ class USBDevice : public QObject {
     Q_OBJECT
 
   public:
-    explicit USBDevice(DSOModel* model, libusb_device *device, unsigned findIteration = 0);
-    USBDevice(const USBDevice&) = delete;
+    explicit USBDevice(DSOModel *model, libusb_device *device, unsigned findIteration = 0);
+    USBDevice(const USBDevice &) = delete;
     ~USBDevice();
     bool connectDevice(QString &errorMessage);
     void disconnectFromDevice();
@@ -55,8 +54,8 @@ class USBDevice : public QObject {
     /// \param timeout The timeout in ms.
     /// \return Number of transferred bytes on success, libusb error code on
     /// error.
-    int bulkTransfer(unsigned char endpoint, const unsigned char *data, unsigned int length, int attempts = HANTEK_ATTEMPTS,
-                     unsigned int timeout = HANTEK_TIMEOUT);
+    int bulkTransfer(unsigned char endpoint, const unsigned char *data, unsigned int length,
+                     int attempts = HANTEK_ATTEMPTS, unsigned int timeout = HANTEK_TIMEOUT);
 
     /// \brief Bulk write to the oscilloscope.
     /// \param data Buffer for the sent/recieved data.
@@ -64,7 +63,7 @@ class USBDevice : public QObject {
     /// \param attempts The number of attempts, that are done on timeouts.
     /// \return Number of sent bytes on success, libusb error code on error.
     inline int bulkWrite(const unsigned char *data, unsigned int length, int attempts = HANTEK_ATTEMPTS) {
-         return bulkTransfer(HANTEK_EP_OUT, data, length, attempts);
+        return bulkTransfer(HANTEK_EP_OUT, data, length, attempts);
     }
 
     /// \brief Bulk read from the oscilloscope.
@@ -72,8 +71,7 @@ class USBDevice : public QObject {
     /// \param length The length of the packet.
     /// \param attempts The number of attempts, that are done on timeouts.
     /// \return Number of received bytes on success, libusb error code on error.
-    template<class T>
-    inline int bulkRead(const T *command, int attempts = HANTEK_ATTEMPTS) {
+    template <class T> inline int bulkRead(const T *command, int attempts = HANTEK_ATTEMPTS) {
         return bulkTransfer(HANTEK_EP_IN, command->data(), command->size(), attempts);
     }
 
@@ -84,36 +82,38 @@ class USBDevice : public QObject {
     /// \return Number of received bytes on success, libusb error code on error.
     int bulkReadMulti(unsigned char *data, unsigned length, int attempts = HANTEK_ATTEMPTS_MULTI);
 
-    /// \brief Control transfer to the oscilloscope.
-    /// \param type The request type, also sets the direction of the transfer.
-    /// \param request The request field of the packet.
-    /// \param data Buffer for the sent/recieved data.
-    /// \param length The length field of the packet.
-    /// \param value The value field of the packet.
-    /// \param index The index field of the packet.
-    /// \param attempts The number of attempts, that are done on timeouts.
-    /// \return Number of transferred bytes on success, libusb error code on error.
-    int controlTransfer(unsigned char type, unsigned char request, unsigned char *data, unsigned int length, int value,
-                        int index, int attempts = HANTEK_ATTEMPTS);
-
     /// \brief Control write to the oscilloscope.
     /// \param command Buffer for the sent/recieved data.
     /// \return Number of sent bytes on success, libusb error code on error.
-    template<class T>
-    inline int controlWrite(const T *command) {
-        return controlTransfer(LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_OUT, (uint8_t)command->code,
-                               (unsigned char *)command->data(), (unsigned)command->size(), command->value, 0,
-                               HANTEK_ATTEMPTS);
+    template <class T> inline int controlWrite(const T *command, int attempts = HANTEK_ATTEMPTS) {
+        if (!this->handle) return LIBUSB_ERROR_NO_DEVICE;
+
+        int errorCode = LIBUSB_ERROR_TIMEOUT;
+        for (int attempt = 0; (attempt < attempts || attempts == -1) && errorCode == LIBUSB_ERROR_TIMEOUT; ++attempt)
+            errorCode =
+                libusb_control_transfer(this->handle, LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_OUT,
+                                        (uint8_t)command->code, (uint16_t)command->value, 0,
+                                        (unsigned char *)command->data(), (uint16_t)command->size(), HANTEK_TIMEOUT);
+
+        if (errorCode == LIBUSB_ERROR_NO_DEVICE) disconnectFromDevice();
+        return errorCode;
     }
 
     /// \brief Control read to the oscilloscope.
     /// \param command Buffer for the sent/recieved data.
     /// \return Number of received bytes on success, libusb error code on error.
-    template<class T>
-    inline int controlRead(const T *command) {
-        return controlTransfer(LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_IN, (uint8_t)command->code,
-                               (unsigned char *)command->data(), (unsigned)command->size(), command->value, 0,
-                               HANTEK_ATTEMPTS);
+    template <class T> inline int controlRead(T *command, int attempts = HANTEK_ATTEMPTS) {
+        if (!this->handle) return LIBUSB_ERROR_NO_DEVICE;
+
+        int errorCode = LIBUSB_ERROR_TIMEOUT;
+        for (int attempt = 0; (attempt < attempts || attempts == -1) && errorCode == LIBUSB_ERROR_TIMEOUT; ++attempt)
+            errorCode =
+                libusb_control_transfer(this->handle, LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_IN,
+                                        (uint8_t)command->code, (uint16_t)command->value, 0,
+                                        (unsigned char *)command->data(), (uint16_t)command->size(), HANTEK_TIMEOUT);
+
+        if (errorCode == LIBUSB_ERROR_NO_DEVICE) disconnectFromDevice();
+        return errorCode;
     }
 
     /**
@@ -144,11 +144,12 @@ class USBDevice : public QObject {
      * that much data though and need an artification restriction.
      */
     inline void overwriteInPacketLength(int len) { inPacketLength = len; }
+
   protected:
     int claimInterface(const libusb_interface_descriptor *interfaceDescriptor, int endpointOut, int endPointIn);
 
     // Device model data
-    DSOModel* model;
+    DSOModel *model;
 
     // Libusb specific variables
     struct libusb_device_descriptor descriptor;

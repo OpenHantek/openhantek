@@ -14,7 +14,7 @@ QString valueToString(double value, Unit unit, int precision) {
     char format = (precision < 0) ? 'g' : 'f';
 
     switch (unit) {
-    case UNIT_VOLTS: {
+    case Unit::VOLTS: {
         // Voltage string representation
         int logarithm = floor(log10(fabs(value)));
         if (fabs(value) < 1e-3)
@@ -28,13 +28,13 @@ QString valueToString(double value, Unit unit, int precision) {
             return QApplication::tr("%L1 V").arg(value, 0, format,
                                                  (precision <= 0) ? precision : qMax(0, precision - 1 - logarithm));
     }
-    case UNIT_DECIBEL:
+    case Unit::DECIBEL:
         // Power level string representation
         return QApplication::tr("%L1 dB").arg(
             value, 0, format,
             (precision <= 0) ? precision : qBound(0, precision - 1 - (int)floor(log10(fabs(value))), precision));
 
-    case UNIT_SECONDS:
+    case Unit::SECONDS:
         // Time string representation
         if (fabs(value) < 1e-9)
             return QApplication::tr("%L1 ps").arg(
@@ -63,7 +63,7 @@ QString valueToString(double value, Unit unit, int precision) {
                 value / 3600, 0, format,
                 (precision <= 0) ? precision : qMax(0, precision - 1 - (int)floor(log10(value / 3600))));
 
-    case UNIT_HERTZ: {
+    case Unit::HERTZ: {
         // Frequency string representation
         int logarithm = floor(log10(fabs(value)));
         if (fabs(value) < 1e3)
@@ -79,7 +79,7 @@ QString valueToString(double value, Unit unit, int precision) {
             return QApplication::tr("%L1 GHz").arg(value / 1e9, 0, format,
                                                    (precision <= 0) ? precision : qMax(0, precision + 8 - logarithm));
     }
-    case UNIT_SAMPLES: {
+    case Unit::SAMPLES: {
         // Sample count string representation
         int logarithm = floor(log10(fabs(value)));
         if (fabs(value) < 1e3)
@@ -138,7 +138,7 @@ double stringToValue(const QString &text, Unit unit, bool *ok) {
 
     if (ok) *ok = true;
     switch (unit) {
-    case UNIT_VOLTS: {
+    case Unit::VOLTS: {
         // Voltage string decoding
         if (unitString.startsWith("µ"))
             return value * 1e-6;
@@ -147,11 +147,11 @@ double stringToValue(const QString &text, Unit unit, bool *ok) {
         else
             return value;
     }
-    case UNIT_DECIBEL:
+    case Unit::DECIBEL:
         // Power level string decoding
         return value;
 
-    case UNIT_SECONDS:
+    case Unit::SECONDS:
         // Time string decoding
         if (unitString.startsWith('p'))
             return value * 1e-12;
@@ -168,7 +168,7 @@ double stringToValue(const QString &text, Unit unit, bool *ok) {
         else
             return value;
 
-    case UNIT_HERTZ:
+    case Unit::HERTZ:
         // Frequency string decoding
         if (unitString.startsWith('k'))
             return value * 1e3;
@@ -179,7 +179,7 @@ double stringToValue(const QString &text, Unit unit, bool *ok) {
         else
             return value;
 
-    case UNIT_SAMPLES:
+    case Unit::SAMPLES:
         // Sample count string decoding
         if (unitString.startsWith('k'))
             return value * 1e3;

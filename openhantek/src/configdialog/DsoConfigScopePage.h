@@ -14,20 +14,18 @@
 #include <QSpinBox>
 #include <QVBoxLayout>
 
-////////////////////////////////////////////////////////////////////////////////
-/// \class DsoConfigScopePage                                      configpages.h
 /// \brief Config page for the scope screen.
 class DsoConfigScopePage : public QWidget {
     Q_OBJECT
 
   public:
-    DsoConfigScopePage(DsoSettings *settings, QWidget *parent = 0);
+    DsoConfigScopePage(Settings::DsoSettings *settings, QWidget *parent = 0);
 
   public slots:
     void saveSettings();
 
   private:
-    DsoSettings *settings;
+    Settings::DsoSettings *settings;
 
     QVBoxLayout *mainLayout;
 

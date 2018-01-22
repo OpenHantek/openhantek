@@ -1,47 +1,53 @@
-#include "mathchannelgenerator.h"
-#include "scopesettings.h"
-#include "post/postprocessingsettings.h"
-#include "enums.h"
+// SPDX-License-Identifier: GPL-2.0+
 
-MathChannelGenerator::MathChannelGenerator(const DsoSettingsScope *scope, unsigned physicalChannels)
-    : physicalChannels(physicalChannels), scope(scope) {}
+#include "mathchannelgenerator.h"
+#include "enums.h"
+#include "post/postprocessingsettings.h"
+#include "scopesettings.h"
+#include "utils/getwithdefault.h"
+
+namespace PostProcessing {
+
+MathChannelGenerator::MathChannelGenerator(const ::Settings::Scope *scope) : scope(scope) {}
 
 MathChannelGenerator::~MathChannelGenerator() {}
 
 void MathChannelGenerator::process(PPresult *result) {
-    bool channelsHaveData = !result->data(0)->voltage.sample.empty() && !result->data(1)->voltage.sample.empty();
-    if (!channelsHaveData) return;
-
-    for (ChannelID channel = physicalChannels; channel < result->channelCount(); ++channel) {
-        DataChannel *const channelData = result->modifyData(channel);
-
+    for (std::pair<const ChannelID, const std::shared_ptr<::Settings::Channel>> item : scope->channels()) {
+        ::Settings::Channel *channel = item.second.get();
         // Math channel enabled?
-        if (!scope->voltage[channel].used && !scope->spectrum[channel].used) continue;
+        if (!channel->isMathChannel() || !channel->anyVisible()) continue;
 
-        // Set sampling interval
-        channelData->voltage.interval = result->data(0)->voltage.interval;
+        const ::Settings::MathChannel *mathChannel = static_cast<const ::Settings::MathChannel *>(channel);
+        if (mathChannel->firstID() == ::Settings::Channel::INVALID ||
+            mathChannel->secondID() == ::Settings::Channel::INVALID)
+            continue;
+
+        SampleValues &targetVoltage = result->addChannel(channel->channelID(), false, item.second)->voltage;
+        const SampleValues &firstSampleValues = result->data(mathChannel->firstID())->voltage;
+        const std::vector<double> &firstChannel = firstSampleValues.sample;
+        const std::vector<double> &secondChannel = result->data(mathChannel->secondID())->voltage.sample;
 
         // Resize the sample vector
-        std::vector<double> &resultData = channelData->voltage.sample;
-        resultData.resize(std::min(result->data(0)->voltage.sample.size(), result->data(1)->voltage.sample.size()));
+        targetVoltage.interval = firstSampleValues.interval;
+        std::vector<double> &resultData = targetVoltage.sample;
+        resultData.resize(std::min(firstChannel.size(), secondChannel.size()));
 
         // Calculate values and write them into the sample buffer
-        std::vector<double>::const_iterator ch1Iterator = result->data(0)->voltage.sample.begin();
-        std::vector<double>::const_iterator ch2Iterator = result->data(1)->voltage.sample.begin();
-        for (std::vector<double>::iterator it = resultData.begin(); it != resultData.end(); ++it) {
-            switch (Dso::getMathMode(scope->voltage[physicalChannels])) {
-            case Dso::MathMode::ADD_CH1_CH2:
-                *it = *ch1Iterator + *ch2Iterator;
-                break;
-            case Dso::MathMode::SUB_CH2_FROM_CH1:
-                *it = *ch1Iterator - *ch2Iterator;
-                break;
-            case Dso::MathMode::SUB_CH1_FROM_CH2:
-                *it = *ch2Iterator - *ch1Iterator;
-                break;
-            }
-            ++ch1Iterator;
-            ++ch2Iterator;
+        switch (mathChannel->mathMode()) {
+        case PostProcessing::MathMode::ADD:
+            // #pragma omp parallel for
+            for (unsigned int i = 0; i < resultData.size(); ++i) resultData[i] = firstChannel[i] + secondChannel[i];
+            break;
+        case PostProcessing::MathMode::SUBSTRACT:
+            // #pragma omp parallel for
+            for (unsigned int i = 0; i < resultData.size(); ++i) resultData[i] = firstChannel[i] - secondChannel[i];
+            break;
+        case PostProcessing::MathMode::MULTIPLY:
+            // #pragma omp parallel for
+            for (unsigned int i = 0; i < resultData.size(); ++i) resultData[i] = firstChannel[i] * secondChannel[i];
+            break;
         }
     }
+}
 }

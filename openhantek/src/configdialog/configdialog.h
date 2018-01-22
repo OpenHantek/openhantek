@@ -6,8 +6,9 @@ class DsoConfigAnalysisPage;
 class DsoConfigColorsPage;
 class DsoConfigFilesPage;
 class DsoConfigScopePage;
+namespace Settings {
 class DsoSettings;
-
+}
 class QHBoxLayout;
 class QListWidget;
 class QListWidgetItem;
@@ -22,7 +23,7 @@ class DsoConfigDialog : public QDialog {
     Q_OBJECT
 
   public:
-    DsoConfigDialog(DsoSettings *settings, QWidget *parent = 0, Qt::WindowFlags flags = 0);
+    DsoConfigDialog(Settings::DsoSettings *settings, QWidget *parent = 0, Qt::WindowFlags flags = 0);
     ~DsoConfigDialog();
 
   public slots:
@@ -34,7 +35,7 @@ class DsoConfigDialog : public QDialog {
   private:
     void createIcons();
 
-    DsoSettings *settings;
+    Settings::DsoSettings *settings;
 
     QVBoxLayout *mainLayout;
     QHBoxLayout *horizontalLayout;

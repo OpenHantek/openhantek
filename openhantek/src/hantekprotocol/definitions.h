@@ -6,8 +6,6 @@
 #include <QString>
 #include <stdint.h>
 
-#define HANTEK_GAIN_STEPS 9
-
 namespace Hantek {
 /// \enum UsedChannels
 /// \brief The enabled channels.
@@ -35,10 +33,6 @@ enum class DTriggerPositionUsed: uint8_t {
 struct Offset {
     unsigned short start = 0x0000;
     unsigned short end = 0xffff;
-};
-
-struct OffsetsPerGainStep {
-    Offset step[HANTEK_GAIN_STEPS];
 };
 
 /// \struct FilterBits

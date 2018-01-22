@@ -12,53 +12,54 @@ class Processor;
 class PPresult;
 
 // Settings forwards
+namespace Settings {
 class DsoSettings;
+}
 namespace Dso {
-struct ControlSpecification;
+struct ModelSpec;
 }
 
-// Exporter forwards
+namespace Exporter {
 class ExporterInterface;
 
-class ExporterRegistry : public QObject {
+class Registry : public QObject {
     Q_OBJECT
   public:
-    explicit ExporterRegistry(const Dso::ControlSpecification *deviceSpecification, DsoSettings *settings,
-                              QObject *parent = nullptr);
+    explicit Registry(const Dso::ModelSpec *deviceSpecification, Settings::DsoSettings *settings,
+                      QObject *parent = nullptr);
 
     // Sample input. This will proably be performed in the post processing
     // thread context. Do not open GUI dialogs or interrupt the control flow.
-    void addRawSamples(PPresult *data);
     void input(std::shared_ptr<PPresult> data);
 
     void registerExporter(ExporterInterface *exporter);
-    void setExporterEnabled(ExporterInterface *exporter, bool enabled);
 
-    void checkForWaitingExporters();
+    /**
+     * Called from the GUI thread to start an export process.
+     * @param exporter The exporter to use.
+     */
+    void exportNow(ExporterInterface *exporter);
+
+    void stopContinous(ExporterInterface *exporter);
+
+    inline std::shared_ptr<PPresult> lastDataSet() const { return m_lastDataset; }
 
     // Iterate over this class object
     std::vector<ExporterInterface *>::const_iterator begin();
     std::vector<ExporterInterface *>::const_iterator end();
 
     /// Device specifications
-    const Dso::ControlSpecification *deviceSpecification;
-    const DsoSettings *settings;
+    const Dso::ModelSpec *deviceSpecification;
+    const Settings::DsoSettings *settings;
 
   private:
     /// List of all available exporters
     std::vector<ExporterInterface *> exporters;
     /// List of exporters that collect samples at the moment
-    std::list<ExporterInterface *> enabledExporters;
-    /// List of exporters that wait to be called back by the user to save their work
-    std::set<ExporterInterface *> waitToSaveExporters;
+    std::set<ExporterInterface *> continousActiveExporters;
 
-    /// Process data from addRawSamples() or input() in the given exporter. Add the
-    /// exporter to waitToSaveExporters if it finishes.
-    ///
-    /// @return Return true if the exporter has finished and want to be removed from the
-    ///     enabledExporters list.
-    bool processData(std::shared_ptr<PPresult> &data, ExporterInterface *const &exporter);
+    std::shared_ptr<PPresult> m_lastDataset;
   signals:
     void exporterStatusChanged(const QString &exporterName, const QString &status);
-    void exporterProgressChanged();
 };
+}

@@ -4,32 +4,19 @@
 #include <QMutex>
 #include <exception>
 
+#include "hantekdso/modelspecification.h"
 #include "post/graphgenerator.h"
 #include "post/ppresult.h"
 #include "post/softwaretrigger.h"
-#include "hantekdso/controlspecification.h"
 #include "scopesettings.h"
 #include "utils/printutils.h"
 #include "viewconstants.h"
 
-static const SampleValues &useSpecSamplesOf(ChannelID channel, const PPresult *result,
-                                            const DsoSettingsScope *scope) {
-    static SampleValues emptyDefault;
-    if (!scope->spectrum[channel].used || !result->data(channel)) return emptyDefault;
-    return result->data(channel)->spectrum;
-}
+namespace PostProcessing {
 
-static const SampleValues &useVoltSamplesOf(ChannelID channel, const PPresult *result,
-                                            const DsoSettingsScope *scope) {
-    static SampleValues emptyDefault;
-    if (!scope->voltage[channel].used || !result->data(channel)) return emptyDefault;
-    return result->data(channel)->voltage;
-}
-
-GraphGenerator::GraphGenerator(const DsoSettingsScope *scope, bool isSoftwareTriggerDevice)
-    : scope(scope), isSoftwareTriggerDevice(isSoftwareTriggerDevice) {}
-
-bool GraphGenerator::isReady() const { return ready; }
+GraphGenerator::GraphGenerator(const ::Settings::Scope *scope, const Dso::DeviceSettings *deviceSettings,
+                               const Dso::ChannelUsage *channelUsage)
+    : m_scope(scope), m_deviceSettings(deviceSettings), m_channelUsage(channelUsage) {}
 
 void GraphGenerator::generateGraphsTYvoltage(PPresult *result) {
     unsigned preTrigSamples = 0;
@@ -37,144 +24,147 @@ void GraphGenerator::generateGraphsTYvoltage(PPresult *result) {
     unsigned swTriggerStart = 0;
 
     // check trigger point for software trigger
-    if (isSoftwareTriggerDevice && scope->trigger.source < result->channelCount())
-        std::tie(preTrigSamples, postTrigSamples, swTriggerStart) = SoftwareTrigger::compute(result, scope);
+    if (m_deviceSettings->spec->isSoftwareTriggerDevice &&
+        m_deviceSettings->trigger.source() < m_deviceSettings->voltage.size())
+        std::tie(preTrigSamples, postTrigSamples, swTriggerStart) =
+            SoftwareTrigger::compute(result, m_deviceSettings, m_scope, m_channelUsage);
     result->softwareTriggerTriggered = postTrigSamples > preTrigSamples;
 
-    result->vaChannelVoltage.resize(scope->voltage.size());
-    for (ChannelID channel = 0; channel < scope->voltage.size(); ++channel) {
-        ChannelGraph &target = result->vaChannelVoltage[channel];
-        const SampleValues &samples = useVoltSamplesOf(channel, result, scope);
+    for (DataChannel &channelData : *result) {
+        ChannelGraph &target = channelData.voltage.graph;
+        const std::vector<double> &source = channelData.voltage.sample;
 
         // Check if this channel is used and available at the data analyzer
-        if (samples.sample.empty()) {
+        if (source.empty() || !channelData.channelSettings->visible()) {
             // Delete all vector arrays
             target.clear();
             continue;
         }
         // Check if the sample count has changed
-        size_t sampleCount = samples.sample.size();
+        size_t sampleCount = source.size();
         if (sampleCount > 500000) {
             qWarning() << "Sample count too high!";
             throw new std::runtime_error("Sample count too high!");
         }
-        sampleCount -= (swTriggerStart - preTrigSamples);
-        size_t neededSize = sampleCount * 2;
+
+        const unsigned offSamples = unsigned(swTriggerStart - preTrigSamples);
+        sampleCount -= offSamples;
 
         // Set size directly to avoid reallocations
-        target.reserve(neededSize);
+        target.resize(sampleCount);
 
-        // What's the horizontal distance between sampling points?
-        float horizontalFactor = (float)(samples.interval / scope->horizontal.timebase);
+        // Data samples are in [0,1] (as long as the voltageLimits are set correctly).
+        // The offset needs to be applied now, as well as the gain.
+        const float timeFactor =
+            float(channelData.voltage.interval * DIVS_TIME * 2 / m_deviceSettings->samplerate().timebase);
+        const float offY = (float)channelData.channelSettings->voltage()->offset() * DIVS_VOLTAGE / 2;
+        const float offX = -DIVS_TIME / 2;
+        const int invert = channelData.channelSettings->inverted() ? -1.0 : 1.0;
+        const float gain = invert / channelData.channelSettings->gain();
 
-        // Fill vector array
-        std::vector<double>::const_iterator dataIterator = samples.sample.begin();
-        const float gain = (float)scope->gain(channel);
-        const float offset = (float)scope->voltage[channel].offset;
-        const float invert = scope->voltage[channel].inverted ? -1.0f : 1.0f;
-
-        std::advance(dataIterator, swTriggerStart - preTrigSamples);
-
+#pragma omp parallel for
         for (unsigned int position = 0; position < sampleCount; ++position) {
-            target.push_back(QVector3D(position * horizontalFactor - DIVS_TIME / 2,
-                                       (float)*(dataIterator++) / gain * invert + offset, 0.0));
+            const float v = (float)source[position + offSamples];
+            target[position] = (QVector3D(position * timeFactor + offX, v * gain + offY, 0.0));
         }
     }
 }
 
 void GraphGenerator::generateGraphsTYspectrum(PPresult *result) {
-    ready = true;
-    result->vaChannelSpectrum.resize(scope->spectrum.size());
-    for (ChannelID channel = 0; channel < scope->voltage.size(); ++channel) {
-        ChannelGraph &target = result->vaChannelSpectrum[channel];
-        const SampleValues &samples = useSpecSamplesOf(channel, result, scope);
+    for (DataChannel &channelData : *result) {
+        ChannelGraph &target = channelData.spectrum.graph;
+        const std::vector<double> &source = channelData.spectrum.sample;
 
         // Check if this channel is used and available at the data analyzer
-        if (samples.sample.empty()) {
+        if (source.empty()) {
             // Delete all vector arrays
             target.clear();
             continue;
         }
         // Check if the sample count has changed
-        size_t sampleCount = samples.sample.size();
+        size_t sampleCount = source.size();
         if (sampleCount > 500000) {
             qWarning() << "Sample count too high!";
             throw new std::runtime_error("Sample count too high!");
         }
-        size_t neededSize = sampleCount * 2;
 
         // Set size directly to avoid reallocations
-        target.reserve(neededSize);
+        target.resize(sampleCount);
 
         // What's the horizontal distance between sampling points?
-        float horizontalFactor = (float)(samples.interval / scope->horizontal.frequencybase);
+        const float timeFactor = (float)(channelData.spectrum.interval / m_scope->frequencybase());
 
-        // Fill vector array
-        std::vector<double>::const_iterator dataIterator = samples.sample.begin();
-        const float magnitude = (float)scope->spectrum[channel].magnitude;
-        const float offset = (float)scope->spectrum[channel].offset;
+        const float magnitude = (float)channelData.channelSettings->spectrum()->magnitude();
+        const float offY = (float)channelData.channelSettings->spectrum()->offset() * DIVS_VOLTAGE / 2;
+        const float offX = -DIVS_TIME / 2;
 
+#pragma omp parallel for
         for (unsigned int position = 0; position < sampleCount; ++position) {
-            target.push_back(QVector3D(position * horizontalFactor - DIVS_TIME / 2,
-                                       (float)*(dataIterator++) / magnitude + offset, 0.0));
+            const float v = (float)source[position];
+            target[position] = (QVector3D(position * timeFactor + offX, v / magnitude + offY, 0.0));
         }
     }
 }
 
 void GraphGenerator::process(PPresult *data) {
-    if (scope->horizontal.format == Dso::GraphFormat::TY) {
-        ready = true;
+    if (m_scope->format() == Dso::GraphFormat::TY) {
         generateGraphsTYspectrum(data);
         generateGraphsTYvoltage(data);
     } else
-        generateGraphsXY(data, scope);
+        generateGraphsXY(data, m_scope);
 }
 
-void GraphGenerator::generateGraphsXY(PPresult *result, const DsoSettingsScope *scope) {
-    result->vaChannelVoltage.resize(scope->voltage.size());
+void GraphGenerator::generateGraphsXY(PPresult *result, const ::Settings::Scope *scope) {
+    ChannelID xChannel;
+    DataChannel *lastChannel = nullptr;
 
-    // Delete all spectrum graphs
-    for (ChannelGraph &data : result->vaChannelSpectrum) data.clear();
+    for (DataChannel &channelData : *result) {
+        // Delete all spectrum graphs
+        channelData.spectrum.graph.clear();
+        channelData.voltage.graph.clear();
 
-    // Generate voltage graphs for pairs of channels
-    for (ChannelID channel = 0; channel < scope->voltage.size(); channel += 2) {
-        // We need pairs of channels.
-        if (channel + 1 == scope->voltage.size()) {
-            result->vaChannelVoltage[channel].clear();
+        // Generate voltage graphs for pairs of channels
+        if (!lastChannel) {
+            lastChannel = &channelData;
+            xChannel = channelData.channelID;
             continue;
         }
 
-        const ChannelID xChannel = channel;
-        const ChannelID yChannel = channel + 1;
+        DataChannel *thisChannel = &channelData;
 
-        const SampleValues &xSamples = useVoltSamplesOf(xChannel, result, scope);
-        const SampleValues &ySamples = useVoltSamplesOf(yChannel, result, scope);
+        ChannelGraph &target = lastChannel->voltage.graph;
+        const std::vector<double> &xSamples = lastChannel->voltage.sample;
+        const std::vector<double> &ySamples = thisChannel->voltage.sample;
+        const ::Settings::Channel *xSettings = lastChannel->channelSettings.get();
+        const ::Settings::Channel *ySettings = thisChannel->channelSettings.get();
 
         // The channels need to be active
-        if (!xSamples.sample.size() || !ySamples.sample.size()) {
-            result->vaChannelVoltage[channel].clear();
-            result->vaChannelVoltage[channel + 1].clear();
+        if (!xSamples.size() || !ySamples.size()) {
+            lastChannel->voltage.graph.clear();
+            thisChannel->voltage.graph.clear();
             continue;
         }
 
         // Check if the sample count has changed
-        const size_t sampleCount = std::min(xSamples.sample.size(), ySamples.sample.size());
-        ChannelGraph &drawLines = result->vaChannelVoltage[channel];
-        drawLines.reserve(sampleCount * 2);
+        const size_t sampleCount = std::min(xSamples.size(), ySamples.size());
+        target.resize(sampleCount * 2);
 
         // Fill vector array
-        std::vector<double>::const_iterator xIterator = xSamples.sample.begin();
-        std::vector<double>::const_iterator yIterator = ySamples.sample.begin();
-        const double xGain = scope->gain(xChannel);
-        const double yGain = scope->gain(yChannel);
-        const double xOffset = scope->voltage[xChannel].offset;
-        const double yOffset = scope->voltage[yChannel].offset;
-        const double xInvert = scope->voltage[xChannel].inverted ? -1.0 : 1.0;
-        const double yInvert = scope->voltage[yChannel].inverted ? -1.0 : 1.0;
+        const double xGain = m_deviceSettings->spec->gain[xSettings->voltage()->gainStepIndex()].gain;
+        const double yGain = m_deviceSettings->spec->gain[ySettings->voltage()->gainStepIndex()].gain;
+        const double xOffset = ((float)xSettings->voltage()->offset() / DIVS_VOLTAGE) + 0.5f;
+        const double yOffset = ((float)ySettings->voltage()->offset() / DIVS_VOLTAGE) + 0.5f;
+        const double xInvert = xSettings->inverted() ? -1.0 : 1.0;
+        const double yInvert = ySettings->inverted() ? -1.0 : 1.0;
 
+#pragma omp parallel for
         for (unsigned int position = 0; position < sampleCount; ++position) {
-            drawLines.push_back(QVector3D((float)(*(xIterator++) / xGain * xInvert + xOffset),
-                                          (float)(*(yIterator++) / yGain * yInvert + yOffset), 0.0));
+            target[position] = (QVector3D((float)(xSamples[position] / xGain * xInvert + xOffset),
+                                          (float)(ySamples[position] / yGain * yInvert + yOffset), 0.0));
         }
+
+        // Wait for another pair of channels
+        lastChannel = nullptr;
     }
+}
 }

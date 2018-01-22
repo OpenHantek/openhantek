@@ -14,41 +14,36 @@
 #include <QSpinBox>
 #include <QVBoxLayout>
 
-#include "colorbox.h"
+class ColorBox;
 
-////////////////////////////////////////////////////////////////////////////////
-/// \class DsoConfigColorsPage                                     configpages.h
+struct ChannelColors : protected QObject {
+    ChannelColors(QObject *parent);
+
+    ColorBox *screenChannelColorBox;
+    ColorBox *screenSpectrumColorBox;
+    ColorBox *printChannelColorBox;
+    ColorBox *printSpectrumColorBox;
+
+  private:
+    Q_OBJECT
+};
+
 /// \brief Config page for the colors.
 class DsoConfigColorsPage : public QWidget {
     Q_OBJECT
 
   public:
-    DsoConfigColorsPage(DsoSettings *settings, QWidget *parent = 0);
+    DsoConfigColorsPage(Settings::DsoSettings *settings, QWidget *parent = 0);
 
   public slots:
     void saveSettings();
 
   private:
-    DsoSettings *settings;
+    Settings::DsoSettings *settings;
 
-    QVBoxLayout *mainLayout;
+    ColorBox *axesColorBox, *backgroundColorBox, *borderColorBox, *gridColorBox, *markersColorBox, *textColorBox,
+        *printAxesColorBox, *printBackgroundColorBox, *printBorderColorBox, *printGridColorBox, *printMarkersColorBox,
+        *printTextColorBox;
 
-    QGroupBox *colorsGroup;
-    QGridLayout *colorsLayout;
-
-    QLabel *screenColorsLabel, *printColorsLabel;
-    QLabel *axesLabel, *backgroundLabel, *borderLabel, *gridLabel, *markersLabel, *textLabel;
-    ColorBox *axesColorBox, *backgroundColorBox, *borderColorBox, *gridColorBox, *markersColorBox, *textColorBox;
-
-    ColorBox *printAxesColorBox, *printBackgroundColorBox, *printBorderColorBox, *printGridColorBox,
-        *printMarkersColorBox, *printTextColorBox;
-
-    QLabel *graphLabel;
-
-    QLabel *screenChannelLabel, *screenSpectrumLabel, *printChannelLabel, *printSpectrumLabel;
-    std::vector<QLabel *> colorLabel;
-    std::vector<ColorBox *> screenChannelColorBox;
-    std::vector<ColorBox *> screenSpectrumColorBox;
-    std::vector<ColorBox *> printChannelColorBox;
-    std::vector<ColorBox *> printSpectrumColorBox;
+    std::map<ChannelID, ChannelColors *> m_channelColorMap;
 };

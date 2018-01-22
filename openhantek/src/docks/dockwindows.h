@@ -6,4 +6,5 @@
 #include <QLayout>
 
 void registerDockMetaTypes();
-void SetupDockWidget(QDockWidget *dockWindow, QWidget *dockWidget, QLayout *layout);
+void SetupDockWidget(QDockWidget *dockWindow, QWidget *dockWidget, QLayout *layout,
+                     QSizePolicy::Policy vPolicy = QSizePolicy::Fixed);
