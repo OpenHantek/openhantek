@@ -22,16 +22,21 @@ class DsoConfigProbePage: public QWidget {
     Q_OBJECT
 
     public:
+    ////////////////////////////////////////////////////////////////////////////////
+    // class DsoConfigProbePage
+    /// \brief Creates the widgets and sets their initial value.
+    /// \param settings The target settings object.
+    /// \param parent The parent widget.
     DsoConfigProbePage(DsoSettings *settings, const Dso::ControlSpecification *spec, QWidget *parent = 0);
-    ~DsoConfigProbePage();
 
     public slots:
+        /// \brief Saves the new settings.
         void saveSettings();
 
 
     private:
-        QList<QLabel *> probeLabel;
-        QList<QLineEdit*> probeAttenuations;
+        std::vector<QLabel *> probeLabel;
+        std::vector<QLineEdit*> probeAttenuations;
         DsoSettings *settings;
         const Dso::ControlSpecification *spec;
 
