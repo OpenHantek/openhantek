@@ -269,8 +269,11 @@ class HantekDsoControl : public QObject {
     Dso::ErrorCode setPretriggerPosition(double position);
     void forceTrigger();
 
-    // TODO refactor to adapt to the the API
-    void setProbeGain(ChannelID channel, double probeGain);
+    /// \brief Set the probe gain for a given channel.
+    /// \param channel The channel that should be set.
+    /// \param offset The new probe gain
+    /// \return The trigger position that has been set.
+    Dso::ErrorCode setProbeGain(ChannelID channel, double probeGain);
 
   signals:
     void samplingStarted();                                  ///< The oscilloscope started sampling/waiting for trigger

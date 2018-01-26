@@ -9,6 +9,7 @@ ControlSettings::ControlSettings(ControlSamplerateLimits* limits, size_t channel
     trigger.level.resize(channelCount);
     voltage.resize(channelCount);
     offsetLimit = new Hantek::OffsetsPerGainStep[channelCount];
+    probeGain.resize(channelCount, 1);
 }
 
 ControlSettings::~ControlSettings()

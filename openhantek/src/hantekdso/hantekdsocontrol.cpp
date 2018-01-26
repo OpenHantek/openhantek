@@ -65,9 +65,6 @@ HantekDsoControl::HantekDsoControl(USBDevice *device)
 
     // Apply special requirements by the devices model
     device->getModel()->applyRequirements(this);
-    // Initialize the gain vector with standard and safe values
-    controlsettings.probeGain.resize( specification.channels, 1);
-
 
     retrieveChannelLevelData();
 }
@@ -821,9 +818,13 @@ Dso::ErrorCode HantekDsoControl::setGain(ChannelID channel, double gain) {
     return Dso::ErrorCode::NONE;
 }
 
-void HantekDsoControl::setProbeGain(ChannelID channel, double probeGain){
+ErrorCode HantekDsoControl::setProbeGain(ChannelID channel, double probeGain){
+    if (!device->isConnected()) return Dso::ErrorCode::CONNECTION;
+    if (channel >= specification.channels) return Dso::ErrorCode::PARAMETER;
+
     controlsettings.probeGain[channel] = probeGain;
 
+    return Dso::ErrorCode::NONE;
 }
 
 Dso::ErrorCode HantekDsoControl::setOffset(ChannelID channel, const double offset) {
@@ -1234,7 +1235,8 @@ void HantekDsoControl::run() {
 
             // Start next capture if necessary by leaving out the break statement
             if (!this->sampling) break;
-#if defined(__clang__)
+
+#if defined(__has_cpp_attribute)
 #if __has_cpp_attribute(clang::fallthrough)
 #define FALLTHROUGH [[clang::fallthrough]];
 #elif __has_cpp_attribute(fallthrough)
