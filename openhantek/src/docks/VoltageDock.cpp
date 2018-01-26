@@ -156,36 +156,31 @@ void VoltageDock::setUsed(ChannelID channel, bool used) {
 }
 
 void VoltageDock::setProbeGain(ChannelID channel, unsigned int probeIndex) {
-    if (channel < 0 ||channel >= spec->channels) return ;
-    if(probeIndex > spec->channels) return;
+    if (channel >= spec->channels || probeIndex > spec->channels) return;
 
     QSignalBlocker blocker(channelBlocks[channel].probeGainCombobox);
 
     channelBlocks[channel].probeGainCombobox->setCurrentIndex(probeIndex);
-
 }
 
 /// \brief Update the combobox with the gain values for the probe
 void VoltageDock::probeGainSettingsUpdated() {
 
-    for(unsigned int channel = 0; channel < scope->voltage.size(); channel++) {
-        if(channel < spec->channels) {
-            QSignalBlocker blocker(channelBlocks[channel].probeGainCombobox);
-            //Remove all the old values
-            channelBlocks[channel].probeGainCombobox->clear();
-            // Rebuild the combobox with the new values
-            QStringList probeGainStrings;
-            for(double probe_gain: scope->voltage[channel].probeGainSteps)
-                    probeGainStrings << valueToString(probe_gain, UNIT_TIMES, 0);
-            channelBlocks[channel].probeGainCombobox->addItems(probeGainStrings);
-            // If the index of the list is outside the new list, set index to 0 and notify others
-            if(scope->voltage[channel].probeStepIndex >= scope->voltage[channel].probeGainSteps.size()){
-                this->scope->voltage[channel].probeStepIndex = 0;
-                emit probeGainChanged(channel, 0);
+    for (unsigned int channel = 0; channel < scope->voltage.size(); channel++) {
+        if (channel >= spec->channels) continue;
 
-            }
-
-            }
+        QSignalBlocker blocker(channelBlocks[channel].probeGainCombobox);
+        //Remove all the old values
+        channelBlocks[channel].probeGainCombobox->clear();
+        // Rebuild the combobox with the new values
+        QStringList probeGainStrings;
+        for (double probe_gain: scope->voltage[channel].probeGainSteps)
+            probeGainStrings << valueToString(probe_gain, UNIT_TIMES, 0);
+        channelBlocks[channel].probeGainCombobox->addItems(probeGainStrings);
+        // If the index of the list is outside the new list, set index to 0 and notify others
+        if (scope->voltage[channel].probeStepIndex >= scope->voltage[channel].probeGainSteps.size()) {
+            this->scope->voltage[channel].probeStepIndex = 0;
+            emit probeGainChanged(channel, 0);
+        }
     }
-
 }
