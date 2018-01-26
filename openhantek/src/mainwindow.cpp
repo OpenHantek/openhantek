@@ -159,7 +159,6 @@ MainWindow::MainWindow(HantekDsoControl *dsoControl, DsoSettings *settings, QWid
 
     connect(voltageDock, &VoltageDock::probeGainChanged, [this, dsoControl, spec, scope](ChannelID channel, unsigned probeGain) {
         if (channel >= spec->channels) return;
-        // TODO move to the index
         dsoControl->setProbeGain(channel, scope->voltage[channel].probeGainSteps[scope->voltage[channel].probeStepIndex]);
     });
 
