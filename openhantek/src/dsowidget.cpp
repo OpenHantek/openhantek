@@ -6,9 +6,6 @@
 #include <QFileDialog>
 #include <QGridLayout>
 #include <QLabel>
-#include <QGroupBox>
-#include <QPushButton>
-#include <QButtonGroup>
 #include <QSignalBlocker>
 #include <QTimer>
 
@@ -25,62 +22,9 @@
 #include "viewconstants.h"
 #include "viewsettings.h"
 #include "widgets/levelslider.h"
+#include "widgets/datagrid.h"
 
 static int zoomScopeRow = 0;
-
-DsoWidget::CursorInfo::CursorInfo() {
-    selector = new QPushButton();
-    selector->setCheckable(true);
-    shape = new QPushButton();
-    deltaXLabel = new QLabel();
-    deltaXLabel->setAlignment(Qt::AlignRight);
-    deltaYLabel = new QLabel();
-    deltaYLabel->setAlignment(Qt::AlignRight);
-}
-
-void DsoWidget::CursorInfo::configure(const QString &text, const QColor &bgColor, const QColor &fgColor) {
-    selector->setText(text);
-    selector->setStyleSheet(QString(R"(
-        QPushButton {
-            color: %2;
-            background-color: %1;
-            border: 1px solid %2;
-        }
-        QPushButton:checked {
-            color: %1;
-            background-color: %2;
-        }
-        QPushButton:disabled {
-            color: %3;
-            border: 1px dotted %2;
-        }
-    )").arg(bgColor.name(QColor::HexArgb))
-       .arg(fgColor.name(QColor::HexArgb))
-       .arg(fgColor.darker().name(QColor::HexArgb)));
-
-    shape->setStyleSheet(QString(R"(
-        QPushButton {
-            color: %2;
-            background-color: %1;
-            border: none
-        }
-    )").arg(bgColor.name(QColor::HexArgb))
-       .arg(fgColor.name(QColor::HexArgb)));
-
-    QPalette palette;
-    palette.setColor(QPalette::Background, bgColor);
-    palette.setColor(QPalette::WindowText, fgColor);
-    deltaXLabel->setPalette(palette);
-    deltaYLabel->setPalette(palette);
-}
-
-void DsoWidget::CursorInfo::setupLayout(QGridLayout *layout, unsigned row) {
-    layout->addWidget(selector, 3 * row, 0);
-    layout->addWidget(shape, 3 * row, 1);
-    layout->addWidget(deltaXLabel, 3 * row + 1, 0);
-    layout->addWidget(deltaYLabel, 3 * row + 1, 1);
-    layout->setRowMinimumHeight(3 * row + 2, 10);
-}
 
 DsoWidget::DsoWidget(DsoSettingsScope *scope, DsoSettingsView *view, const Dso::ControlSpecification *spec,
                      QWidget *parent, Qt::WindowFlags flags)
@@ -202,83 +146,51 @@ DsoWidget::DsoWidget(DsoSettingsScope *scope, DsoSettingsView *view, const Dso::
     }
 
     // Cursors
-    cursorsLayout = new QGridLayout();
-    cursorsLayout->setSpacing(5);
-    cursorsSelectorGroup = new QButtonGroup();
-    cursorsSelectorGroup->setExclusive(true);
-    {
-        int row = 0;
-        markerInfo.configure(tr("Markers"), view->screen.background, view->screen.text);
-        markerInfo.index = row;
-        cursorsSelectorGroup->addButton(markerInfo.selector, markerInfo.index);
-        markerInfo.selector->setChecked(true);
-
-        markerInfo.setupLayout(cursorsLayout, row);
-        ++row;
-
-        voltageCursors.resize(scope->voltage.size());
-        for (ChannelID channel = 0; channel < scope->voltage.size(); ++channel) {
-            tablePalette.setColor(QPalette::WindowText, view->screen.voltage[channel]);
-            CursorInfo &info = voltageCursors[channel];
-
-            info.index = row;
-            info.configure(scope->voltage[channel].name, view->screen.background,
-                           view->screen.voltage[channel]);
-            cursorsSelectorGroup->addButton(info.selector, info.index);
-
-            info.setupLayout(cursorsLayout, row);
-            connect(info.shape, &QPushButton::clicked, [this, scope, channel] () {
-                if (scope->voltage[channel].used) {
-                    unsigned shape = (unsigned)scope->voltage[channel].cursor.shape;
-                    if (shape == DsoSettingsScopeCursor::NONE) {
-                        scope->voltage[channel].cursor.shape = DsoSettingsScopeCursor::RECTANGULAR;
-                    } else {
-                        scope->voltage[channel].cursor.shape = DsoSettingsScopeCursor::NONE;
-                    }
-                }
-                updateMarkerDetails();
-                mainScope->updateCursor(voltageCursors[channel].index);
-                zoomScope->updateCursor(voltageCursors[channel].index);
-            });
-            ++row;
-        }
-
-        spectrumCursors.resize(scope->spectrum.size());
-        for (ChannelID channel = 0; channel < scope->spectrum.size(); ++channel) {
-            tablePalette.setColor(QPalette::WindowText, view->screen.spectrum[channel]);
-            CursorInfo &info = spectrumCursors[channel];
-
-            info.index = row;
-            info.configure(scope->spectrum[channel].name, view->screen.background,
-                           view->screen.spectrum[channel]);
-            cursorsSelectorGroup->addButton(info.selector, info.index);
-
-            info.setupLayout(cursorsLayout, row);
-            connect(info.shape, &QPushButton::clicked, [this, scope, channel] () {
-                if (scope->spectrum[channel].used) {
-                    unsigned shape = (unsigned)scope->spectrum[channel].cursor.shape;
-                    if (shape == DsoSettingsScopeCursor::NONE) {
-                        scope->spectrum[channel].cursor.shape = DsoSettingsScopeCursor::RECTANGULAR;
-                    } else {
-                        scope->spectrum[channel].cursor.shape = DsoSettingsScopeCursor::NONE;
-                    }
-                }
-                updateMarkerDetails();
-                mainScope->updateCursor(spectrumCursors[channel].index);
-                zoomScope->updateCursor(spectrumCursors[channel].index);
-            });
-            ++row;
-        }
-        cursorsLayout->setRowStretch(3 * row, 1);
-
-        connect(cursorsSelectorGroup,
-                static_cast<void(QButtonGroup::*)(int)>(&QButtonGroup::buttonPressed), [this] (int index) {
-            mainScope->cursorSelected(index);
-            zoomScope->cursorSelected(index);
-        });
-
-        scope->horizontal.cursor.shape = DsoSettingsScopeCursor::VERTICAL;
+    cursorDataGrid = new DataGrid(this);
+    cursorDataGrid->addItem(tr("Markers"), view->screen.background, view->screen.text);
+    for (ChannelID channel = 0; channel < scope->voltage.size(); ++channel) {
+        cursorDataGrid->addItem(scope->voltage[channel].name, view->screen.background,
+                                view->screen.voltage[channel]);
     }
+    for (ChannelID channel = 0; channel < scope->spectrum.size(); ++channel) {
+        cursorDataGrid->addItem(scope->spectrum[channel].name, view->screen.background,
+                                view->screen.spectrum[channel]);
+    }
+    cursorDataGrid->selectItem(0);
+
+    connect(cursorDataGrid, &DataGrid::itemSelected, [this] (unsigned index) {
+        mainScope->cursorSelected(index);
+        zoomScope->cursorSelected(index);
+    });
+    connect(cursorDataGrid, &DataGrid::itemUpdated, [this, scope] (unsigned index) {
+        unsigned channelCount = scope->countChannels();
+        if (0 < index && index < channelCount + 1) {
+            ChannelID channel = index - 1;
+            if (scope->voltage[channel].used) {
+                unsigned shape = (unsigned)scope->voltage[channel].cursor.shape;
+                if (shape == DsoSettingsScopeCursor::NONE) {
+                    scope->voltage[channel].cursor.shape = DsoSettingsScopeCursor::RECTANGULAR;
+                } else {
+                    scope->voltage[channel].cursor.shape = DsoSettingsScopeCursor::NONE;
+                }
+            }
+        } else if (channelCount < index && index < 2 * channelCount + 1) {
+            ChannelID channel = index - channelCount - 1;
+            if (scope->spectrum[channel].used) {
+                unsigned shape = (unsigned)scope->spectrum[channel].cursor.shape;
+                if (shape == DsoSettingsScopeCursor::NONE) {
+                    scope->spectrum[channel].cursor.shape = DsoSettingsScopeCursor::RECTANGULAR;
+                } else {
+                    scope->spectrum[channel].cursor.shape = DsoSettingsScopeCursor::NONE;
+                }
+            }
+        }
+        updateMarkerDetails();
+        mainScope->updateCursor(index);
+        zoomScope->updateCursor(index);
+    });
+
+    scope->horizontal.cursor.shape = DsoSettingsScopeCursor::VERTICAL;
 
     // The layout for the widgets
     mainLayout = new QGridLayout();
@@ -315,9 +227,6 @@ DsoWidget::DsoWidget(DsoSettingsScope *scope, DsoSettingsView *view, const Dso::
     mainLayout->setRowMinimumHeight(row++, 8);
     mainLayout->addLayout(measurementLayout, row++, 1, 1, 5);
 
-    cursorsGroupBox = new QGroupBox();
-    cursorsGroupBox->setLayout(cursorsLayout);
-    cursorsGroupBox->setFixedWidth(180);
     updateCursorGrid(view->cursorsVisible);
 
     // The widget itself
@@ -350,8 +259,8 @@ DsoWidget::DsoWidget(DsoSettingsScope *scope, DsoSettingsView *view, const Dso::
 
 void DsoWidget::updateCursorGrid(bool enabled) {
     if (!enabled) {
-        markerInfo.selector->setChecked(true);
-        cursorsGroupBox->setParent(nullptr);
+        cursorDataGrid->selectItem(0);
+        cursorDataGrid->setParent(nullptr);
         mainScope->cursorSelected(0);
         zoomScope->cursorSelected(0);
         return;
@@ -360,19 +269,19 @@ void DsoWidget::updateCursorGrid(bool enabled) {
     switch (view->cursorGridPosition) {
     case Qt::LeftToolBarArea:
         if (mainLayout->itemAtPosition(0, 0) == nullptr) {
-            cursorsGroupBox->setParent(nullptr);
-            mainLayout->addWidget(cursorsGroupBox, 0, 0, mainLayout->rowCount(), 1);
+            cursorDataGrid->setParent(nullptr);
+            mainLayout->addWidget(cursorDataGrid, 0, 0, mainLayout->rowCount(), 1);
         }
         break;
     case Qt::RightToolBarArea:
         if (mainLayout->itemAtPosition(0, 6) == nullptr) {
-            cursorsGroupBox->setParent(nullptr);
-            mainLayout->addWidget(cursorsGroupBox, 0, 6, mainLayout->rowCount(), 1);
+            cursorDataGrid->setParent(nullptr);
+            mainLayout->addWidget(cursorDataGrid, 0, 6, mainLayout->rowCount(), 1);
         }
         break;
     default:
-        if (cursorsGroupBox->parent() != nullptr) {
-            cursorsGroupBox->setParent(nullptr);
+        if (cursorDataGrid->parent() != nullptr) {
+            cursorDataGrid->setParent(nullptr);
         }
         break;
     }
@@ -477,40 +386,6 @@ static QString markerToString(DsoSettingsScope *scope, unsigned index) {
         return QApplication::tr("%L1 s").arg(value, 0, 'f', qBound(0, precision, 3));
 }
 
-void hideCursorInfo(DsoWidget::CursorInfo& info) {
-    info.shape->setText(QString());
-    info.deltaXLabel->setText(QString());
-    info.deltaYLabel->setText(QString());
-}
-
-void updateCursorInfo(DsoWidget::CursorInfo &info, const QString &strX, const QString &strY,
-                             const DsoSettingsScopeCursor::CursorShape &shape) {
-    switch (shape) {
-    case DsoSettingsScopeCursor::NONE:
-        info.shape->setText(DsoWidget::tr("OFF"));
-        info.deltaXLabel->setText(QString());
-        info.deltaYLabel->setText(QString());
-        break;
-    case DsoSettingsScopeCursor::HORIZONTAL:
-        info.shape->setText(DsoWidget::tr("="));
-        info.deltaXLabel->setText(QString());
-        info.deltaYLabel->setText(strY);
-        break;
-    case DsoSettingsScopeCursor::VERTICAL:
-        info.shape->setText(DsoWidget::tr("||"));
-        info.deltaXLabel->setText(strX);
-        info.deltaYLabel->setText(QString());
-        break;
-    case DsoSettingsScopeCursor::RECTANGULAR:
-        info.shape->setText(DsoWidget::tr("ON"));
-        info.deltaXLabel->setText(strX);
-        info.deltaYLabel->setText(strY);
-        break;
-    default:
-        break;
-    }
-}
-
 /// \brief Update the label about the marker measurements
 void DsoWidget::updateMarkerDetails() {
     double divs = fabs(scope->horizontal.cursor.pos[1].x() - scope->horizontal.cursor.pos[0].x());
@@ -528,36 +403,34 @@ void DsoWidget::updateMarkerDetails() {
     markerTimeLabel->setText(valueToString(time, UNIT_SECONDS, 4));
     markerFrequencyLabel->setText(valueToString(1.0 / time, UNIT_HERTZ, 4));
 
-    markerInfo.deltaXLabel->setText(valueToString(time, UNIT_SECONDS, 4));
-    markerInfo.deltaYLabel->setText(valueToString(freq, UNIT_HERTZ, 4));
+    int index = 0;
+    cursorDataGrid->updateInfo(index++, true, QString(), valueToString(time, UNIT_SECONDS, 4), valueToString(freq, UNIT_HERTZ, 4));
 
     for (ChannelID channel = 0; channel < scope->voltage.size(); ++channel) {
         if (scope->voltage[channel].used) {
-            voltageCursors[channel].selector->setEnabled(true);
             QPointF p0 = scope->voltage[channel].cursor.pos[0];
             QPointF p1 = scope->voltage[channel].cursor.pos[1];
-            updateCursorInfo(voltageCursors[channel],
+            cursorDataGrid->updateInfo(index, true,
+                scope->voltage[channel].cursor.shape != DsoSettingsScopeCursor::NONE ? tr("ON") : tr("OFF"),
                 valueToString(fabs(p1.x() - p0.x()) * scope->horizontal.timebase, UNIT_SECONDS, 4),
-                valueToString(fabs(p1.y() - p0.y()) * scope->gain(channel), UNIT_VOLTS, 4),
-                scope->voltage[channel].cursor.shape);
+                valueToString(fabs(p1.y() - p0.y()) * scope->gain(channel), UNIT_VOLTS, 4));
         } else {
-            voltageCursors[channel].selector->setEnabled(false);
-            hideCursorInfo(voltageCursors[channel]);
+            cursorDataGrid->updateInfo(index, false);
         }
+        ++index;
     }
     for (ChannelID channel = 0; channel < scope->spectrum.size(); ++channel) {
         if (scope->spectrum[channel].used) {
-            spectrumCursors[channel].selector->setEnabled(true);
             QPointF p0 = scope->spectrum[channel].cursor.pos[0];
             QPointF p1 = scope->spectrum[channel].cursor.pos[1];
-            updateCursorInfo(spectrumCursors[channel],
+            cursorDataGrid->updateInfo(index, true,
+                scope->spectrum[channel].cursor.shape != DsoSettingsScopeCursor::NONE ? tr("ON") : tr("OFF"),
                 valueToString(fabs(p1.x() - p0.x()) * scope->horizontal.frequencybase, UNIT_HERTZ, 4),
-                valueToString(fabs(p1.y() - p0.y()) * scope->spectrum[channel].magnitude, UNIT_DECIBEL, 4),
-                scope->spectrum[channel].cursor.shape);
+                valueToString(fabs(p1.y() - p0.y()) * scope->spectrum[channel].magnitude, UNIT_DECIBEL, 4));
         } else {
-            spectrumCursors[channel].selector->setEnabled(false);
-            hideCursorInfo(spectrumCursors[channel]);
+            cursorDataGrid->updateInfo(index, false);
         }
+        ++index;
     }
 }
 
@@ -629,7 +502,7 @@ void DsoWidget::updateSpectrumMagnitude(ChannelID channel) { updateSpectrumDetai
 void DsoWidget::updateSpectrumUsed(ChannelID channel, bool used) {
     if (channel >= (unsigned int)scope->voltage.size()) return;
 
-    if (!used && spectrumCursors[channel].selector->isChecked()) markerInfo.selector->setChecked(true);
+//    if (!used && cursorDataGrid->spectrumCursors[channel].selector->isChecked()) cursorDataGrid->selectItem(0);
 
     mainSliders.offsetSlider->setIndexVisible(scope->voltage.size() + channel, used);
     zoomSliders.offsetSlider->setIndexVisible(scope->voltage.size() + channel, used);
@@ -699,7 +572,7 @@ void DsoWidget::updateVoltageGain(ChannelID channel) {
 void DsoWidget::updateVoltageUsed(ChannelID channel, bool used) {
     if (channel >= (unsigned int)scope->voltage.size()) return;
 
-    if (!used && voltageCursors[channel].selector->isChecked()) markerInfo.selector->setChecked(true);
+//    if (!used && cursorDataGrid->voltageCursors[channel].selector->isChecked()) cursorDataGrid->selectItem(0);
 
     mainSliders.offsetSlider->setIndexVisible(channel, used);
     zoomSliders.offsetSlider->setIndexVisible(channel, used);
@@ -744,7 +617,6 @@ void DsoWidget::updateZoom(bool enabled) {
 
 /// \brief Prints analyzed data.
 void DsoWidget::showNew(std::shared_ptr<PPresult> data) {
-    updateCursorGrid(view->cursorsVisible);
     mainScope->showData(data);
     zoomScope->showData(data);
 
