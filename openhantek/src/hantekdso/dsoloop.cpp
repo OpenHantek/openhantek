@@ -116,7 +116,9 @@ void DsoLoop::runRollMode() {
     if (toNextState) this->rollState = (RollState)(((int)rollState + 1) % (int)RollState::_COUNT);
 
     this->updateInterval();
-    QTimer::singleShot(cycleTime, this, m_settings->isRollMode() ? &DsoLoop::runRollMode : &DsoLoop::runStandardMode);
+    // TODO Qt5.8: Use chrone cycletime directly
+    QTimer::singleShot(cycleTime.count(), this,
+                       m_settings->isRollMode() ? &DsoLoop::runRollMode : &DsoLoop::runStandardMode);
 }
 
 void DsoLoop::runStandardMode() {
