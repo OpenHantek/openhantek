@@ -60,7 +60,7 @@ SoftwareTrigger::PrePostStartTriggerSamples SoftwareTrigger::compute(const PPres
     bool (*opcmp_)(double, double, double);
     bool (*smplcmp_)(double, double);
 
-    if (control->trigger.slope() == Dso::Slope::Positive) {
+    if (control->trigger.slope() == DsoE::Slope::Positive) {
         prev = INT_MAX;
         opcmp_ = posOpcmp;
         smplcmp_ = posSmplcmp;

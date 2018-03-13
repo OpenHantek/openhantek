@@ -39,8 +39,8 @@ static void initSpecifications(Dso::ModelSpec *specification) {
                                        {4, 4e6},  {8, 8e6},  {16, 16e6}, {24, 24e6}, {48, 48e6}};
     specification->sampleSize = 8;
 
-    specification->couplings = {Dso::Coupling::DC};
-    specification->triggerModes = {Dso::TriggerMode::HARDWARE_SOFTWARE, Dso::TriggerMode::SINGLE};
+    specification->couplings = {DsoE::Coupling::DC};
+    specification->triggerModes = {DsoE::TriggerMode::HARDWARE_SOFTWARE, DsoE::TriggerMode::SINGLE};
     specification->fixedUSBinLength = 16384;
 }
 

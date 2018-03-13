@@ -37,8 +37,8 @@ DsoControl::DsoControl(USBDevice *device, std::shared_ptr<Dso::DeviceSettings> d
 
     qRegisterMetaType<DSOsamples *>();
     qRegisterMetaType<std::vector<Dso::FixedSampleRate>>("std::vector<Dso::FixedSampleRate>");
-    qRegisterMetaType<Hantek::BulkCode>("Hantek::BulkCode");
-    qRegisterMetaType<Hantek::ControlCode>("Hantek::ControlCode");
+    qRegisterMetaType<HantekE::BulkCode>("HantekE::BulkCode");
+    qRegisterMetaType<HantekE::ControlCode>("HantekE::ControlCode");
     qRegisterMetaType<Samplerate>("Samplerate");
     qRegisterMetaType<Dso::RecordLength>("Dso::RecordLength");
 
@@ -140,7 +140,7 @@ std::pair<int, unsigned> DsoControl::retrieveCaptureState() const {
 
     if (!m_specification->supportsCaptureState) return std::make_pair(CAPTURE_READY, 0);
 
-    errorCode = bulkCommand(getCommand(BulkCode::GETCAPTURESTATE), 1);
+    errorCode = bulkCommand(getCommand(HantekE::BulkCode::GETCAPTURESTATE), 1);
     if (errorCode < 0) {
         qWarning() << "Getting capture state failed: " << libUsbErrorString(errorCode);
         return std::make_pair(CAPTURE_ERROR, 0);
@@ -160,9 +160,9 @@ ErrorCode DsoControl::retrieveSamples(unsigned &previousSampleCount) {
     int errorCode;
     if (!m_specification->useControlNoBulk) {
         // Request data
-        errorCode = bulkCommand(getCommand(BulkCode::GETDATA), 1);
+        errorCode = bulkCommand(getCommand(HantekE::BulkCode::GETDATA), 1);
     } else {
-        errorCode = device->controlWrite(getCommand(ControlCode::ACQUIRE_DATA));
+        errorCode = device->controlWrite(getCommand(HantekE::ControlCode::ACQUIRE_DATA));
     }
     if (errorCode <= 0) {
         qWarning() << "Getting sample data failed: " << libUsbErrorString(errorCode);
@@ -244,7 +244,7 @@ DsoControl::BestSamplerateResult DsoControl::computeBestSamplerate(double sample
         r.samplerate = limits->maxSamplerate(m_settings->recordLengthId());
     } else {
         switch (m_specification->cmdSetSamplerate) {
-        case BulkCode::SETTRIGGERANDSAMPLERATE:
+        case HantekE::BulkCode::SETTRIGGERANDSAMPLERATE:
             // DSO-2090 supports the downsampling factors 1, 2, 4 and 5 using
             // valueFast or all even values above using valueSlow
             if ((maximum && r.downsampler <= 5.0) || (!maximum && r.downsampler < 6.0)) {
@@ -272,7 +272,7 @@ DsoControl::BestSamplerateResult DsoControl::computeBestSamplerate(double sample
             }
             break;
 
-        case BulkCode::CSETTRIGGERORSAMPLERATE:
+        case HantekE::BulkCode::CSETTRIGGERORSAMPLERATE:
             // DSO-5200 may not supports all downsampling factors, requires testing
             if (maximum) {
                 r.downsampler = ceil(r.downsampler); // Round up to next integer value
@@ -281,7 +281,7 @@ DsoControl::BestSamplerateResult DsoControl::computeBestSamplerate(double sample
             }
             break;
 
-        case BulkCode::ESETTRIGGERORSAMPLERATE:
+        case HantekE::BulkCode::ESETTRIGGERORSAMPLERATE:
             // DSO-2250 doesn't have a fast value, so it supports all downsampling
             // factors
             if (maximum) {
@@ -313,7 +313,7 @@ unsigned DsoControl::updateSamplerate(unsigned downsampler, bool fastRate) {
 
     // Set the calculated samplerate
     switch (m_specification->cmdSetSamplerate) {
-    case BulkCode::SETTRIGGERANDSAMPLERATE: {
+    case HantekE::BulkCode::SETTRIGGERANDSAMPLERATE: {
         short int downsamplerValue = 0;
         unsigned char samplerateId = 0;
         bool downsampling = false;
@@ -339,7 +339,7 @@ unsigned DsoControl::updateSamplerate(unsigned downsampler, bool fastRate) {
 
         // Pointers to needed commands
         BulkSetTriggerAndSamplerate *commandSetTriggerAndSamplerate =
-            modifyCommand<BulkSetTriggerAndSamplerate>(BulkCode::SETTRIGGERANDSAMPLERATE);
+            modifyCommand<BulkSetTriggerAndSamplerate>(HantekE::BulkCode::SETTRIGGERANDSAMPLERATE);
 
         // Store if samplerate ID or downsampling factor is used
         commandSetTriggerAndSamplerate->setDownsamplingMode(downsampling);
@@ -352,7 +352,7 @@ unsigned DsoControl::updateSamplerate(unsigned downsampler, bool fastRate) {
 
         break;
     }
-    case BulkCode::CSETTRIGGERORSAMPLERATE: {
+    case HantekE::BulkCode::CSETTRIGGERORSAMPLERATE: {
         // Split the resulting divider into the values understood by the device
         // The fast value is kept at 4 (or 3) for slow sample rates
         long int valueSlow = qMax(((long int)downsampler - 3) / 2, (long int)0);
@@ -360,9 +360,9 @@ unsigned DsoControl::updateSamplerate(unsigned downsampler, bool fastRate) {
 
         // Pointers to needed commands
         BulkSetSamplerate5200 *commandSetSamplerate5200 =
-            modifyCommand<BulkSetSamplerate5200>(BulkCode::CSETTRIGGERORSAMPLERATE);
+            modifyCommand<BulkSetSamplerate5200>(HantekE::BulkCode::CSETTRIGGERORSAMPLERATE);
         BulkSetTrigger5200 *commandSetTrigger5200 =
-            modifyCommand<BulkSetTrigger5200>(BulkCode::ESETTRIGGERORSAMPLERATE);
+            modifyCommand<BulkSetTrigger5200>(HantekE::BulkCode::ESETTRIGGERORSAMPLERATE);
 
         // Store samplerate fast value
         commandSetSamplerate5200->setSamplerateFast(4 - valueFast);
@@ -373,10 +373,10 @@ unsigned DsoControl::updateSamplerate(unsigned downsampler, bool fastRate) {
 
         break;
     }
-    case BulkCode::ESETTRIGGERORSAMPLERATE: {
+    case HantekE::BulkCode::ESETTRIGGERORSAMPLERATE: {
         // Pointers to needed commands
         BulkSetSamplerate2250 *commandSetSamplerate2250 =
-            modifyCommand<BulkSetSamplerate2250>(BulkCode::ESETTRIGGERORSAMPLERATE);
+            modifyCommand<BulkSetSamplerate2250>(HantekE::BulkCode::ESETTRIGGERORSAMPLERATE);
 
         bool downsampling = downsampler >= 1;
         // Store downsampler state value
@@ -447,16 +447,16 @@ Dso::ErrorCode DsoControl::setRecordLengthByIndex(RecordLengthID index) {
     QMutexLocker l(&m_commandMutex);
 
     switch (m_specification->cmdSetRecordLength) {
-    case BulkCode::SETTRIGGERANDSAMPLERATE:
-        modifyCommand<BulkSetTriggerAndSamplerate>(BulkCode::SETTRIGGERANDSAMPLERATE)->setRecordLength((uint8_t)index);
+    case HantekE::BulkCode::SETTRIGGERANDSAMPLERATE:
+        modifyCommand<BulkSetTriggerAndSamplerate>(HantekE::BulkCode::SETTRIGGERANDSAMPLERATE)->setRecordLength((uint8_t)index);
         break;
 
-    case BulkCode::DSETBUFFER:
-        if (m_specification->cmdSetPretrigger == BulkCode::FSETBUFFER) {
-            modifyCommand<BulkSetRecordLength2250>(BulkCode::DSETBUFFER)->setRecordLength((uint8_t)index);
+    case HantekE::BulkCode::DSETBUFFER:
+        if (m_specification->cmdSetPretrigger == HantekE::BulkCode::FSETBUFFER) {
+            modifyCommand<BulkSetRecordLength2250>(HantekE::BulkCode::DSETBUFFER)->setRecordLength((uint8_t)index);
         } else {
             // SetBuffer5200 bulk command for record length
-            BulkSetBuffer5200 *commandSetBuffer5200 = modifyCommand<BulkSetBuffer5200>(BulkCode::DSETBUFFER);
+            BulkSetBuffer5200 *commandSetBuffer5200 = modifyCommand<BulkSetBuffer5200>(HantekE::BulkCode::DSETBUFFER);
 
             commandSetBuffer5200->setUsedPre(DTriggerPositionUsed::ON);
             commandSetBuffer5200->setUsedPost(DTriggerPositionUsed::ON);
@@ -491,7 +491,7 @@ Dso::ErrorCode DsoControl::setFixedSamplerate(unsigned samplerateId) {
 
     m_settings->updateTarget(SamplerateSource::FixedSamplerate).fixedSamperateId = samplerateId;
 
-    modifyCommand<ControlSetTimeDIV>(ControlCode::SETTIMEDIV)
+    modifyCommand<ControlSetTimeDIV>(HantekE::ControlCode::SETTIMEDIV)
         ->setDiv(m_specification->fixedSampleRates[samplerateId].id);
 
     const double samplerate = m_specification->fixedSampleRates[samplerateId].samplerate;
@@ -566,7 +566,7 @@ Dso::ErrorCode DsoControl::setRecordTime(double duration) {
         }
 
         // Usable sample value
-        modifyCommand<ControlSetTimeDIV>(ControlCode::SETTIMEDIV)
+        modifyCommand<ControlSetTimeDIV>(HantekE::ControlCode::SETTIMEDIV)
             ->setDiv(m_specification->fixedSampleRates[samplerateId].id);
 
         const double samplerate = m_specification->fixedSampleRates[samplerateId].samplerate;
@@ -592,7 +592,7 @@ Dso::ErrorCode DsoControl::checkChannelUsage() {
             usedChannels = UsedChannels::USED_CH1CH2;
         } else {
             // DSO-2250 uses a different value for channel 2
-            if (m_specification->cmdSetChannels == BulkCode::BSETCHANNELS)
+            if (m_specification->cmdSetChannels == HantekE::BulkCode::BSETCHANNELS)
                 usedChannels = UsedChannels::BUSED_CH2;
             else
                 usedChannels = UsedChannels::USED_CH2;
@@ -600,20 +600,20 @@ Dso::ErrorCode DsoControl::checkChannelUsage() {
     }
 
     switch (m_specification->cmdSetChannels) {
-    case BulkCode::SETTRIGGERANDSAMPLERATE: {
+    case HantekE::BulkCode::SETTRIGGERANDSAMPLERATE: {
         // SetTriggerAndSamplerate bulk command for trigger source
-        modifyCommand<BulkSetTriggerAndSamplerate>(BulkCode::SETTRIGGERANDSAMPLERATE)
+        modifyCommand<BulkSetTriggerAndSamplerate>(HantekE::BulkCode::SETTRIGGERANDSAMPLERATE)
             ->setUsedChannels((uint8_t)usedChannels);
         break;
     }
-    case BulkCode::BSETCHANNELS: {
+    case HantekE::BulkCode::BSETCHANNELS: {
         // SetChannels2250 bulk command for active channels
-        modifyCommand<BulkSetChannels2250>(BulkCode::BSETCHANNELS)->setUsedChannels((uint8_t)usedChannels);
+        modifyCommand<BulkSetChannels2250>(HantekE::BulkCode::BSETCHANNELS)->setUsedChannels((uint8_t)usedChannels);
         break;
     }
-    case BulkCode::ESETTRIGGERORSAMPLERATE: {
+    case HantekE::BulkCode::ESETTRIGGERORSAMPLERATE: {
         // SetTrigger5200s bulk command for trigger source
-        modifyCommand<BulkSetTrigger5200>(BulkCode::ESETTRIGGERORSAMPLERATE)->setUsedChannels((uint8_t)usedChannels);
+        modifyCommand<BulkSetTrigger5200>(HantekE::BulkCode::ESETTRIGGERORSAMPLERATE)->setUsedChannels((uint8_t)usedChannels);
         break;
     }
     default:
@@ -625,7 +625,7 @@ Dso::ErrorCode DsoControl::checkChannelUsage() {
     return Dso::ErrorCode::NONE;
 }
 
-Dso::ErrorCode DsoControl::setCoupling(ChannelID channel, Dso::Coupling coupling) {
+Dso::ErrorCode DsoControl::setCoupling(ChannelID channel, DsoE::Coupling coupling) {
     if (!device->isConnected()) return Dso::ErrorCode::CONNECTION;
     if (channel >= m_specification->channels) return Dso::ErrorCode::PARAMETER;
     QMutexLocker l(&m_commandMutex);
@@ -640,7 +640,7 @@ Dso::ErrorCode DsoControl::setCoupling(ChannelID channel, Dso::Coupling coupling
 
     // SetRelays control command for coupling relays
     if (m_specification->supportsCouplingRelays) {
-        modifyCommand<ControlSetRelays>(ControlCode::SETRELAYS)->setCoupling(channel, coupling != Dso::Coupling::AC);
+        modifyCommand<ControlSetRelays>(HantekE::ControlCode::SETRELAYS)->setCoupling(channel, coupling != DsoE::Coupling::AC);
     }
 
     m_settings->voltage[channel]->setCouplingIndex(index);
@@ -660,16 +660,16 @@ Dso::ErrorCode DsoControl::setGain(ChannelID channel, unsigned gainId, bool over
 
     if (m_specification->useControlNoBulk) {
         if (channel == 0) {
-            modifyCommand<ControlSetVoltDIV_CH1>(ControlCode::SETVOLTDIV_CH1)->setDiv(gain.gainIdentificator);
+            modifyCommand<ControlSetVoltDIV_CH1>(HantekE::ControlCode::SETVOLTDIV_CH1)->setDiv(gain.gainIdentificator);
         } else if (channel == 1) {
-            modifyCommand<ControlSetVoltDIV_CH2>(ControlCode::SETVOLTDIV_CH2)->setDiv(gain.gainIdentificator);
+            modifyCommand<ControlSetVoltDIV_CH2>(HantekE::ControlCode::SETVOLTDIV_CH2)->setDiv(gain.gainIdentificator);
         } else
             qDebug("%s: Unsuported channel: %i\n", __func__, channel);
     } else {
-        modifyCommand<BulkSetGain>(BulkCode::SETGAIN)->setGain(channel, gain.gainIdentificator);
+        modifyCommand<BulkSetGain>(HantekE::BulkCode::SETGAIN)->setGain(channel, gain.gainIdentificator);
 
         // SetRelays control command for gain relays
-        ControlSetRelays *controlSetRelays = modifyCommand<ControlSetRelays>(ControlCode::SETRELAYS);
+        ControlSetRelays *controlSetRelays = modifyCommand<ControlSetRelays>(HantekE::ControlCode::SETRELAYS);
         controlSetRelays->setBelow1V(channel, gainId < 3); // TODO That needs to be changed to rely on spec information
         controlSetRelays->setBelow100mV(channel, gainId < 6);
     }
@@ -699,7 +699,7 @@ Dso::ErrorCode DsoControl::setOffset(ChannelID channel, double offset, bool over
         const double normalizedOffset = (offset + 1) / 2.0;
         // We are now in [0,1] but hardware wants it in [min,max]
         const uint16_t offsetValue = (uint16_t)std::ceil(normalizedOffset * range + minimum);
-        modifyCommand<ControlSetOffset>(ControlCode::SETOFFSET)->setOffset(channel, offsetValue);
+        modifyCommand<ControlSetOffset>(HantekE::ControlCode::SETOFFSET)->setOffset(channel, offsetValue);
         /// Due to uint16_ts limited resolution,
         /// the hardware applied offset is a little off compared to the given offset. We need to store it as well
         /// to later compensate for it on the received sampleset.
@@ -714,7 +714,7 @@ Dso::ErrorCode DsoControl::setOffset(ChannelID channel, double offset, bool over
     return Dso::ErrorCode::NONE;
 }
 
-Dso::ErrorCode DsoControl::setTriggerMode(Dso::TriggerMode mode) {
+Dso::ErrorCode DsoControl::setTriggerMode(DsoE::TriggerMode mode) {
     if (!device->isConnected()) return Dso::ErrorCode::CONNECTION;
     QMutexLocker l(&m_commandMutex);
 
@@ -739,19 +739,19 @@ Dso::ErrorCode DsoControl::setTriggerSource(bool special, ChannelID channel) {
     int hardwareID = special ? m_specification->specialTriggerChannels[channel].hardwareID : (int)channel;
 
     switch (m_specification->cmdSetTrigger) {
-    case BulkCode::SETTRIGGERANDSAMPLERATE:
+    case HantekE::BulkCode::SETTRIGGERANDSAMPLERATE:
         // SetTriggerAndSamplerate bulk command for trigger source
-        modifyCommand<BulkSetTriggerAndSamplerate>(BulkCode::SETTRIGGERANDSAMPLERATE)->setTriggerSource(1 - hardwareID);
+        modifyCommand<BulkSetTriggerAndSamplerate>(HantekE::BulkCode::SETTRIGGERANDSAMPLERATE)->setTriggerSource(1 - hardwareID);
         break;
 
-    case BulkCode::CSETTRIGGERORSAMPLERATE:
+    case HantekE::BulkCode::CSETTRIGGERORSAMPLERATE:
         // SetTrigger2250 bulk command for trigger source
-        modifyCommand<BulkSetTrigger2250>(BulkCode::CSETTRIGGERORSAMPLERATE)->setTriggerSource(2 + hardwareID);
+        modifyCommand<BulkSetTrigger2250>(HantekE::BulkCode::CSETTRIGGERORSAMPLERATE)->setTriggerSource(2 + hardwareID);
         break;
 
-    case BulkCode::ESETTRIGGERORSAMPLERATE:
+    case HantekE::BulkCode::ESETTRIGGERORSAMPLERATE:
         // SetTrigger5200 bulk command for trigger source
-        modifyCommand<BulkSetTrigger5200>(BulkCode::ESETTRIGGERORSAMPLERATE)->setTriggerSource(1 - hardwareID);
+        modifyCommand<BulkSetTrigger5200>(HantekE::BulkCode::ESETTRIGGERORSAMPLERATE)->setTriggerSource(1 - hardwareID);
         break;
 
     default:
@@ -759,7 +759,7 @@ Dso::ErrorCode DsoControl::setTriggerSource(bool special, ChannelID channel) {
     }
 
     // SetRelays control command for external trigger relay
-    modifyCommand<ControlSetRelays>(ControlCode::SETRELAYS)->setTrigger(special);
+    modifyCommand<ControlSetRelays>(HantekE::ControlCode::SETRELAYS)->setTrigger(special);
 
     DBGNOTIFY(QString("TriggerSrc %1").arg(channel), Debug::NotificationType::DSOControl);
     m_settings->trigger.setTriggerSource(channel, special);
@@ -767,7 +767,7 @@ Dso::ErrorCode DsoControl::setTriggerSource(bool special, ChannelID channel) {
     // Apply trigger level of the new source
     if (special) {
         // SetOffset control command for changed trigger level
-        modifyCommand<ControlSetOffset>(ControlCode::SETOFFSET)->setTriggerLevel(0x7f);
+        modifyCommand<ControlSetOffset>(HantekE::ControlCode::SETOFFSET)->setTriggerLevel(0x7f);
     } else
         this->setTriggerOffset(channel, m_settings->voltage[channel]->triggerLevel());
 
@@ -795,7 +795,7 @@ Dso::ErrorCode DsoControl::setTriggerOffset(ChannelID channel, double offset, bo
         const double normalizedOffset = (offset + 1) / 2.0;
         // We are now in [0,1] but hardware wants it in [min,max]
         const uint16_t offsetValue = (uint16_t)std::ceil(normalizedOffset * range + minimum);
-        modifyCommand<ControlSetOffset>(ControlCode::SETOFFSET)->setTriggerLevel(offsetValue);
+        modifyCommand<ControlSetOffset>(HantekE::ControlCode::SETOFFSET)->setTriggerLevel(offsetValue);
         DBGNOTIFY(QString("HardTriggerLevel c:%1,l:%2").arg(channel).arg(offsetValue),
                   Debug::NotificationType::DSOControl);
     } else {
@@ -806,24 +806,24 @@ Dso::ErrorCode DsoControl::setTriggerOffset(ChannelID channel, double offset, bo
     return Dso::ErrorCode::NONE;
 }
 
-Dso::ErrorCode DsoControl::setTriggerSlope(Dso::Slope slope) {
+Dso::ErrorCode DsoControl::setTriggerSlope(DsoE::Slope slope) {
     if (!device->isConnected()) return Dso::ErrorCode::CONNECTION;
     QMutexLocker l(&m_commandMutex);
 
     switch (m_specification->cmdSetTrigger) {
-    case BulkCode::SETTRIGGERANDSAMPLERATE: {
+    case HantekE::BulkCode::SETTRIGGERANDSAMPLERATE: {
         // SetTriggerAndSamplerate bulk command for trigger slope
-        modifyCommand<BulkSetTriggerAndSamplerate>(BulkCode::SETTRIGGERANDSAMPLERATE)->setTriggerSlope((uint8_t)slope);
+        modifyCommand<BulkSetTriggerAndSamplerate>(HantekE::BulkCode::SETTRIGGERANDSAMPLERATE)->setTriggerSlope((uint8_t)slope);
         break;
     }
-    case BulkCode::CSETTRIGGERORSAMPLERATE: {
+    case HantekE::BulkCode::CSETTRIGGERORSAMPLERATE: {
         // SetTrigger2250 bulk command for trigger slope
-        modifyCommand<BulkSetTrigger2250>(BulkCode::CSETTRIGGERORSAMPLERATE)->setTriggerSlope((uint8_t)slope);
+        modifyCommand<BulkSetTrigger2250>(HantekE::BulkCode::CSETTRIGGERORSAMPLERATE)->setTriggerSlope((uint8_t)slope);
         break;
     }
-    case BulkCode::ESETTRIGGERORSAMPLERATE: {
+    case HantekE::BulkCode::ESETTRIGGERORSAMPLERATE: {
         // SetTrigger5200 bulk command for trigger slope
-        modifyCommand<BulkSetTrigger5200>(BulkCode::ESETTRIGGERORSAMPLERATE)->setTriggerSlope((uint8_t)slope);
+        modifyCommand<BulkSetTrigger5200>(HantekE::BulkCode::ESETTRIGGERORSAMPLERATE)->setTriggerSlope((uint8_t)slope);
         break;
     }
     default:
@@ -835,7 +835,7 @@ Dso::ErrorCode DsoControl::setTriggerSlope(Dso::Slope slope) {
     return Dso::ErrorCode::NONE;
 }
 
-void DsoControl::forceTrigger() { modifyCommand<BulkCommand>(BulkCode::FORCETRIGGER); }
+void DsoControl::forceTrigger() { modifyCommand<BulkCommand>(HantekE::BulkCode::FORCETRIGGER); }
 
 ErrorCode DsoControl::setPretriggerPosition(double position, bool overwrite) {
     if (!device->isConnected()) return Dso::ErrorCode::CONNECTION;
@@ -849,35 +849,35 @@ ErrorCode DsoControl::setPretriggerPosition(double position, bool overwrite) {
     if (m_settings->isFastRate()) positionSamples /= m_specification->channels;
 
     switch (m_specification->cmdSetPretrigger) {
-    case BulkCode::SETTRIGGERANDSAMPLERATE: {
+    case HantekE::BulkCode::SETTRIGGERANDSAMPLERATE: {
         // Calculate the position value (Start point depending on record length)
         unsigned triggerPosition = m_settings->isRollMode() ? 0x1 : 0x7ffff - recordLength + (unsigned)positionSamples;
 
         // SetTriggerAndSamplerate bulk command for trigger position
-        modifyCommand<BulkSetTriggerAndSamplerate>(BulkCode::SETTRIGGERANDSAMPLERATE)
+        modifyCommand<BulkSetTriggerAndSamplerate>(HantekE::BulkCode::SETTRIGGERANDSAMPLERATE)
             ->setTriggerPosition(triggerPosition);
         DBGNOTIFY(QString("TriggerPosition %1").arg(position), Debug::NotificationType::DSOControl);
         break;
     }
-    case BulkCode::FSETBUFFER: {
+    case HantekE::BulkCode::FSETBUFFER: {
         // Calculate the position values (Inverse, maximum is 0x7ffff)
         unsigned positionPre = 0x7ffff - recordLength + (unsigned)positionSamples;
         unsigned positionPost = 0x7ffff - (unsigned)positionSamples;
 
         // SetBuffer2250 bulk command for trigger position
-        BulkSetBuffer2250 *commandSetBuffer2250 = modifyCommand<BulkSetBuffer2250>(BulkCode::FSETBUFFER);
+        BulkSetBuffer2250 *commandSetBuffer2250 = modifyCommand<BulkSetBuffer2250>(HantekE::BulkCode::FSETBUFFER);
         commandSetBuffer2250->setTriggerPositionPre(positionPre);
         commandSetBuffer2250->setTriggerPositionPost(positionPost);
         DBGNOTIFY(QString("TriggerPosition %1").arg(position), Debug::NotificationType::DSOControl);
         break;
     }
-    case BulkCode::ESETTRIGGERORSAMPLERATE: {
+    case HantekE::BulkCode::ESETTRIGGERORSAMPLERATE: {
         // Calculate the position values (Inverse, maximum is 0xffff)
         unsigned positionPre = 0xffff - recordLength + (unsigned)positionSamples;
         unsigned positionPost = 0xffff - (unsigned)positionSamples;
 
         // SetBuffer5200 bulk command for trigger position
-        BulkSetBuffer5200 *commandSetBuffer5200 = modifyCommand<BulkSetBuffer5200>(BulkCode::DSETBUFFER);
+        BulkSetBuffer5200 *commandSetBuffer5200 = modifyCommand<BulkSetBuffer5200>(HantekE::BulkCode::DSETBUFFER);
         commandSetBuffer5200->setTriggerPositionPre((uint16_t)positionPre);
         commandSetBuffer5200->setTriggerPositionPost((uint16_t)positionPost);
         DBGNOTIFY(QString("TriggerPosition %1").arg(position), Debug::NotificationType::DSOControl);

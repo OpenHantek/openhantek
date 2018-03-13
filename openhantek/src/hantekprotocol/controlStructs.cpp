@@ -9,19 +9,19 @@
 namespace Hantek {
 
 ControlBeginCommand::ControlBeginCommand(BulkIndex index)
-    : ControlCommand(Hantek::ControlCode::BEGINCOMMAND, 10) {
+    : ControlCommand(HantekE::ControlCode::BEGINCOMMAND, 10) {
     data()[0] = 0x0f;
     data()[1] = (uint8_t)index;
 }
 
-ControlGetSpeed::ControlGetSpeed() : ControlCommand(Hantek::ControlCode::GETSPEED, 10) {}
+ControlGetSpeed::ControlGetSpeed() : ControlCommand(HantekE::ControlCode::GETSPEED, 10) {}
 
 ConnectionSpeed ControlGetSpeed::getSpeed() { return (ConnectionSpeed)data()[0]; }
 
-ControlSetOffset::ControlSetOffset() : ControlCommand(ControlCode::SETOFFSET, 17) {}
+ControlSetOffset::ControlSetOffset() : ControlCommand(HantekE::ControlCode::SETOFFSET, 17) {}
 
 ControlSetOffset::ControlSetOffset(uint16_t channel1, uint16_t channel2, uint16_t trigger)
-    : ControlCommand(ControlCode::SETOFFSET, 17) {
+    : ControlCommand(HantekE::ControlCode::SETOFFSET, 17) {
     this->setOffset(0, channel1);
     this->setOffset(1, channel2);
     this->setTriggerLevel(trigger);
@@ -53,7 +53,7 @@ void ControlSetOffset::setTriggerLevel(uint16_t level) {
 
 ControlSetRelays::ControlSetRelays(bool ch1Below1V, bool ch1Below100mV, bool ch1CouplingDC, bool ch2Below1V,
                                    bool ch2Below100mV, bool ch2CouplingDC, bool triggerExt)
-    : ControlCommand(ControlCode::SETRELAYS, 17) {
+    : ControlCommand(HantekE::ControlCode::SETRELAYS, 17) {
     this->setBelow1V(0, ch1Below1V);
     this->setBelow100mV(0, ch1Below100mV);
     this->setCoupling(0, ch1CouplingDC);
@@ -109,28 +109,28 @@ bool ControlSetRelays::getTrigger() { return (data()[7] & 0x01) == 0x00; }
 
 void ControlSetRelays::setTrigger(bool ext) { data()[7] = ext ? 0xfe : 0x01; }
 
-ControlSetVoltDIV_CH1::ControlSetVoltDIV_CH1() : ControlCommand(ControlCode::SETVOLTDIV_CH1, 1) {
+ControlSetVoltDIV_CH1::ControlSetVoltDIV_CH1() : ControlCommand(HantekE::ControlCode::SETVOLTDIV_CH1, 1) {
     this->setDiv(5);
 }
 
 void ControlSetVoltDIV_CH1::setDiv(uint8_t val) { data()[0] = val; }
 
-ControlSetVoltDIV_CH2::ControlSetVoltDIV_CH2() : ControlCommand(ControlCode::SETVOLTDIV_CH2, 1) {
+ControlSetVoltDIV_CH2::ControlSetVoltDIV_CH2() : ControlCommand(HantekE::ControlCode::SETVOLTDIV_CH2, 1) {
     this->setDiv(5);
 }
 
 void ControlSetVoltDIV_CH2::setDiv(uint8_t val) { data()[0] = val; }
 
-ControlSetTimeDIV::ControlSetTimeDIV() : ControlCommand(ControlCode::SETTIMEDIV, 1) { this->setDiv(1); }
+ControlSetTimeDIV::ControlSetTimeDIV() : ControlCommand(HantekE::ControlCode::SETTIMEDIV, 1) { this->setDiv(1); }
 
 void ControlSetTimeDIV::setDiv(uint8_t val) { data()[0] = val; }
 
-ControlAcquireHardData::ControlAcquireHardData() : ControlCommand(ControlCode::ACQUIRE_DATA, 1) {
+ControlAcquireHardData::ControlAcquireHardData() : ControlCommand(HantekE::ControlCode::ACQUIRE_DATA, 1) {
     data()[0] = 0x01;
 }
 
 ControlGetLimits::ControlGetLimits(size_t channels)
-    : ControlCommand(ControlCode::VALUE, 1), offsetLimit(new OffsetsPerGainStep[channels]) {
+    : ControlCommand(HantekE::ControlCode::VALUE, 1), offsetLimit(new OffsetsPerGainStep[channels]) {
     value = (uint8_t)ControlValue::VALUE_OFFSETLIMITS;
     data()[0] = 0x01;
 }

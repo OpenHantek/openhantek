@@ -41,8 +41,6 @@ template <typename... Args> struct SELECT {
     }
 };
 
-using namespace Debug;
-
 DebugDock::DebugDock(DsoControl *dsocontrol, QWidget *parent, Qt::WindowFlags flags)
     : QDockWidget(tr("Debug"), parent, flags) {
 
@@ -62,17 +60,17 @@ DebugDock::DebugDock(DsoControl *dsocontrol, QWidget *parent, Qt::WindowFlags fl
     actionManualCommand->setIcon(iconFont->icon(fa::edit));
     manualCommandType->addItems(QStringList() << tr("Control") << tr("Bulk"));
 
-    auto bulkMeta = QMetaEnum::fromType<Hantek::BulkCode>();
+    auto bulkMeta = QMetaEnum::fromType<HantekE::BulkCode>();
     for (int i = 0; i < bulkMeta.keyCount(); ++i) {
         int v = bulkMeta.value(i);
-        if (dsocontrol->isCommandSupported((Hantek::BulkCode)v)) bulkCodes->addItem(bulkMeta.key(i), v);
+        if (dsocontrol->isCommandSupported((HantekE::BulkCode)v)) bulkCodes->addItem(bulkMeta.key(i), v);
     }
     bulkCodes->hide();
 
-    auto controlMeta = QMetaEnum::fromType<Hantek::ControlCode>();
+    auto controlMeta = QMetaEnum::fromType<HantekE::ControlCode>();
     for (int i = 0; i < controlMeta.keyCount(); ++i) {
         int v = controlMeta.value(i);
-        if (dsocontrol->isCommandSupported((Hantek::ControlCode)v)) controlCodes->addItem(controlMeta.key(i), v);
+        if (dsocontrol->isCommandSupported((HantekE::ControlCode)v)) controlCodes->addItem(controlMeta.key(i), v);
     }
 
     connect(manualCommandType, SELECT<int>::OVERLOAD_OF(&QComboBox::currentIndexChanged), this,
@@ -101,8 +99,8 @@ DebugDock::DebugDock(DsoControl *dsocontrol, QWidget *parent, Qt::WindowFlags fl
 
         // Use a signal instead of a direct function call to archive thread-safety
         emit manualCommand(manualCommandType->currentIndex() == 1,
-                           (Hantek::BulkCode)bulkCodes->currentData(Qt::UserRole).toInt(),
-                           (Hantek::ControlCode)controlCodes->currentData(Qt::UserRole).toInt(), data);
+                           (HantekE::BulkCode)bulkCodes->currentData(Qt::UserRole).toInt(),
+                           (HantekE::ControlCode)controlCodes->currentData(Qt::UserRole).toInt(), data);
         commandEdit->clear();
     };
 
@@ -117,9 +115,9 @@ DebugDock::DebugDock(DsoControl *dsocontrol, QWidget *parent, Qt::WindowFlags fl
     logTable->setColumnWidth(0, 60);
     logTable->setColumnWidth(1, 60);
     logTable->verticalHeader()->hide();
-    m_model = new Debug::LogModel(this);
+    m_model = new Debug(this);
     logTable->setModel(m_model);
-    connect(dsocontrol, &DsoControl::debugMessage, m_model, &LogModel::addEntry);
+    connect(dsocontrol, &DsoControl::debugMessage, m_model, &Debug::addEntry);
 
     QCheckBox *showLoopLog = new QCheckBox("Verbose loop log", this);
     showLoopLog->setChecked(false);
@@ -133,7 +131,7 @@ DebugDock::DebugDock(DsoControl *dsocontrol, QWidget *parent, Qt::WindowFlags fl
 
     QPushButton *clearLog = new QPushButton;
     clearLog->setIcon(iconFont->icon(fa::remove));
-    connect(clearLog, &QPushButton::clicked, m_model, &LogModel::removeAll);
+    connect(clearLog, &QPushButton::clicked, m_model, &Debug::removeAll);
 
     QHBoxLayout *clearLogLayout = new QHBoxLayout;
     clearLogLayout->addWidget(new QLabel(tr("Logs"), this), 1);

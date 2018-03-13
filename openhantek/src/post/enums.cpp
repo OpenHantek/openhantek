@@ -6,9 +6,8 @@
 #include <QCoreApplication>
 #include <QString>
 
-namespace PostProcessing {
-
-QString mathModeString(MathMode mode, const ::Settings::Channel *first, const ::Settings::Channel *second) {
+QString PostProcessingE::mathModeString(MathMode mode, const ::Settings::Channel *first,
+                                        const ::Settings::Channel *second) {
     switch (mode) {
     case MathMode::ADD:
         return QCoreApplication::tr("%1 + %2").arg(first->name(), second->name());
@@ -20,7 +19,7 @@ QString mathModeString(MathMode mode, const ::Settings::Channel *first, const ::
     return QString();
 }
 
-QString mathModeString(MathMode mode) {
+QString PostProcessingE::mathModeString(MathMode mode) {
     switch (mode) {
     case MathMode::ADD:
         return "+";
@@ -32,7 +31,7 @@ QString mathModeString(MathMode mode) {
     return QString();
 }
 
-QString windowFunctionString(WindowFunction window) {
+QString PostProcessingE::windowFunctionString(WindowFunction window) {
     switch (window) {
     case WindowFunction::RECTANGULAR:
         return QCoreApplication::tr("Rectangular");
@@ -67,4 +66,3 @@ QString windowFunctionString(WindowFunction window) {
     }
     return QString();
 }
-} // end namespace PostProcessing

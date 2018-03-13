@@ -4,16 +4,13 @@
 
 #include <inttypes.h>
 #include <vector>
-
-namespace Hantek {
-enum class BulkCode : uint8_t;
-}
+#include "codes.h"
 
 class BulkCommand : public std::vector<uint8_t> {
 protected:
-    BulkCommand(Hantek::BulkCode code, unsigned size);
+    BulkCommand(HantekE::BulkCode code, unsigned size);
 public:
-    Hantek::BulkCode code;
+    HantekE::BulkCode code;
     bool pending = false;
     BulkCommand* next = nullptr;
 };

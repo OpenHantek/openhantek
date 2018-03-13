@@ -53,8 +53,8 @@ class Scope : public QObject {
     void removeMathChannel(ChannelID channelID);
 
     /// Graph drawing mode of the scope
-    inline Dso::GraphFormat format() const { return m_format; }
-    void setFormat(Dso::GraphFormat v);
+    inline DsoE::GraphFormat format() const { return m_format; }
+    void setFormat(DsoE::GraphFormat v);
 
     /// Frequencybase in Hz/div
     inline double frequencybase() const { return m_frequencybase; }
@@ -69,7 +69,7 @@ class Scope : public QObject {
     /// Settings for the channels of the graphs
     ChannelMap m_channels;
 
-    Dso::GraphFormat m_format = Dso::GraphFormat::TY; ///< Graph drawing mode of the scope
+    DsoE::GraphFormat m_format = DsoE::GraphFormat::TY; ///< Graph drawing mode of the scope
     double m_frequencybase = 1e3;                     ///< Frequencybase in Hz/div
     bool m_useHardwareGain = false;
   signals:

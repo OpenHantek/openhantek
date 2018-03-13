@@ -21,11 +21,11 @@ void _applyRequirements(DsoCommandQueue *commandQueue) {
 }
 
 void initSpecifications(Dso::ModelSpec *specification) {
-    specification->cmdSetRecordLength = BulkCode::SETTRIGGERANDSAMPLERATE;
-    specification->cmdSetChannels = BulkCode::SETTRIGGERANDSAMPLERATE;
-    specification->cmdSetSamplerate = BulkCode::SETTRIGGERANDSAMPLERATE;
-    specification->cmdSetTrigger = BulkCode::SETTRIGGERANDSAMPLERATE;
-    specification->cmdSetPretrigger = BulkCode::SETTRIGGERANDSAMPLERATE;
+    specification->cmdSetRecordLength = HantekE::BulkCode::SETTRIGGERANDSAMPLERATE;
+    specification->cmdSetChannels = HantekE::BulkCode::SETTRIGGERANDSAMPLERATE;
+    specification->cmdSetSamplerate = HantekE::BulkCode::SETTRIGGERANDSAMPLERATE;
+    specification->cmdSetTrigger = HantekE::BulkCode::SETTRIGGERANDSAMPLERATE;
+    specification->cmdSetPretrigger = HantekE::BulkCode::SETTRIGGERANDSAMPLERATE;
 
     specification->normalSamplerate.base = 50e6;
     specification->normalSamplerate.max = 50e6;

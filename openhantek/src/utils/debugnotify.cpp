@@ -1,12 +1,10 @@
 #include "debugnotify.h"
 
-namespace Debug {
-
-LogModel::LogModel(QObject *parent) : QAbstractListModel(parent) {
+Debug::Debug(QObject *parent) : QAbstractListModel(parent) {
     qRegisterMetaType<Debug::NotificationType>("Debug::NotificationType");
 }
 
-void LogModel::addEntry(const QString &msg, Debug::NotificationType typeEnum) {
+void Debug::addEntry(const QString &msg, Debug::NotificationType typeEnum) {
     if (m_filter & (int)typeEnum) return;
 
     QString typeStr;
@@ -41,13 +39,13 @@ void LogModel::addEntry(const QString &msg, Debug::NotificationType typeEnum) {
     }
 }
 
-void LogModel::removeAll() {
+void Debug::removeAll() {
     beginResetModel();
     entries.clear();
     endResetModel();
 }
 
-QVariant LogModel::data(const QModelIndex &index, int role) const {
+QVariant Debug::data(const QModelIndex &index, int role) const {
     if (role == Qt::DisplayRole || role == Qt::ToolTipRole) {
         unsigned row = (unsigned)entries.size() - (unsigned)index.row() - 1;
         switch (index.column()) {
@@ -62,5 +60,4 @@ QVariant LogModel::data(const QModelIndex &index, int role) const {
         }
     }
     return QVariant();
-}
 }

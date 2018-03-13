@@ -182,7 +182,7 @@ class DsoControl : public DsoCommandQueue {
     /// \param channel The channel that should be set.
     /// \param coupling The new coupling for the channel.
     /// \return See ::Dso::ErrorCode.
-    Dso::ErrorCode setCoupling(ChannelID channel, Dso::Coupling coupling);
+    Dso::ErrorCode setCoupling(ChannelID channel, DsoE::Coupling coupling);
 
     /// \brief Sets the gain for the given channel.
     /// Get the actual gain by specification.gainSteps[hardwareGainIndex]
@@ -200,7 +200,7 @@ class DsoControl : public DsoCommandQueue {
 
     /// \brief Set the trigger mode.
     /// \return See ::Dso::ErrorCode.
-    Dso::ErrorCode setTriggerMode(Dso::TriggerMode mode);
+    Dso::ErrorCode setTriggerMode(DsoE::TriggerMode mode);
 
     /// \brief Set the trigger source.
     /// \param special true for a special channel (EXT, ...) as trigger source.
@@ -217,7 +217,7 @@ class DsoControl : public DsoCommandQueue {
     /// \brief Set the trigger slope.
     /// \param slope The Slope that should cause a trigger.
     /// \return See ::Dso::ErrorCode.
-    Dso::ErrorCode setTriggerSlope(Dso::Slope slope);
+    Dso::ErrorCode setTriggerSlope(DsoE::Slope slope);
 
     /// \brief Set the pre-trigger sample range in percentage.
     ///

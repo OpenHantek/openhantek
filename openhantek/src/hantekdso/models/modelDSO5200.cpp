@@ -8,11 +8,11 @@ static ModelDSO5200 modelInstance;
 static ModelDSO5200A modelInstance2;
 
 static void initSpecifications(Dso::ModelSpec *specification) {
-    specification->cmdSetRecordLength = BulkCode::DSETBUFFER;
-    specification->cmdSetChannels = BulkCode::ESETTRIGGERORSAMPLERATE;
-    specification->cmdSetSamplerate = BulkCode::CSETTRIGGERORSAMPLERATE;
-    specification->cmdSetTrigger = BulkCode::ESETTRIGGERORSAMPLERATE;
-    specification->cmdSetPretrigger = BulkCode::ESETTRIGGERORSAMPLERATE;
+    specification->cmdSetRecordLength = HantekE::BulkCode::DSETBUFFER;
+    specification->cmdSetChannels = HantekE::BulkCode::ESETTRIGGERORSAMPLERATE;
+    specification->cmdSetSamplerate = HantekE::BulkCode::CSETTRIGGERORSAMPLERATE;
+    specification->cmdSetTrigger = HantekE::BulkCode::ESETTRIGGERORSAMPLERATE;
+    specification->cmdSetPretrigger = HantekE::BulkCode::ESETTRIGGERORSAMPLERATE;
 
     specification->normalSamplerate.base = 100e6;
     specification->normalSamplerate.max = 125e6;

@@ -3,12 +3,10 @@
 #include "enums.h"
 #include <QCoreApplication>
 
-namespace Dso {
-
 /// \brief Return string representation of the given channel mode.
 /// \param mode The ::ChannelMode that should be returned as string.
 /// \return The string that should be used in labels etc., empty when invalid.
-QString channelModeString(ChannelMode mode) {
+QString DsoE::channelModeString(ChannelMode mode) {
     switch (mode) {
     case ChannelMode::Voltage:
         return QCoreApplication::tr("Voltage");
@@ -21,7 +19,7 @@ QString channelModeString(ChannelMode mode) {
 /// \brief Return string representation of the given graph format.
 /// \param format The ::GraphFormat that should be returned as string.
 /// \return The string that should be used in labels etc.
-QString graphFormatString(GraphFormat format) {
+QString DsoE::graphFormatString(GraphFormat format) {
     switch (format) {
     case GraphFormat::TY:
         return QCoreApplication::tr("T - Y");
@@ -34,7 +32,7 @@ QString graphFormatString(GraphFormat format) {
 /// \brief Return string representation of the given channel coupling.
 /// \param coupling The ::Coupling that should be returned as string.
 /// \return The string that should be used in labels etc.
-QString couplingString(Coupling coupling) {
+QString DsoE::couplingString(Coupling coupling) {
     switch (coupling) {
     case Coupling::AC:
         return QCoreApplication::tr("AC");
@@ -49,7 +47,7 @@ QString couplingString(Coupling coupling) {
 /// \brief Return string representation of the given trigger mode.
 /// \param mode The ::TriggerMode that should be returned as string.
 /// \return The string that should be used in labels etc.
-QString triggerModeString(TriggerMode mode) {
+QString DsoE::triggerModeString(TriggerMode mode) {
     switch (mode) {
     case TriggerMode::WAIT_FORCE:
         return QCoreApplication::tr("Wait/Force");
@@ -64,7 +62,7 @@ QString triggerModeString(TriggerMode mode) {
 /// \brief Return string representation of the given trigger slope.
 /// \param slope The ::Slope that should be returned as string.
 /// \return The string that should be used in labels etc.
-QString slopeString(Slope slope) {
+QString DsoE::slopeString(Slope slope) {
     switch (slope) {
     case Slope::Positive:
         return QString::fromUtf8("\u2197");
@@ -78,7 +76,7 @@ QString slopeString(Slope slope) {
 /// \param interpolation The ::InterpolationMode that should be returned as
 /// string.
 /// \return The string that should be used in labels etc.
-QString interpolationModeString(InterpolationMode interpolation) {
+QString DsoE::interpolationModeString(InterpolationMode interpolation) {
     switch (interpolation) {
     case InterpolationMode::OFF:
         return QCoreApplication::tr("Off");
@@ -88,5 +86,4 @@ QString interpolationModeString(InterpolationMode interpolation) {
         return QCoreApplication::tr("Sinc");
     }
     return QString();
-}
 }

@@ -9,8 +9,8 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-if (Qt5Widgets_VERSION VERSION_LESS 5.8.0)
-    message(FATAL_ERROR "Minimum supported Qt5 version is 5.8.0!")
+if (Qt5Widgets_VERSION VERSION_LESS 5.7.0)
+    message(FATAL_ERROR "Minimum supported Qt5 version is 5.7.0!")
 endif()
 
 # include directories

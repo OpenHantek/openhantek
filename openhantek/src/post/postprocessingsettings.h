@@ -12,13 +12,13 @@ struct Settings {
     friend class ::DsoConfigAnalysisPage;
     friend struct SettingsIO;
 
-    inline ::PostProcessing::WindowFunction spectrumWindow() const { return m_spectrumWindow; }
+    inline ::PostProcessingE::WindowFunction spectrumWindow() const { return m_spectrumWindow; }
     inline double spectrumReference() const { return m_spectrumReference; }
     inline double spectrumLimit() const { return m_spectrumLimit; }
 
   private:
-    ::PostProcessing::WindowFunction m_spectrumWindow = //
-        ::PostProcessing::WindowFunction::HANN;         ///< Window function for DFT
+    ::PostProcessingE::WindowFunction m_spectrumWindow = //
+        ::PostProcessingE::WindowFunction::HANN;         ///< Window function for DFT
     double m_spectrumReference = 0.0;                   ///< Reference level for spectrum in dBm
     double m_spectrumLimit = -20.0;                     ///< Minimum magnitude of the spectrum (Avoids peaks)
 };

@@ -52,7 +52,7 @@ void Settings::MathChannel::setVoltageVisible(bool visible) {
 
 void Settings::MathChannel::setOffset(double offset) { const_cast<Dso::Channel *>(m_voltage)->setOffset(offset); }
 
-void Settings::MathChannel::setMathMode(::PostProcessing::MathMode e) {
+void Settings::MathChannel::setMathMode(::PostProcessingE::MathMode e) {
     m_mode = e;
     emit mathModeChanged(this);
 }

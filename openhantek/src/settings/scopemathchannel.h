@@ -25,8 +25,8 @@ class MathChannel : public Channel {
     void setOffset(double offset);
 
     /// mode for math-channels
-    inline ::PostProcessing::MathMode mathMode() const { return m_mode; }
-    void setMathMode(::PostProcessing::MathMode e);
+    inline ::PostProcessingE::MathMode mathMode() const { return m_mode; }
+    void setMathMode(::PostProcessingE::MathMode e);
 
     inline ChannelID firstID() const { return m_first; }
     void setFirstChannel(ChannelID channel, const Dso::Channel *channelPointer);
@@ -35,7 +35,7 @@ class MathChannel : public Channel {
     void setSecondChannel(ChannelID channel, const Dso::Channel *channelPointer);
 
   private:
-    ::PostProcessing::MathMode m_mode = ::PostProcessing::MathMode::ADD; ///< mode for math-channels
+    ::PostProcessingE::MathMode m_mode = ::PostProcessingE::MathMode::ADD; ///< mode for math-channels
     ChannelID m_first = Channel::INVALID;                                ///< For storing/restoring
     ChannelID m_second = Channel::INVALID;                               ///< For storing/restoring
     const Dso::Channel *m_firstChannel = nullptr;                        ///< Pointer to real channel

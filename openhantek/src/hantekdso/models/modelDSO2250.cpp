@@ -8,11 +8,11 @@ static ModelDSO2250 modelInstance;
 
 ModelDSO2250::ModelDSO2250()
     : DSOModel(ID, 0x04b5, 0x2250, 0x04b4, 0x2250, "dso2250x86", "DSO-2250", new Dso::ModelSpec(2)) {
-    specification->cmdSetRecordLength = BulkCode::DSETBUFFER;
-    specification->cmdSetChannels = BulkCode::BSETCHANNELS;
-    specification->cmdSetSamplerate = BulkCode::ESETTRIGGERORSAMPLERATE;
-    specification->cmdSetTrigger = BulkCode::CSETTRIGGERORSAMPLERATE;
-    specification->cmdSetPretrigger = BulkCode::FSETBUFFER;
+    specification->cmdSetRecordLength = HantekE::BulkCode::DSETBUFFER;
+    specification->cmdSetChannels = HantekE::BulkCode::BSETCHANNELS;
+    specification->cmdSetSamplerate = HantekE::BulkCode::ESETTRIGGERORSAMPLERATE;
+    specification->cmdSetTrigger = HantekE::BulkCode::CSETTRIGGERORSAMPLERATE;
+    specification->cmdSetPretrigger = HantekE::BulkCode::FSETBUFFER;
 
     specification->normalSamplerate.base = 100e6;
     specification->normalSamplerate.max = 100e6;

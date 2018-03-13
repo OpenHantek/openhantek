@@ -35,15 +35,15 @@ void MathChannelGenerator::process(PPresult *result) {
 
         // Calculate values and write them into the sample buffer
         switch (mathChannel->mathMode()) {
-        case PostProcessing::MathMode::ADD:
+        case PostProcessingE::MathMode::ADD:
             // #pragma omp parallel for
             for (unsigned int i = 0; i < resultData.size(); ++i) resultData[i] = firstChannel[i] + secondChannel[i];
             break;
-        case PostProcessing::MathMode::SUBSTRACT:
+        case PostProcessingE::MathMode::SUBSTRACT:
             // #pragma omp parallel for
             for (unsigned int i = 0; i < resultData.size(); ++i) resultData[i] = firstChannel[i] - secondChannel[i];
             break;
-        case PostProcessing::MathMode::MULTIPLY:
+        case PostProcessingE::MathMode::MULTIPLY:
             // #pragma omp parallel for
             for (unsigned int i = 0; i < resultData.size(); ++i) resultData[i] = firstChannel[i] * secondChannel[i];
             break;

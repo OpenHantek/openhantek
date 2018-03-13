@@ -112,13 +112,13 @@ GlScopeGraph::ChannelDetail::ChannelDetail(const ChannelGraph &channelData, QLay
     // Set the interpolation type (line or points). React to settings changes.
     auto iChangedFun = [this](const View *view) {
         switch (view->interpolation()) {
-        case Dso::InterpolationMode::OFF:
+        case DsoE::InterpolationMode::OFF:
             mesh->setPrimitiveType(QGeometryRenderer::Points);
             break;
-        case Dso::InterpolationMode::LINEAR:
+        case DsoE::InterpolationMode::LINEAR:
             mesh->setPrimitiveType(QGeometryRenderer::LineStrip);
             break;
-        case Dso::InterpolationMode::SINC:
+        case DsoE::InterpolationMode::SINC:
             mesh->setPrimitiveType(QGeometryRenderer::LineStrip);
             break;
         }

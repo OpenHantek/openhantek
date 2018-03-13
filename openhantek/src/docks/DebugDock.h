@@ -12,9 +12,7 @@ namespace Settings {
 class Scope;
 }
 class DsoControl;
-namespace Debug {
-class LogModel;
-}
+class Debug;
 
 /// \brief Dock window with a log view and manual command
 /// It contains the settings for the timebase and the display format.
@@ -31,7 +29,7 @@ class DebugDock : public QDockWidget {
   protected:
     void closeEvent(QCloseEvent *event);
 
-    Debug::LogModel *m_model;
+    Debug *m_model;
   signals:
-    void manualCommand(bool isBulk, Hantek::BulkCode bulkCode, Hantek::ControlCode controlCode, const QByteArray &data);
+    void manualCommand(bool isBulk, HantekE::BulkCode bulkCode, HantekE::ControlCode controlCode, const QByteArray &data);
 };

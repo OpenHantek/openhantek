@@ -59,7 +59,7 @@ DsoConfigAnalysisPage::DsoConfigAnalysisPage(Settings::DsoSettings *settings, QW
 
 /// \brief Saves the new settings.
 void DsoConfigAnalysisPage::saveSettings() {
-    settings->post.m_spectrumWindow = (PostProcessing::WindowFunction)windowFunctionComboBox->currentIndex();
+    settings->post.m_spectrumWindow = (PostProcessingE::WindowFunction)windowFunctionComboBox->currentIndex();
     settings->post.m_spectrumReference = referenceLevelSpinBox->value();
     settings->post.m_spectrumLimit = minimumMagnitudeSpinBox->value();
 }

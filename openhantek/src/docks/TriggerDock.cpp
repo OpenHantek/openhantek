@@ -37,11 +37,11 @@ TriggerDock::TriggerDock(Settings::Scope *scope, DsoControl *dsocontrol, QWidget
     // Initialize elements
     modeLabel = new QLabel(tr("Mode"));
     modeComboBox = new QComboBox();
-    for (Dso::TriggerMode mode : spec->triggerModes) modeComboBox->addItem(Dso::triggerModeString(mode));
+    for (DsoE::TriggerMode mode : spec->triggerModes) modeComboBox->addItem(DsoE::triggerModeString(mode));
 
     slopeLabel = new QLabel(tr("Slope"));
     slopeComboBox = new QComboBox();
-    for (Dso::Slope slope : Enum<Dso::Slope>()) slopeComboBox->addItem(Dso::slopeString(slope));
+    for (DsoE::Slope slope : Enum<DsoE::Slope>()) slopeComboBox->addItem(DsoE::slopeString(slope));
 
     sourceLabel = new QLabel(tr("Source"));
     sourceComboBox = new QComboBox();
@@ -82,7 +82,7 @@ TriggerDock::TriggerDock(Settings::Scope *scope, DsoControl *dsocontrol, QWidget
             });
     connect(slopeComboBox, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged), this,
             [dsocontrol, slopeComboBox, devicesettings](int index) {
-                dsocontrol->setTriggerSlope((Dso::Slope)index);
+                dsocontrol->setTriggerSlope((DsoE::Slope)index);
                 QSignalBlocker blocker(slopeComboBox);
                 slopeComboBox->setCurrentIndex((int)devicesettings->trigger.slope());
             });
@@ -97,7 +97,7 @@ TriggerDock::TriggerDock(Settings::Scope *scope, DsoControl *dsocontrol, QWidget
                                                     : 0 + (int)devicesettings->trigger.source());
             });
     // Connect settings --> widgets
-    connect(&devicesettings->trigger, &Dso::Trigger::modeChanged, this, [modeComboBox, spec](Dso::TriggerMode mode) {
+    connect(&devicesettings->trigger, &Dso::Trigger::modeChanged, this, [modeComboBox, spec](DsoE::TriggerMode mode) {
         QSignalBlocker blocker(modeComboBox);
         modeComboBox->setCurrentIndex(spec->indexOfTriggerMode(mode));
     });
@@ -107,7 +107,7 @@ TriggerDock::TriggerDock(Settings::Scope *scope, DsoControl *dsocontrol, QWidget
                 // A special channel is after all real channels
                 sourceComboBox->setCurrentIndex(special ? (int)spec->channels : 0 + (int)id);
             });
-    connect(&devicesettings->trigger, &Dso::Trigger::slopeChanged, this, [slopeComboBox](Dso::Slope slope) {
+    connect(&devicesettings->trigger, &Dso::Trigger::slopeChanged, this, [slopeComboBox](DsoE::Slope slope) {
         QSignalBlocker blocker(slopeComboBox);
         slopeComboBox->setCurrentIndex((int)slope);
     });

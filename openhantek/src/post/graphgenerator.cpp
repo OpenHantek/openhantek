@@ -107,7 +107,7 @@ void GraphGenerator::generateGraphsTYspectrum(PPresult *result) {
 }
 
 void GraphGenerator::process(PPresult *data) {
-    if (m_scope->format() == Dso::GraphFormat::TY) {
+    if (m_scope->format() == DsoE::GraphFormat::TY) {
         generateGraphsTYspectrum(data);
         generateGraphsTYvoltage(data);
     } else

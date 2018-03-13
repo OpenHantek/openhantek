@@ -40,8 +40,8 @@ class Trigger : public QObject {
     friend struct Settings::DeviceSettingsIO;
     Q_OBJECT
   public:
-    Dso::TriggerMode mode() const { return m_mode; } ///< The trigger mode
-    Dso::Slope slope() const { return m_slope; }     ///< The trigger slope
+    DsoE::TriggerMode mode() const { return m_mode; } ///< The trigger mode
+    DsoE::Slope slope() const { return m_slope; }     ///< The trigger slope
     double position() const { return m_position; }   ///< The current pretrigger position in range [0,1]
     bool special() const { return m_special; }       ///< true, if the trigger source is special
     unsigned source() const { return m_source; }     ///< The trigger source
@@ -53,13 +53,13 @@ class Trigger : public QObject {
     void setPosition(double position);
     void setPoint(unsigned point) { this->m_point = point; }
     void setTriggerSource(ChannelID channel, bool specialChannel);
-    void setSlope(Dso::Slope slope);
-    void setMode(Dso::TriggerMode mode);
+    void setSlope(DsoE::Slope slope);
+    void setMode(DsoE::TriggerMode mode);
 
   private:
-    Dso::TriggerMode m_mode =                  //
-        Dso::TriggerMode::HARDWARE_SOFTWARE;   ///< The trigger mode
-    Dso::Slope m_slope = Dso::Slope::Positive; ///< The trigger slope
+    DsoE::TriggerMode m_mode =                  //
+        DsoE::TriggerMode::HARDWARE_SOFTWARE;   ///< The trigger mode
+    DsoE::Slope m_slope = DsoE::Slope::Positive; ///< The trigger slope
     double m_position = 0.0;                   ///< The current pretrigger position in range [0,1]
     bool m_special = false;                    ///< true, if the trigger source is special
     unsigned m_source = 0;                     ///< The trigger source
@@ -68,9 +68,9 @@ class Trigger : public QObject {
     unsigned m_swTriggerSampleSet = 11;        ///< Software trigger, sample set
     unsigned m_swSampleMargin = 2000;          ///< Software trigger, sample margin
   signals:
-    void modeChanged(Dso::TriggerMode mode);           ///< The trigger mode has been changed
+    void modeChanged(DsoE::TriggerMode mode);           ///< The trigger mode has been changed
     void sourceChanged(bool special, unsigned int id); ///< The trigger source has been changed
-    void slopeChanged(Dso::Slope slope);               ///< The trigger slope has been changed
+    void slopeChanged(DsoE::Slope slope);               ///< The trigger slope has been changed
     void positionChanged(double position);             ///< The trigger position has been changed
 };
 
@@ -92,7 +92,7 @@ class Channel : public QObject {
     inline double triggerLevel() const { return m_triggerOffset; }
 
     /// Get the coupling value for the specific channel
-    inline Dso::Coupling coupling(const Dso::ModelSpec *spec) const { return spec->couplings[m_couplingIndex]; }
+    inline DsoE::Coupling coupling(const Dso::ModelSpec *spec) const { return spec->couplings[m_couplingIndex]; }
 
     /**
      * @brief Sets the offset value and emit the corresponding signal. Only to be called by HantekDsoControl.
@@ -122,7 +122,7 @@ class Channel : public QObject {
     void setCouplingIndex(unsigned couplingId);
 
   private:
-    unsigned m_couplingIndex = 0;  ///< Coupling index (refers to one of the Dso::Coupling values)
+    unsigned m_couplingIndex = 0;  ///< Coupling index (refers to one of the DsoE::Coupling values)
     unsigned m_gainStepIndex = 0;  ///< The vertical resolution gain index for gain in V
     double m_offset = 0.;          ///< The offset for each channel [-1,1].
     double m_offsetHardware = 0.0; ///< The hardware applied offset for each channel (Quantization+Min/Max considered)

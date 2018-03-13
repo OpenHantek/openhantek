@@ -70,17 +70,17 @@ struct ModelSpec {
     const ChannelID channels;
 
     // Interface
-    Hantek::BulkCode cmdSetChannels = Hantek::BulkCode::INVALID;             ///< Command for setting used channels
-    Hantek::BulkCode cmdSetSamplerate = Hantek::BulkCode::INVALID;           ///< Command for samplerate settings
-    Hantek::BulkCode cmdSetRecordLength = Hantek::BulkCode::INVALID;         ///< Command for buffer settings
-    Hantek::BulkCode cmdSetTrigger = Hantek::BulkCode::INVALID;              ///< Command for trigger settings
-    Hantek::BulkCode cmdSetPretrigger = Hantek::BulkCode::INVALID;           ///< Command for pretrigger settings
-    Hantek::BulkCode cmdForceTrigger = Hantek::BulkCode::FORCETRIGGER;       ///< Command for forcing a trigger event
-    Hantek::BulkCode cmdCaptureStart = Hantek::BulkCode::STARTSAMPLING;      ///< Command for starting the sampling
-    Hantek::BulkCode cmdTriggerEnabled = Hantek::BulkCode::ENABLETRIGGER;    ///< Command for enabling the trigger
-    Hantek::BulkCode cmdGetData = Hantek::BulkCode::GETDATA;                 ///< Command for retrieve sample data
-    Hantek::BulkCode cmdGetCaptureState = Hantek::BulkCode::GETCAPTURESTATE; ///< Command for retrieve the capture state
-    Hantek::BulkCode cmdSetGain = Hantek::BulkCode::SETGAIN;                 ///< Command for setting the gain
+    HantekE::BulkCode cmdSetChannels = HantekE::BulkCode::INVALID;             ///< Command for setting used channels
+    HantekE::BulkCode cmdSetSamplerate = HantekE::BulkCode::INVALID;           ///< Command for samplerate settings
+    HantekE::BulkCode cmdSetRecordLength = HantekE::BulkCode::INVALID;         ///< Command for buffer settings
+    HantekE::BulkCode cmdSetTrigger = HantekE::BulkCode::INVALID;              ///< Command for trigger settings
+    HantekE::BulkCode cmdSetPretrigger = HantekE::BulkCode::INVALID;           ///< Command for pretrigger settings
+    HantekE::BulkCode cmdForceTrigger = HantekE::BulkCode::FORCETRIGGER;       ///< Command for forcing a trigger event
+    HantekE::BulkCode cmdCaptureStart = HantekE::BulkCode::STARTSAMPLING;      ///< Command for starting the sampling
+    HantekE::BulkCode cmdTriggerEnabled = HantekE::BulkCode::ENABLETRIGGER;    ///< Command for enabling the trigger
+    HantekE::BulkCode cmdGetData = HantekE::BulkCode::GETDATA;                 ///< Command for retrieve sample data
+    HantekE::BulkCode cmdGetCaptureState = HantekE::BulkCode::GETCAPTURESTATE; ///< Command for retrieve the capture state
+    HantekE::BulkCode cmdSetGain = HantekE::BulkCode::SETGAIN;                 ///< Command for setting the gain
 
     // Actual resolved commands based on the above interface
     const Hantek::ControlBeginCommand beginCommandControl;
@@ -122,9 +122,9 @@ struct ModelSpec {
 
     // Features
     std::vector<SpecialTriggerChannel> specialTriggerChannels;
-    std::vector<Coupling> couplings = {Dso::Coupling::DC, Dso::Coupling::AC};
-    std::vector<TriggerMode> triggerModes = {TriggerMode::HARDWARE_SOFTWARE, TriggerMode::WAIT_FORCE,
-                                             TriggerMode::SINGLE};
+    std::vector<DsoE::Coupling> couplings = {DsoE::Coupling::DC, DsoE::Coupling::AC};
+    std::vector<DsoE::TriggerMode> triggerModes = {DsoE::TriggerMode::HARDWARE_SOFTWARE, DsoE::TriggerMode::WAIT_FORCE,
+                                                   DsoE::TriggerMode::SINGLE};
     bool isFixedSamplerateDevice = false;
     bool isSoftwareTriggerDevice = false;
     bool useControlNoBulk = false;
@@ -135,7 +135,7 @@ struct ModelSpec {
     int fixedUSBinLength = 0;
     double testSignalAmplitude = 1.0; ///< Test signal amplitude in V. Usually 1V.
 
-    inline int indexOfTriggerMode(TriggerMode mode) const {
+    inline int indexOfTriggerMode(DsoE::TriggerMode mode) const {
         return int(std::find(triggerModes.begin(), triggerModes.end(), mode) - triggerModes.begin());
     }
 };

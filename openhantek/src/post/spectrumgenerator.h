@@ -36,8 +36,8 @@ class SpectrumGenerator : public Processor {
     const ::Settings::Scope *scope;
     const Settings *postprocessing;
     unsigned int lastRecordLength = 0; ///< The record length of the previously analyzed data
-    PostProcessing::WindowFunction lastWindow =
-        (PostProcessing::WindowFunction)-1; ///< The previously used dft window function
+    PostProcessingE::WindowFunction lastWindow =
+        (PostProcessingE::WindowFunction)-1; ///< The previously used dft window function
     double *lastWindowBuffer = nullptr;
 };
 }

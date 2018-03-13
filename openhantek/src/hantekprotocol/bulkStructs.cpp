@@ -9,13 +9,13 @@ namespace Hantek {
 //////////////////////////////////////////////////////////////////////////////
 // class BulkSetFilter
 /// \brief Sets the data array to the default values.
-BulkSetFilter::BulkSetFilter() : BulkCommand(BulkCode::SETFILTER, 8) { this->init(); }
+BulkSetFilter::BulkSetFilter() : BulkCommand(HantekE::BulkCode::SETFILTER, 8) { this->init(); }
 
 /// \brief Sets the FilterByte to the given value.
 /// \param channel1 true if channel 1 is filtered.
 /// \param channel2 true if channel 2 is filtered.
 /// \param trigger true if trigger is filtered.
-BulkSetFilter::BulkSetFilter(bool channel1, bool channel2, bool trigger) : BulkCommand(BulkCode::SETFILTER, 8) {
+BulkSetFilter::BulkSetFilter(bool channel1, bool channel2, bool trigger) : BulkCommand(HantekE::BulkCode::SETFILTER, 8) {
     this->init();
 
     this->setChannel(0, channel1);
@@ -59,14 +59,14 @@ void BulkSetFilter::setTrigger(bool filtered) {
 
 /// \brief Initialize the array to the needed values.
 void BulkSetFilter::init() {
-    data()[0] =(uint8_t) BulkCode::SETFILTER;
+    data()[0] =(uint8_t) HantekE::BulkCode::SETFILTER;
     data()[1] = 0x0f;
 }
 
 //////////////////////////////////////////////////////////////////////////////
 // class BulkSetTriggerAndSamplerate
 /// \brief Sets the data array to the default values.
-BulkSetTriggerAndSamplerate::BulkSetTriggerAndSamplerate() : BulkCommand(BulkCode::SETTRIGGERANDSAMPLERATE, 12) { this->init(); }
+BulkSetTriggerAndSamplerate::BulkSetTriggerAndSamplerate() : BulkCommand(HantekE::BulkCode::SETTRIGGERANDSAMPLERATE, 12) { this->init(); }
 
 /// \brief Sets the data bytes to the specified values.
 /// \param downsampler The Downsampler value.
@@ -82,7 +82,7 @@ BulkSetTriggerAndSamplerate::BulkSetTriggerAndSamplerate(uint16_t downsampler, u
                                                          uint8_t triggerSource, uint8_t recordLength,
                                                          uint8_t samplerateId, bool downsamplingMode,
                                                          uint8_t usedChannels, bool fastRate, uint8_t triggerSlope)
-    : BulkCommand(BulkCode::SETTRIGGERANDSAMPLERATE, 12) {
+    : BulkCommand(HantekE::BulkCode::SETTRIGGERANDSAMPLERATE, 12) {
     this->init();
 
     this->setTriggerSource(triggerSource);
@@ -196,37 +196,37 @@ void BulkSetTriggerAndSamplerate::setTriggerPosition(uint32_t position) {
 }
 
 /// \brief Initialize the array to the needed values.
-void BulkSetTriggerAndSamplerate::init() { data()[0] = (uint8_t) BulkCode::SETTRIGGERANDSAMPLERATE; }
+void BulkSetTriggerAndSamplerate::init() { data()[0] = (uint8_t) HantekE::BulkCode::SETTRIGGERANDSAMPLERATE; }
 
 //////////////////////////////////////////////////////////////////////////////
 // class BulkForceTrigger
 /// \brief Sets the data array to needed values.
-BulkForceTrigger::BulkForceTrigger() : BulkCommand(BulkCode::FORCETRIGGER, 2) { data()[0] = (uint8_t) BulkCode::FORCETRIGGER; }
+BulkForceTrigger::BulkForceTrigger() : BulkCommand(HantekE::BulkCode::FORCETRIGGER, 2) { data()[0] = (uint8_t) HantekE::BulkCode::FORCETRIGGER; }
 
 //////////////////////////////////////////////////////////////////////////////
 // class BulkCaptureStart
 /// \brief Sets the data array to needed values.
-BulkCaptureStart::BulkCaptureStart() : BulkCommand(BulkCode::STARTSAMPLING, 2) { data()[0] = (uint8_t) BulkCode::STARTSAMPLING; }
+BulkCaptureStart::BulkCaptureStart() : BulkCommand(HantekE::BulkCode::STARTSAMPLING, 2) { data()[0] = (uint8_t) HantekE::BulkCode::STARTSAMPLING; }
 
 //////////////////////////////////////////////////////////////////////////////
 // class BulkTriggerEnabled
 /// \brief Sets the data array to needed values.
-BulkTriggerEnabled::BulkTriggerEnabled() : BulkCommand(BulkCode::ENABLETRIGGER, 2) { data()[0] = (uint8_t) BulkCode::ENABLETRIGGER; }
+BulkTriggerEnabled::BulkTriggerEnabled() : BulkCommand(HantekE::BulkCode::ENABLETRIGGER, 2) { data()[0] = (uint8_t) HantekE::BulkCode::ENABLETRIGGER; }
 
 //////////////////////////////////////////////////////////////////////////////
 // class BulkGetData
 /// \brief Sets the data array to needed values.
-BulkGetData::BulkGetData() : BulkCommand(BulkCode::GETDATA, 2) { data()[0] = (uint8_t) BulkCode::GETDATA; }
+BulkGetData::BulkGetData() : BulkCommand(HantekE::BulkCode::GETDATA, 2) { data()[0] = (uint8_t) HantekE::BulkCode::GETDATA; }
 
 //////////////////////////////////////////////////////////////////////////////
 // class BulkGetCaptureState
 /// \brief Sets the data array to needed values.
-BulkGetCaptureState::BulkGetCaptureState() : BulkCommand(BulkCode::GETCAPTURESTATE, 2) { data()[0] = (uint8_t) BulkCode::GETCAPTURESTATE; }
+BulkGetCaptureState::BulkGetCaptureState() : BulkCommand(HantekE::BulkCode::GETCAPTURESTATE, 2) { data()[0] = (uint8_t) HantekE::BulkCode::GETCAPTURESTATE; }
 
 //////////////////////////////////////////////////////////////////////////////
 // class BulkResponseGetCaptureState
 /// \brief Initializes the array.
-BulkResponseGetCaptureState::BulkResponseGetCaptureState() : BulkCommand(BulkCode::GETCAPTURESTATE_RESPONSE, 512) {}
+BulkResponseGetCaptureState::BulkResponseGetCaptureState() : BulkCommand(HantekE::BulkCode::GETCAPTURESTATE_RESPONSE, 512) {}
 
 /// \brief Gets the capture state.
 /// \return The CaptureState of the oscilloscope.
@@ -241,12 +241,12 @@ unsigned int BulkResponseGetCaptureState::getTriggerPoint() {
 //////////////////////////////////////////////////////////////////////////////
 // class BulkSetGain
 /// \brief Sets the data array to needed values.
-BulkSetGain::BulkSetGain() : BulkCommand(BulkCode::SETGAIN, 8) { this->init(); }
+BulkSetGain::BulkSetGain() : BulkCommand(HantekE::BulkCode::SETGAIN, 8) { this->init(); }
 
 /// \brief Sets the gain to the given values.
 /// \param channel1 The gain value for channel 1.
 /// \param channel2 The gain value for channel 2.
-BulkSetGain::BulkSetGain(uint8_t channel1, uint8_t channel2) : BulkCommand(BulkCode::SETGAIN, 8) {
+BulkSetGain::BulkSetGain(uint8_t channel1, uint8_t channel2) : BulkCommand(HantekE::BulkCode::SETGAIN, 8) {
     this->init();
 
     this->setGain(0, channel1);
@@ -276,16 +276,16 @@ void BulkSetGain::setGain(ChannelID channel, uint8_t value) {
 }
 
 /// \brief Initialize the array to the needed values.
-void BulkSetGain::init() { data()[0] = (uint8_t)BulkCode::SETGAIN; }
+void BulkSetGain::init() { data()[0] = (uint8_t)HantekE::BulkCode::SETGAIN; }
 
 //////////////////////////////////////////////////////////////////////////////
 // class BulkSetLogicalData
 /// \brief Sets the data array to needed values.
-BulkSetLogicalData::BulkSetLogicalData() : BulkCommand(BulkCode::SETLOGICALDATA, 8) { this->init(); }
+BulkSetLogicalData::BulkSetLogicalData() : BulkCommand(HantekE::BulkCode::SETLOGICALDATA, 8) { this->init(); }
 
 /// \brief Sets the data to the given value.
 /// \param data The data byte.
-BulkSetLogicalData::BulkSetLogicalData(uint8_t data) : BulkCommand(BulkCode::SETLOGICALDATA, 8) {
+BulkSetLogicalData::BulkSetLogicalData(uint8_t data) : BulkCommand(HantekE::BulkCode::SETLOGICALDATA, 8) {
     this->init();
 
     this->setData(data);
@@ -300,21 +300,21 @@ uint8_t BulkSetLogicalData::getData() { return data()[2]; }
 void BulkSetLogicalData::setData(uint8_t d) { data()[2] = d; }
 
 /// \brief Initialize the array to the needed values.
-void BulkSetLogicalData::init() { data()[0] = (uint8_t)BulkCode::SETLOGICALDATA; }
+void BulkSetLogicalData::init() { data()[0] = (uint8_t)HantekE::BulkCode::SETLOGICALDATA; }
 
 //////////////////////////////////////////////////////////////////////////////
 // class BulkGetLogicalData
 /// \brief Sets the data array to needed values.
-BulkGetLogicalData::BulkGetLogicalData() : BulkCommand(BulkCode::GETLOGICALDATA, 2) { data()[0] = (uint8_t)BulkCode::GETLOGICALDATA; }
+BulkGetLogicalData::BulkGetLogicalData() : BulkCommand(HantekE::BulkCode::GETLOGICALDATA, 2) { data()[0] = (uint8_t)HantekE::BulkCode::GETLOGICALDATA; }
 
 //////////////////////////////////////////////////////////////////////////////
 // class BulkSetFilter2250
 /// \brief Sets the data array to needed values.
-BulkSetChannels2250::BulkSetChannels2250() : BulkCommand(BulkCode::BSETCHANNELS, 4) { this->init(); }
+BulkSetChannels2250::BulkSetChannels2250() : BulkCommand(HantekE::BulkCode::BSETCHANNELS, 4) { this->init(); }
 
 /// \brief Sets the used channels.
 /// \param usedChannels The UsedChannels value.
-BulkSetChannels2250::BulkSetChannels2250(uint8_t usedChannels) : BulkCommand(BulkCode::BSETCHANNELS, 4) {
+BulkSetChannels2250::BulkSetChannels2250(uint8_t usedChannels) : BulkCommand(HantekE::BulkCode::BSETCHANNELS, 4) {
     this->init();
 
     this->setUsedChannels(usedChannels);
@@ -329,17 +329,17 @@ uint8_t BulkSetChannels2250::getUsedChannels() { return data()[2]; }
 void BulkSetChannels2250::setUsedChannels(uint8_t value) { data()[2] = value; }
 
 /// \brief Initialize the array to the needed values.
-void BulkSetChannels2250::init() { data()[0] = (uint8_t)BulkCode::BSETCHANNELS; }
+void BulkSetChannels2250::init() { data()[0] = (uint8_t)HantekE::BulkCode::BSETCHANNELS; }
 
 //////////////////////////////////////////////////////////////////////////////
 // class BulkSetTrigger2250
 /// \brief Sets the data array to needed values.
-BulkSetTrigger2250::BulkSetTrigger2250() : BulkCommand(BulkCode::CSETTRIGGERORSAMPLERATE, 8) { this->init(); }
+BulkSetTrigger2250::BulkSetTrigger2250() : BulkCommand(HantekE::BulkCode::CSETTRIGGERORSAMPLERATE, 8) { this->init(); }
 
 /// \brief Sets the used channels.
 /// \param triggerSource The trigger source id (CTriggerBits).
 /// \param triggerSlope The triggerSlope value (CTriggerBits).
-BulkSetTrigger2250::BulkSetTrigger2250(uint8_t triggerSource, uint8_t triggerSlope) : BulkCommand(BulkCode::CSETTRIGGERORSAMPLERATE, 8) {
+BulkSetTrigger2250::BulkSetTrigger2250(uint8_t triggerSource, uint8_t triggerSlope) : BulkCommand(HantekE::BulkCode::CSETTRIGGERORSAMPLERATE, 8) {
     this->init();
 
     this->setTriggerSource(triggerSource);
@@ -363,17 +363,17 @@ uint8_t BulkSetTrigger2250::getTriggerSlope() { return ((CTriggerBits *)&(data()
 void BulkSetTrigger2250::setTriggerSlope(uint8_t slope) { ((CTriggerBits *)&(data()[2]))->triggerSlope = slope; }
 
 /// \brief Initialize the array to the needed values.
-void BulkSetTrigger2250::init() { data()[0] = (uint8_t)BulkCode::CSETTRIGGERORSAMPLERATE; }
+void BulkSetTrigger2250::init() { data()[0] = (uint8_t)HantekE::BulkCode::CSETTRIGGERORSAMPLERATE; }
 
 //////////////////////////////////////////////////////////////////////////////
 // class BulkSetSamplerate5200
 /// \brief Sets the data array to the default values.
-BulkSetSamplerate5200::BulkSetSamplerate5200() : BulkCommand(BulkCode::CSETTRIGGERORSAMPLERATE, 6) { this->init(); }
+BulkSetSamplerate5200::BulkSetSamplerate5200() : BulkCommand(HantekE::BulkCode::CSETTRIGGERORSAMPLERATE, 6) { this->init(); }
 
 /// \brief Sets the data bytes to the specified values.
 /// \param samplerateSlow The SamplerateSlow value.
 /// \param samplerateFast The SamplerateFast value.
-BulkSetSamplerate5200::BulkSetSamplerate5200(uint16_t samplerateSlow, uint8_t samplerateFast) : BulkCommand(BulkCode::CSETTRIGGERORSAMPLERATE, 6) {
+BulkSetSamplerate5200::BulkSetSamplerate5200(uint16_t samplerateSlow, uint8_t samplerateFast) : BulkCommand(HantekE::BulkCode::CSETTRIGGERORSAMPLERATE, 6) {
     this->init();
 
     this->setSamplerateFast(samplerateFast);
@@ -402,16 +402,16 @@ void BulkSetSamplerate5200::setSamplerateSlow(uint16_t samplerate) {
 }
 
 /// \brief Initialize the array to the needed values.
-void BulkSetSamplerate5200::init() { data()[0] = (uint8_t)BulkCode::CSETTRIGGERORSAMPLERATE; }
+void BulkSetSamplerate5200::init() { data()[0] = (uint8_t)HantekE::BulkCode::CSETTRIGGERORSAMPLERATE; }
 
 //////////////////////////////////////////////////////////////////////////////
 // class BulkSetBuffer2250
 /// \brief Sets the data array to the default values.
-BulkSetRecordLength2250::BulkSetRecordLength2250() : BulkCommand(BulkCode::DSETBUFFER, 4) { this->init(); }
+BulkSetRecordLength2250::BulkSetRecordLength2250() : BulkCommand(HantekE::BulkCode::DSETBUFFER, 4) { this->init(); }
 
 /// \brief Sets the data bytes to the specified values.
 /// \param recordLength The ::RecordLengthId value.
-BulkSetRecordLength2250::BulkSetRecordLength2250(uint8_t recordLength) : BulkCommand(BulkCode::DSETBUFFER, 4) {
+BulkSetRecordLength2250::BulkSetRecordLength2250(uint8_t recordLength) : BulkCommand(HantekE::BulkCode::DSETBUFFER, 4) {
     this->init();
 
     this->setRecordLength(recordLength);
@@ -426,12 +426,12 @@ uint8_t BulkSetRecordLength2250::getRecordLength() { return data()[2]; }
 void BulkSetRecordLength2250::setRecordLength(uint8_t value) { data()[2] = value; }
 
 /// \brief Initialize the array to the needed values.
-void BulkSetRecordLength2250::init() { data()[0] = (uint8_t)BulkCode::DSETBUFFER; }
+void BulkSetRecordLength2250::init() { data()[0] = (uint8_t)HantekE::BulkCode::DSETBUFFER; }
 
 //////////////////////////////////////////////////////////////////////////////
 // class BulkSetBuffer5200
 /// \brief Sets the data array to the default values.
-BulkSetBuffer5200::BulkSetBuffer5200() : BulkCommand(BulkCode::DSETBUFFER, 10) { this->init(); }
+BulkSetBuffer5200::BulkSetBuffer5200() : BulkCommand(HantekE::BulkCode::DSETBUFFER, 10) { this->init(); }
 
 /// \brief Sets the data bytes to the specified values.
 /// \param triggerPositionPre The TriggerPositionPre value.
@@ -441,7 +441,7 @@ BulkSetBuffer5200::BulkSetBuffer5200() : BulkCommand(BulkCode::DSETBUFFER, 10) {
 /// \param recordLength The ::RecordLengthId value.
 BulkSetBuffer5200::BulkSetBuffer5200(uint16_t triggerPositionPre, uint16_t triggerPositionPost, DTriggerPositionUsed usedPre,
                                      DTriggerPositionUsed usedPost, uint8_t recordLength)
-    : BulkCommand(BulkCode::DSETBUFFER, 10) {
+    : BulkCommand(HantekE::BulkCode::DSETBUFFER, 10) {
     this->init();
 
     this->setTriggerPositionPre(triggerPositionPre);
@@ -503,7 +503,7 @@ void BulkSetBuffer5200::setRecordLength(uint8_t value) { ((DBufferBits *)&(data(
 
 /// \brief Initialize the array to the needed values.
 void BulkSetBuffer5200::init() {
-    data()[0] = (uint8_t)BulkCode::DSETBUFFER;
+    data()[0] = (uint8_t)HantekE::BulkCode::DSETBUFFER;
     data()[5] = 0xff;
     data()[9] = 0xff;
 }
@@ -511,14 +511,14 @@ void BulkSetBuffer5200::init() {
 //////////////////////////////////////////////////////////////////////////////
 // class BulkSetSamplerate2250
 /// \brief Sets the data array to the default values.
-BulkSetSamplerate2250::BulkSetSamplerate2250() : BulkCommand(BulkCode::ESETTRIGGERORSAMPLERATE, 8) { this->init(); }
+BulkSetSamplerate2250::BulkSetSamplerate2250() : BulkCommand(HantekE::BulkCode::ESETTRIGGERORSAMPLERATE, 8) { this->init(); }
 
 /// \brief Sets the data bytes to the specified values.
 /// \param fastRate The fastRate state (ESamplerateBits).
 /// \param downsampling The downsampling state (ESamplerateBits).
 /// \param samplerate The Samplerate value.
 BulkSetSamplerate2250::BulkSetSamplerate2250(bool fastRate, bool downsampling, uint16_t samplerate)
-    : BulkCommand(BulkCode::ESETTRIGGERORSAMPLERATE, 8) {
+    : BulkCommand(HantekE::BulkCode::ESETTRIGGERORSAMPLERATE, 8) {
     this->init();
 
     this->setFastRate(fastRate);
@@ -558,12 +558,12 @@ void BulkSetSamplerate2250::setSamplerate(uint16_t samplerate) {
 }
 
 /// \brief Initialize the array to the needed values.
-void BulkSetSamplerate2250::init() { data()[0] = (uint8_t)BulkCode::ESETTRIGGERORSAMPLERATE; }
+void BulkSetSamplerate2250::init() { data()[0] = (uint8_t)HantekE::BulkCode::ESETTRIGGERORSAMPLERATE; }
 
 //////////////////////////////////////////////////////////////////////////////
 // class BulkSetTrigger5200
 /// \brief Sets the data array to the default values.
-BulkSetTrigger5200::BulkSetTrigger5200() : BulkCommand(BulkCode::ESETTRIGGERORSAMPLERATE, 8) { this->init(); }
+BulkSetTrigger5200::BulkSetTrigger5200() : BulkCommand(HantekE::BulkCode::ESETTRIGGERORSAMPLERATE, 8) { this->init(); }
 
 /// \brief Sets the data bytes to the specified values.
 /// \param triggerSource The trigger source id.
@@ -573,7 +573,7 @@ BulkSetTrigger5200::BulkSetTrigger5200() : BulkCommand(BulkCode::ESETTRIGGERORSA
 /// \param triggerPulse The triggerPulse value.
 BulkSetTrigger5200::BulkSetTrigger5200(uint8_t triggerSource, uint8_t usedChannels, bool fastRate, uint8_t triggerSlope,
                                        uint8_t triggerPulse)
-    : BulkCommand(BulkCode::ESETTRIGGERORSAMPLERATE, 8) {
+    : BulkCommand(HantekE::BulkCode::ESETTRIGGERORSAMPLERATE, 8) {
     this->init();
 
     this->setTriggerSource(triggerSource);
@@ -625,21 +625,21 @@ void BulkSetTrigger5200::setTriggerPulse(bool pulse) { ((ETsrBits *)&(data()[2])
 
 /// \brief Initialize the array to the needed values.
 void BulkSetTrigger5200::init() {
-    data()[0] = (uint8_t)BulkCode::ESETTRIGGERORSAMPLERATE;
+    data()[0] = (uint8_t)HantekE::BulkCode::ESETTRIGGERORSAMPLERATE;
     data()[4] = 0x02;
 }
 
 //////////////////////////////////////////////////////////////////////////////
 /// \class BulkSetBuffer2250                                    hantek/types.h
-/// \brief The DSO-2250 BulkCode::FSETBUFFER builder.
+/// \brief The DSO-2250 HantekE::BulkCode::FSETBUFFER builder.
 /// \brief Sets the data array to the default values.
-BulkSetBuffer2250::BulkSetBuffer2250() : BulkCommand(BulkCode::FSETBUFFER, 10) { this->init(); }
+BulkSetBuffer2250::BulkSetBuffer2250() : BulkCommand(HantekE::BulkCode::FSETBUFFER, 10) { this->init(); }
 
 /// \brief Sets the data bytes to the specified values.
 /// \param triggerPositionPre The TriggerPositionPre value.
 /// \param triggerPositionPost The TriggerPositionPost value.
 BulkSetBuffer2250::BulkSetBuffer2250(uint32_t triggerPositionPre, uint32_t triggerPositionPost)
-    : BulkCommand(BulkCode::FSETBUFFER, 12) {
+    : BulkCommand(HantekE::BulkCode::FSETBUFFER, 12) {
     this->init();
 
     this->setTriggerPositionPre(triggerPositionPre);
@@ -675,5 +675,5 @@ void BulkSetBuffer2250::setTriggerPositionPre(uint32_t position) {
 }
 
 /// \brief Initialize the array to the needed values.
-void BulkSetBuffer2250::init() { data()[0] = (uint8_t)BulkCode::FSETBUFFER; }
+void BulkSetBuffer2250::init() { data()[0] = (uint8_t)HantekE::BulkCode::FSETBUFFER; }
 }

@@ -83,7 +83,7 @@ bool LegacyExportDrawer::exportSamples(std::shared_ptr<PPresult> result, QPaintD
     painter.drawText(QRectF(0 * stretchBase, top, stretchBase, lineHeight),
                      tr("%1  %2  %3  %4")
                          .arg(settings->scope.channel(settings->deviceSettings->trigger.source())->name(),
-                              Dso::slopeString(settings->deviceSettings->trigger.slope()), levelString,
+                              DsoE::slopeString(settings->deviceSettings->trigger.slope()), levelString,
                               pretriggerString));
 
     painter.drawText(QRectF(1 * stretchBase, top, stretchBase, lineHeight), tr("%1 S").arg(result->sampleCount()),
@@ -116,10 +116,10 @@ bool LegacyExportDrawer::exportSamples(std::shared_ptr<PPresult> result, QPaintD
         // Print coupling/math mode
         if (!channelSettings->isMathChannel())
             painter.drawText(QRectF(lineHeight * 4, top, lineHeight * 2, lineHeight),
-                             Dso::couplingString(channelSettings->voltage()->coupling(deviceSpecification)));
+                             DsoE::couplingString(channelSettings->voltage()->coupling(deviceSpecification)));
         else
             painter.drawText(QRectF(lineHeight * 4, top, lineHeight * 2, lineHeight),
-                             PostProcessing::mathModeString(((Settings::MathChannel *)channelSettings)->mathMode()));
+                             PostProcessingE::mathModeString(((Settings::MathChannel *)channelSettings)->mathMode()));
 
         // Print voltage gain
         painter.drawText(QRectF(lineHeight * 6, top, stretchBase * 2, lineHeight),

@@ -46,7 +46,7 @@ struct FilterBits {
 
 
 /// \struct GainBits
-/// \brief The gain bits for BulkCode::SETGAIN.
+/// \brief The gain bits for HantekE::BulkCode::SETGAIN.
 struct GainBits {
     uint8_t channel1 : 2; ///< Gain for CH1, 0 = 1e* V, 1 = 2e*, 2 = 5e*
     uint8_t channel2 : 2; ///< Gain for CH1, 0 = 1e* V, 1 = 2e*, 2 = 5e*
@@ -69,7 +69,7 @@ struct Tsr1Bits {
 struct Tsr2Bits {
     uint8_t usedChannels : 2; ///< Used channels, see Hantek::UsedChannels
     uint8_t fastRate : 1;     ///< true, if one channels uses all buffers
-    uint8_t triggerSlope : 1; ///< The trigger slope, see Dso::Slope, inverted
+    uint8_t triggerSlope : 1; ///< The trigger slope, see DsoE::Slope, inverted
     /// when Tsr1Bits.samplerateFast is uneven
     uint8_t reserved : 4; ///< Unused bits
 };
@@ -79,7 +79,7 @@ struct Tsr2Bits {
 /// \brief Trigger bits for 0x0c command.
 struct CTriggerBits {
     uint8_t triggerSource : 2; ///< The trigger source, see Hantek::TriggerSource
-    uint8_t triggerSlope : 1;  ///< The trigger slope, see Dso::Slope
+    uint8_t triggerSlope : 1;  ///< The trigger slope, see DsoE::Slope
     uint8_t reserved : 5;      ///< Unused bits
 };
 
@@ -108,7 +108,7 @@ struct ETsrBits {
     uint8_t fastRate : 1;      ///< false, if one channels uses all buffers
     uint8_t usedChannels : 2;  ///< Used channels, see Hantek::UsedChannels
     uint8_t triggerSource : 2; ///< The trigger source, see Hantek::TriggerSource
-    uint8_t triggerSlope : 2;  ///< The trigger slope, see Dso::Slope
+    uint8_t triggerSlope : 2;  ///< The trigger slope, see DsoE::Slope
     uint8_t triggerPulse : 1;  ///< Pulses are causing trigger events
 };
 

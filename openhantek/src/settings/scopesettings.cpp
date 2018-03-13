@@ -120,7 +120,7 @@ void Settings::Scope::removeMathChannel(ChannelID channelID) {
     }
 }
 
-void Settings::Scope::setFormat(Dso::GraphFormat v) {
+void Settings::Scope::setFormat(DsoE::GraphFormat v) {
     m_format = v;
     emit formatChanged(this);
 }

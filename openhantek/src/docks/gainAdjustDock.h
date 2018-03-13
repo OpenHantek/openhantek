@@ -12,9 +12,6 @@ namespace Dso {
 struct ModelSpec;
 }
 class DsoControl;
-namespace Debug {
-class LogModel;
-}
 class SelfCalibration;
 
 /// \brief Dock window for adjusting the gain factor

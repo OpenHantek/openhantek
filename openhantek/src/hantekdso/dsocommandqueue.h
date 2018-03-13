@@ -34,26 +34,26 @@ class DsoCommandQueue : public QObject {
      */
     void addCommand(BulkCommand *newCommand, bool pending = false);
 
-    template <class T> T *modifyCommand(Hantek::BulkCode code) {
+    template <class T> T *modifyCommand(HantekE::BulkCode code) {
         T *t = static_cast<T *>(command[(uint8_t)code]);
         if (t) t->pending = true;
         return t;
     }
 
-    inline const BulkCommand *getCommand(Hantek::BulkCode code) const { return command[(uint8_t)code]; }
+    inline const BulkCommand *getCommand(HantekE::BulkCode code) const { return command[(uint8_t)code]; }
 
     void addCommand(ControlCommand *newCommand, bool pending = false);
 
-    template <class T> T *modifyCommand(Hantek::ControlCode code) {
+    template <class T> T *modifyCommand(HantekE::ControlCode code) {
         T *t = static_cast<T *>(control[(uint8_t)code]);
         if (t) t->pending = true;
         return t;
     }
 
-    inline bool isCommandSupported(Hantek::ControlCode code) const { return control[(uint8_t)code]; }
-    inline bool isCommandSupported(Hantek::BulkCode code) const { return command[(uint8_t)code]; }
+    inline bool isCommandSupported(HantekE::ControlCode code) const { return control[(uint8_t)code]; }
+    inline bool isCommandSupported(HantekE::BulkCode code) const { return command[(uint8_t)code]; }
 
-    const ControlCommand *getCommand(Hantek::ControlCode code) const { return control[(uint8_t)code]; }
+    const ControlCommand *getCommand(HantekE::ControlCode code) const { return control[(uint8_t)code]; }
 
     /// Send all pending control and bulk commands. Issued by the run() loop.
     bool sendPendingCommands();
@@ -69,7 +69,7 @@ class DsoCommandQueue : public QObject {
     /// \brief Sends bulk/control commands directly.
     /// \param data The command bytes.
     /// \return See ::Dso::ErrorCode.
-    void manualCommand(bool isBulk, Hantek::BulkCode bulkCode, Hantek::ControlCode controlCode, const QByteArray &data);
+    void manualCommand(bool isBulk, HantekE::BulkCode bulkCode, HantekE::ControlCode controlCode, const QByteArray &data);
 
   protected:
     QMutex m_commandMutex; ///< Makes command/control set-methods and enumerations thread-safe

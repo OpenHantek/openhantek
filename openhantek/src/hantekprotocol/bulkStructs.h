@@ -29,7 +29,7 @@ class BulkSetFilter : public BulkCommand {
     void init();
 };
 
-/// \brief The BulkCode::SETTRIGGERANDSAMPLERATE builder.
+/// \brief The HantekE::BulkCode::SETTRIGGERANDSAMPLERATE builder.
 class BulkSetTriggerAndSamplerate : public BulkCommand {
   public:
     BulkSetTriggerAndSamplerate();
@@ -60,7 +60,7 @@ class BulkSetTriggerAndSamplerate : public BulkCommand {
     void init();
 };
 
-/// \brief The BulkCode::FORCETRIGGER builder.
+/// \brief The HantekE::BulkCode::FORCETRIGGER builder.
 class BulkForceTrigger : public BulkCommand {
   public:
     BulkForceTrigger();
@@ -78,19 +78,19 @@ class BulkTriggerEnabled : public BulkCommand {
     BulkTriggerEnabled();
 };
 
-/// \brief The BulkCode::GETDATA builder.
+/// \brief The HantekE::BulkCode::GETDATA builder.
 class BulkGetData : public BulkCommand {
   public:
     BulkGetData();
 };
 
-/// \brief The BulkCode::GETCAPTURESTATE builder.
+/// \brief The HantekE::BulkCode::GETCAPTURESTATE builder.
 class BulkGetCaptureState : public BulkCommand {
   public:
     BulkGetCaptureState();
 };
 
-/// \brief The parser for the BulkCode::GETCAPTURESTATE response.
+/// \brief The parser for the HantekE::BulkCode::GETCAPTURESTATE response.
 class BulkResponseGetCaptureState : public BulkCommand {
   public:
     BulkResponseGetCaptureState();
@@ -99,7 +99,7 @@ class BulkResponseGetCaptureState : public BulkCommand {
     unsigned int getTriggerPoint();
 };
 
-/// \brief The BulkCode::SETGAIN builder.
+/// \brief The HantekE::BulkCode::SETGAIN builder.
 class BulkSetGain : public BulkCommand {
   public:
     BulkSetGain();
@@ -112,7 +112,7 @@ class BulkSetGain : public BulkCommand {
     void init();
 };
 
-/// \brief The BulkCode::SETLOGICALDATA builder.
+/// \brief The HantekE::BulkCode::SETLOGICALDATA builder.
 class BulkSetLogicalData : public BulkCommand {
   public:
     BulkSetLogicalData();
@@ -125,7 +125,7 @@ class BulkSetLogicalData : public BulkCommand {
     void init();
 };
 
-/// \brief The BulkCode::GETLOGICALDATA builder.
+/// \brief The HantekE::BulkCode::GETLOGICALDATA builder.
 class BulkGetLogicalData : public BulkCommand {
   public:
     BulkGetLogicalData();
@@ -144,7 +144,7 @@ class BulkSetChannels2250 : public BulkCommand {
     void init();
 };
 
-/// \brief The DSO-2250 BulkCode::CSETTRIGGERORSAMPLERATE builder.
+/// \brief The DSO-2250 HantekE::BulkCode::CSETTRIGGERORSAMPLERATE builder.
 class BulkSetTrigger2250 : public BulkCommand {
   public:
     BulkSetTrigger2250();
@@ -159,7 +159,7 @@ class BulkSetTrigger2250 : public BulkCommand {
     void init();
 };
 
-/// \brief The DSO-5200/DSO-5200A BulkCode::CSETTRIGGERORSAMPLERATE builder.
+/// \brief The DSO-5200/DSO-5200A HantekE::BulkCode::CSETTRIGGERORSAMPLERATE builder.
 class BulkSetSamplerate5200 : public BulkCommand {
   public:
     BulkSetSamplerate5200();
@@ -174,7 +174,7 @@ class BulkSetSamplerate5200 : public BulkCommand {
     void init();
 };
 
-/// \brief The DSO-2250 BulkCode::DSETBUFFER builder.
+/// \brief The DSO-2250 HantekE::BulkCode::DSETBUFFER builder.
 class BulkSetRecordLength2250 : public BulkCommand {
   public:
     BulkSetRecordLength2250();
@@ -187,7 +187,7 @@ class BulkSetRecordLength2250 : public BulkCommand {
     void init();
 };
 
-/// \brief The DSO-5200/DSO-5200A BulkCode::DSETBUFFER builder.
+/// \brief The DSO-5200/DSO-5200A HantekE::BulkCode::DSETBUFFER builder.
 class BulkSetBuffer5200 : public BulkCommand {
   public:
     BulkSetBuffer5200();
@@ -209,7 +209,7 @@ class BulkSetBuffer5200 : public BulkCommand {
     void init();
 };
 
-/// \brief The DSO-2250 BulkCode::ESETTRIGGERORSAMPLERATE builder.
+/// \brief The DSO-2250 HantekE::BulkCode::ESETTRIGGERORSAMPLERATE builder.
 class BulkSetSamplerate2250 : public BulkCommand {
   public:
     BulkSetSamplerate2250();
@@ -226,7 +226,7 @@ class BulkSetSamplerate2250 : public BulkCommand {
     void init();
 };
 
-/// \brief The DSO-5200/DSO-5200A BulkCode::ESETTRIGGERORSAMPLERATE builder.
+/// \brief The DSO-5200/DSO-5200A HantekE::BulkCode::ESETTRIGGERORSAMPLERATE builder.
 class BulkSetTrigger5200 : public BulkCommand {
   public:
     BulkSetTrigger5200();
@@ -248,7 +248,7 @@ class BulkSetTrigger5200 : public BulkCommand {
     void init();
 };
 
-/// \brief The DSO-2250 BulkCode::FSETBUFFER builder.
+/// \brief The DSO-2250 HantekE::BulkCode::FSETBUFFER builder.
 class BulkSetBuffer2250 : public BulkCommand {
   public:
     BulkSetBuffer2250();

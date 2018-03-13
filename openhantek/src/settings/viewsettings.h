@@ -43,11 +43,11 @@ class View : public QObject {
     inline unsigned digitalPhosphorDepth() { return m_digitalPhosphorDepth; }
     void setDigitalPhosphor(bool enable, unsigned historyDepth);
 
-    inline Dso::InterpolationMode interpolation() const { return m_interpolation; }
-    void setInterpolation(Dso::InterpolationMode mode);
+    inline DsoE::InterpolationMode interpolation() const { return m_interpolation; }
+    void setInterpolation(DsoE::InterpolationMode mode);
 
   private:
-    Dso::InterpolationMode m_interpolation = Dso::InterpolationMode::LINEAR; ///< Interpolation mode for the graph
+    DsoE::InterpolationMode m_interpolation = DsoE::InterpolationMode::LINEAR; ///< Interpolation mode for the graph
     bool m_digitalPhosphor = false;      ///< true slowly fades out the previous graphs
     unsigned m_digitalPhosphorDepth = 8; ///< Number of channels shown at one time
   signals:

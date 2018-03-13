@@ -55,7 +55,7 @@ class DsoLoop : public QObject {
     int captureState = Hantek::CAPTURE_WAITING;
     Hantek::RollState rollState = Hantek::RollState::STARTSAMPLING;
     bool _samplingStarted = false;
-    Dso::TriggerMode lastTriggerMode = (Dso::TriggerMode)-1;
+    DsoE::TriggerMode lastTriggerMode = (DsoE::TriggerMode)-1;
     std::chrono::milliseconds cycleCounter = 0ms;
     std::chrono::milliseconds startCycle = 0ms;
     std::chrono::milliseconds cycleTime = 0ms;

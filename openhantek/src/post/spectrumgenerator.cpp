@@ -46,19 +46,19 @@ void SpectrumGenerator::process(PPresult *result) {
             lastWindow = postprocessing->spectrumWindow();
 
             switch (postprocessing->spectrumWindow()) {
-            case PostProcessing::WindowFunction::HAMMING:
+            case PostProcessingE::WindowFunction::HAMMING:
                 for (unsigned int windowPosition = 0; windowPosition < lastRecordLength; ++windowPosition)
                     *(lastWindowBuffer + windowPosition) = 0.54 - 0.46 * cos(2.0 * M_PI * windowPosition / windowEnd);
                 break;
-            case PostProcessing::WindowFunction::HANN:
+            case PostProcessingE::WindowFunction::HANN:
                 for (unsigned int windowPosition = 0; windowPosition < lastRecordLength; ++windowPosition)
                     *(lastWindowBuffer + windowPosition) = 0.5 * (1.0 - cos(2.0 * M_PI * windowPosition / windowEnd));
                 break;
-            case PostProcessing::WindowFunction::COSINE:
+            case PostProcessingE::WindowFunction::COSINE:
                 for (unsigned int windowPosition = 0; windowPosition < lastRecordLength; ++windowPosition)
                     *(lastWindowBuffer + windowPosition) = sin(M_PI * windowPosition / windowEnd);
                 break;
-            case PostProcessing::WindowFunction::LANCZOS:
+            case PostProcessingE::WindowFunction::LANCZOS:
                 for (unsigned int windowPosition = 0; windowPosition < lastRecordLength; ++windowPosition) {
                     double sincParameter = (2.0 * windowPosition / windowEnd - 1.0) * M_PI;
                     if (sincParameter == 0)
@@ -67,65 +67,65 @@ void SpectrumGenerator::process(PPresult *result) {
                         *(lastWindowBuffer + windowPosition) = sin(sincParameter) / sincParameter;
                 }
                 break;
-            case PostProcessing::WindowFunction::BARTLETT:
+            case PostProcessingE::WindowFunction::BARTLETT:
                 for (unsigned int windowPosition = 0; windowPosition < lastRecordLength; ++windowPosition)
                     *(lastWindowBuffer + windowPosition) =
                         2.0 / windowEnd * (windowEnd / 2 - std::abs((double)(windowPosition - windowEnd / 2.0)));
                 break;
-            case PostProcessing::WindowFunction::TRIANGULAR:
+            case PostProcessingE::WindowFunction::TRIANGULAR:
                 for (unsigned int windowPosition = 0; windowPosition < lastRecordLength; ++windowPosition)
                     *(lastWindowBuffer + windowPosition) =
                         2.0 / lastRecordLength *
                         (lastRecordLength / 2 - std::abs((double)(windowPosition - windowEnd / 2.0)));
                 break;
-            case PostProcessing::WindowFunction::GAUSS: {
+            case PostProcessingE::WindowFunction::GAUSS: {
                 double sigma = 0.4;
                 for (unsigned int windowPosition = 0; windowPosition < lastRecordLength; ++windowPosition)
                     *(lastWindowBuffer + windowPosition) =
                         exp(-0.5 * pow(((windowPosition - windowEnd / 2) / (sigma * windowEnd / 2)), 2));
             } break;
-            case PostProcessing::WindowFunction::BARTLETTHANN:
+            case PostProcessingE::WindowFunction::BARTLETTHANN:
                 for (unsigned int windowPosition = 0; windowPosition < lastRecordLength; ++windowPosition)
                     *(lastWindowBuffer + windowPosition) = 0.62 -
                                                            0.48 * std::abs((double)(windowPosition / windowEnd - 0.5)) -
                                                            0.38 * cos(2.0 * M_PI * windowPosition / windowEnd);
                 break;
-            case PostProcessing::WindowFunction::BLACKMAN: {
+            case PostProcessingE::WindowFunction::BLACKMAN: {
                 double alpha = 0.16;
                 for (unsigned int windowPosition = 0; windowPosition < lastRecordLength; ++windowPosition)
                     *(lastWindowBuffer + windowPosition) = (1 - alpha) / 2 -
                                                            0.5 * cos(2.0 * M_PI * windowPosition / windowEnd) +
                                                            alpha / 2 * cos(4.0 * M_PI * windowPosition / windowEnd);
             } break;
-            // case PostProcessing::WindowFunction::WINDOW_KAISER:
+            // case PostProcessingE::WindowFunction::WINDOW_KAISER:
             // TODO WINDOW_KAISER
             // double alpha = 3.0;
             // for(unsigned int windowPosition = 0; windowPosition <
             // lastRecordLength; ++windowPosition)
             //*(window + windowPosition) = ;
             // break;
-            case PostProcessing::WindowFunction::NUTTALL:
+            case PostProcessingE::WindowFunction::NUTTALL:
                 for (unsigned int windowPosition = 0; windowPosition < lastRecordLength; ++windowPosition)
                     *(lastWindowBuffer + windowPosition) = 0.355768 -
                                                            0.487396 * cos(2 * M_PI * windowPosition / windowEnd) +
                                                            0.144232 * cos(4 * M_PI * windowPosition / windowEnd) -
                                                            0.012604 * cos(6 * M_PI * windowPosition / windowEnd);
                 break;
-            case PostProcessing::WindowFunction::BLACKMANHARRIS:
+            case PostProcessingE::WindowFunction::BLACKMANHARRIS:
                 for (unsigned int windowPosition = 0; windowPosition < lastRecordLength; ++windowPosition)
                     *(lastWindowBuffer + windowPosition) = 0.35875 -
                                                            0.48829 * cos(2 * M_PI * windowPosition / windowEnd) +
                                                            0.14128 * cos(4 * M_PI * windowPosition / windowEnd) -
                                                            0.01168 * cos(6 * M_PI * windowPosition / windowEnd);
                 break;
-            case PostProcessing::WindowFunction::BLACKMANNUTTALL:
+            case PostProcessingE::WindowFunction::BLACKMANNUTTALL:
                 for (unsigned int windowPosition = 0; windowPosition < lastRecordLength; ++windowPosition)
                     *(lastWindowBuffer + windowPosition) = 0.3635819 -
                                                            0.4891775 * cos(2 * M_PI * windowPosition / windowEnd) +
                                                            0.1365995 * cos(4 * M_PI * windowPosition / windowEnd) -
                                                            0.0106411 * cos(6 * M_PI * windowPosition / windowEnd);
                 break;
-            case PostProcessing::WindowFunction::FLATTOP:
+            case PostProcessingE::WindowFunction::FLATTOP:
                 for (unsigned int windowPosition = 0; windowPosition < lastRecordLength; ++windowPosition)
                     *(lastWindowBuffer + windowPosition) = 1.0 - 1.93 * cos(2 * M_PI * windowPosition / windowEnd) +
                                                            1.29 * cos(4 * M_PI * windowPosition / windowEnd) -

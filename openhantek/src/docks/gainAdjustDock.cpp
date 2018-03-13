@@ -46,8 +46,6 @@ template <typename... Args> struct SELECT {
     }
 };
 
-using namespace Debug;
-
 GainAdjustDock::GainAdjustDock(DsoControl *dsocontrol, SelfCalibration *selfCalibration, QWidget *parent,
                                Qt::WindowFlags flags)
     : QDockWidget(tr("Calibration"), parent, flags) {

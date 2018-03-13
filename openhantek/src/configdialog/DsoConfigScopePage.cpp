@@ -37,6 +37,6 @@ DsoConfigScopePage::DsoConfigScopePage(Settings::DsoSettings *settings, QWidget 
 
 /// \brief Saves the new settings.
 void DsoConfigScopePage::saveSettings() {
-    settings->view.setInterpolation((Dso::InterpolationMode)interpolationComboBox->currentIndex());
+    settings->view.setInterpolation((DsoE::InterpolationMode)interpolationComboBox->currentIndex());
     settings->view.setDigitalPhosphor(settings->view.digitalPhosphor(), (unsigned)digitalPhosphorDepthSpinBox->value());
 }

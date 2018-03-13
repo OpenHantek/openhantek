@@ -47,7 +47,7 @@ void DsoLoop::runRollMode() {
         // Sampling hasn't started, update the expected sample count
         expectedSampleCount = m_settings->getSampleCount();
 
-        errorCode = m_control->bulkCommand(m_control->getCommand(BulkCode::STARTSAMPLING));
+        errorCode = m_control->bulkCommand(m_control->getCommand(HantekE::BulkCode::STARTSAMPLING));
         if (errorCode < 0) {
             if (errorCode == LIBUSB_ERROR_NO_DEVICE) {
                 emit m_control->communicationError();
@@ -63,7 +63,7 @@ void DsoLoop::runRollMode() {
         break;
 
     case RollState::ENABLETRIGGER:
-        errorCode = m_control->bulkCommand(m_control->getCommand(BulkCode::ENABLETRIGGER));
+        errorCode = m_control->bulkCommand(m_control->getCommand(HantekE::BulkCode::ENABLETRIGGER));
         if (errorCode < 0) {
             if (errorCode == LIBUSB_ERROR_NO_DEVICE) {
                 emit m_control->communicationError();
@@ -77,7 +77,7 @@ void DsoLoop::runRollMode() {
         break;
 
     case RollState::FORCETRIGGER:
-        errorCode = m_control->bulkCommand(m_control->getCommand(BulkCode::FORCETRIGGER));
+        errorCode = m_control->bulkCommand(m_control->getCommand(HantekE::BulkCode::FORCETRIGGER));
         if (errorCode < 0) {
             if (errorCode == LIBUSB_ERROR_NO_DEVICE) {
                 emit m_control->communicationError();
@@ -99,7 +99,7 @@ void DsoLoop::runRollMode() {
     }
 
         // Check if we're in single trigger mode
-        if (m_settings->trigger.mode() == Dso::TriggerMode::SINGLE && this->_samplingStarted)
+        if (m_settings->trigger.mode() == DsoE::TriggerMode::SINGLE && this->_samplingStarted)
             this->enableSampling(false);
 
         // Sampling completed, restart it when necessary
@@ -148,7 +148,7 @@ void DsoLoop::runStandardMode() {
     }
 
         // Check if we're in single trigger mode
-        if (m_settings->trigger.mode() == Dso::TriggerMode::SINGLE && this->_samplingStarted)
+        if (m_settings->trigger.mode() == DsoE::TriggerMode::SINGLE && this->_samplingStarted)
             this->enableSampling(false);
 
         // Sampling completed, restart it when necessary
@@ -172,7 +172,7 @@ void DsoLoop::runStandardMode() {
                 if (this->cycleCounter == this->startCycle && !m_settings->isRollMode()) {
                     // Buffer refilled completely since start of sampling, enable the
                     // trigger now
-                    errorCode = m_control->bulkCommand(m_control->getCommand(BulkCode::ENABLETRIGGER));
+                    errorCode = m_control->bulkCommand(m_control->getCommand(HantekE::BulkCode::ENABLETRIGGER));
                     if (errorCode < 0) {
                         if (errorCode == LIBUSB_ERROR_NO_DEVICE) {
                             emit m_control->communicationError();
@@ -183,9 +183,9 @@ void DsoLoop::runStandardMode() {
 
                     DBGNOTIFY("Enabling trigger", Debug::NotificationType::DSOLoop);
                 } else if (cycleCounter >= 8ms + startCycle &&
-                           m_settings->trigger.mode() == Dso::TriggerMode::WAIT_FORCE) {
+                           m_settings->trigger.mode() == DsoE::TriggerMode::WAIT_FORCE) {
                     // Force triggering
-                    errorCode = m_control->bulkCommand(m_control->getCommand(BulkCode::FORCETRIGGER));
+                    errorCode = m_control->bulkCommand(m_control->getCommand(HantekE::BulkCode::FORCETRIGGER));
                     if (errorCode < 0) {
                         if (errorCode == LIBUSB_ERROR_NO_DEVICE) {
                             emit m_control->communicationError();
@@ -201,7 +201,7 @@ void DsoLoop::runStandardMode() {
             }
 
             // Start capturing
-            errorCode = m_control->bulkCommand(m_control->getCommand(BulkCode::STARTSAMPLING));
+            errorCode = m_control->bulkCommand(m_control->getCommand(HantekE::BulkCode::STARTSAMPLING));
             if (errorCode < 0) {
                 if (errorCode == LIBUSB_ERROR_NO_DEVICE) {
                     emit m_control->communicationError();

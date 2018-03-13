@@ -103,7 +103,7 @@ HorizontalDock::HorizontalDock(Settings::Scope *scope, DsoControl *dsocontrol, Q
 
     formatLabel = new QLabel(tr("Format"), this);
     formatComboBox = new QComboBox(this);
-    for (Dso::GraphFormat format : Enum<Dso::GraphFormat>()) formatComboBox->addItem(Dso::graphFormatString(format));
+    for (DsoE::GraphFormat format : Enum<DsoE::GraphFormat>()) formatComboBox->addItem(DsoE::graphFormatString(format));
 
     dockLayout = new QGridLayout;
     dockLayout->setColumnMinimumWidth(0, 64);
@@ -163,7 +163,7 @@ HorizontalDock::HorizontalDock(Settings::Scope *scope, DsoControl *dsocontrol, Q
     connect(recordLengthComboBox, SELECT<int>::OVERLOAD_OF(&QComboBox::currentIndexChanged), this,
             [this, dsocontrol](int index) { dsocontrol->setRecordLengthByIndex(index); });
     connect(formatComboBox, SELECT<int>::OVERLOAD_OF(&QComboBox::currentIndexChanged), this,
-            [this, scope](int index) { scope->setFormat((Dso::GraphFormat)index); });
+            [this, scope](int index) { scope->setFormat((DsoE::GraphFormat)index); });
 
     connect(deviceSettings, &Dso::DeviceSettings::samplerateLimitsChanged, this,
             [samplerateSiSpinBox, fixedSamplerateBox, timebaseSiSpinBox](double minimum, double maximum) {

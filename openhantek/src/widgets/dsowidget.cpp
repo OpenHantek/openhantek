@@ -266,7 +266,7 @@ void DsoWidget::updateTriggerDetails() {
     QString pretriggerString = tr("%L1%").arg((int)(m_deviceSettings->trigger.position() * 100 + 0.5));
     settingsTriggerLabel->setText(
         tr("%1  %2  %3  %4")
-            .arg(channel->name(), Dso::slopeString(m_deviceSettings->trigger.slope()), levelString, pretriggerString));
+            .arg(channel->name(), DsoE::slopeString(m_deviceSettings->trigger.slope()), levelString, pretriggerString));
 
     /// \todo This won't work for special trigger sources
 }
@@ -329,13 +329,13 @@ void DsoWidget::updateTriggerSource() {
 /// \param channel The channel whose coupling was changed.
 void DsoWidget::updateVoltageCoupling(ChannelWidgets *channelWidgets) {
     channelWidgets->measurementMiscLabel->setText(
-        Dso::couplingString(channelWidgets->channel->voltage()->coupling(m_spec)));
+        DsoE::couplingString(channelWidgets->channel->voltage()->coupling(m_spec)));
 }
 
 /// \brief Handles modeChanged signal from the voltage dock.
 void DsoWidget::updateMathMode(ChannelWidgets *channelWidgets) {
     channelWidgets->measurementMiscLabel->setText(
-        PostProcessing::mathModeString(((Settings::MathChannel *)channelWidgets->channel)->mathMode()));
+        PostProcessingE::mathModeString(((Settings::MathChannel *)channelWidgets->channel)->mathMode()));
 }
 
 /// \brief Handles usedChanged signal from the voltage dock.

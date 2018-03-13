@@ -65,12 +65,12 @@ void Trigger::setTriggerSource(ChannelID channel, bool specialChannel) {
     emit sourceChanged(specialChannel, channel);
 }
 
-void Trigger::setSlope(Slope slope) {
+void Trigger::setSlope(DsoE::Slope slope) {
     this->m_slope = slope;
     emit slopeChanged(slope);
 }
 
-void Trigger::setMode(TriggerMode mode) {
+void Trigger::setMode(DsoE::TriggerMode mode) {
     this->m_mode = mode;
     emit modeChanged(mode);
 }
@@ -85,8 +85,8 @@ void Settings::DeviceSettingsIO::read(QSettings *io, Dso::DeviceSettings &contro
     localUpdateTarget.samplerate = io->value("samplerate", localUpdateTarget.samplerate).toDouble();
     localUpdateTarget.timebase = io->value("timebase", localUpdateTarget.timebase).toDouble();
 
-    control.trigger.m_mode = (Dso::TriggerMode)io->value("trigger.mode", (unsigned)control.trigger.m_mode).toUInt();
-    control.trigger.m_slope = (Dso::Slope)io->value("trigger.slope", (unsigned)control.trigger.m_slope).toUInt();
+    control.trigger.m_mode = (DsoE::TriggerMode)io->value("trigger.mode", (unsigned)control.trigger.m_mode).toUInt();
+    control.trigger.m_slope = (DsoE::Slope)io->value("trigger.slope", (unsigned)control.trigger.m_slope).toUInt();
     control.trigger.m_position = io->value("trigger.position", control.trigger.m_position).toDouble();
     control.trigger.m_point = io->value("trigger.point", control.trigger.m_point).toUInt();
     control.trigger.m_source = io->value("trigger.source", control.trigger.m_source).toUInt();

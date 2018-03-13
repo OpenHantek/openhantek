@@ -22,14 +22,14 @@ void SetupDockWidget(QDockWidget *dockWindow, QWidget *dockWidget, QLayout *layo
 }
 
 void registerDockMetaTypes() {
-    qRegisterMetaType<Dso::TriggerMode>();
-    qRegisterMetaType<PostProcessing::MathMode>();
-    qRegisterMetaType<Dso::Slope>();
-    qRegisterMetaType<Dso::Coupling>();
-    qRegisterMetaType<Dso::GraphFormat>();
-    qRegisterMetaType<Dso::ChannelMode>();
-    qRegisterMetaType<PostProcessing::WindowFunction>();
-    qRegisterMetaType<Dso::InterpolationMode>();
+    qRegisterMetaType<DsoE::TriggerMode>();
+    qRegisterMetaType<PostProcessingE::MathMode>();
+    qRegisterMetaType<DsoE::Slope>();
+    qRegisterMetaType<DsoE::Coupling>();
+    qRegisterMetaType<DsoE::GraphFormat>();
+    qRegisterMetaType<DsoE::ChannelMode>();
+    qRegisterMetaType<PostProcessingE::WindowFunction>();
+    qRegisterMetaType<DsoE::InterpolationMode>();
     qRegisterMetaType<std::vector<unsigned>>();
     qRegisterMetaType<std::vector<double>>();
     qRegisterMetaType<ChannelID>("ChannelID");

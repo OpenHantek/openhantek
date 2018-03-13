@@ -33,8 +33,8 @@ VoltageOrSpectrumDock::VoltageOrSpectrumDock(bool isSpectrum, Settings::Scope *s
     const Dso::DeviceSettings *deviceSettings = dsocontrol->deviceSettings().get();
 
     // Initialize lists for comboboxes
-    for (Dso::Coupling c : deviceSettings->spec->couplings) couplingStrings.append(Dso::couplingString(c));
-    for (auto e : Enum<PostProcessing::MathMode>()) { modeStrings.append(PostProcessing::mathModeString(e)); }
+    for (DsoE::Coupling c : deviceSettings->spec->couplings) couplingStrings.append(DsoE::couplingString(c));
+    for (auto e : Enum<PostProcessingE::MathMode>()) { modeStrings.append(PostProcessingE::mathModeString(e)); }
     magnitudeSteps = {1e0, 2e0, 3e0, 6e0, 1e1, 2e1, 3e1, 6e1, 1e2, 2e2, 3e2, 6e2};
     for (const auto &magnitude : magnitudeSteps) magnitudeStrings << valueToString(magnitude, Unit::DECIBEL, 0);
 
@@ -235,7 +235,7 @@ void VoltageOrSpectrumDock::createChannelWidgets(Settings::Scope *scope, DsoCont
 
         // Connect widgets --> settings
         connect(mathModeComboBox, SELECT<int>::OVERLOAD_OF(&QComboBox::currentIndexChanged), channelParent,
-                [mathChannel](int index) { mathChannel->setMathMode((PostProcessing::MathMode)index); });
+                [mathChannel](int index) { mathChannel->setMathMode((PostProcessingE::MathMode)index); });
         connect(mathChannel1, SELECT<int>::OVERLOAD_OF(&QComboBox::currentIndexChanged), channelParent,
                 [mathChannel, deviceSettings](int index) {
                     mathChannel->setFirstChannel((unsigned)index, deviceSettings->voltage[(unsigned)index]);
@@ -276,7 +276,7 @@ void VoltageOrSpectrumDock::createChannelWidgets(Settings::Scope *scope, DsoCont
         // Connect widgets --> settings
         connect(
             couplingComboBox, SELECT<int>::OVERLOAD_OF(&QComboBox::currentIndexChanged), channelParent,
-            [channel, dsocontrol](int index) { dsocontrol->setCoupling(channel->channelID(), (Dso::Coupling)index); });
+            [channel, dsocontrol](int index) { dsocontrol->setCoupling(channel->channelID(), (DsoE::Coupling)index); });
         // Connect settings --> widgets
         connect(channel->voltage(), &Dso::Channel::couplingIndexChanged, channelParent,
                 [couplingComboBox](unsigned couplingIndex) {

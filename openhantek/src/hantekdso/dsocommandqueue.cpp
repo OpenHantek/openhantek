@@ -60,7 +60,7 @@ bool DsoCommandQueue::sendPendingCommands() {
     while (command) {
         if (command->pending) {
             DBGNOTIFY(QString("%1, %2")
-                          .arg(QMetaEnum::fromType<Hantek::BulkCode>().valueToKey((int)command->code))
+                          .arg(QMetaEnum::fromType<HantekE::BulkCode>().valueToKey((int)command->code))
                           .arg(hexDump(command->data(), command->size())),
                       Debug::NotificationType::DeviceCommandSend);
 
@@ -80,7 +80,7 @@ bool DsoCommandQueue::sendPendingCommands() {
     while (controlCommand) {
         if (controlCommand->pending) {
             DBGNOTIFY(QString("%1, %2")
-                          .arg(QMetaEnum::fromType<Hantek::ControlCode>().valueToKey((int)controlCommand->code))
+                          .arg(QMetaEnum::fromType<HantekE::ControlCode>().valueToKey((int)controlCommand->code))
                           .arg(hexDump(controlCommand->data(), controlCommand->size())),
                       Debug::NotificationType::DeviceCommandSend);
 
@@ -101,7 +101,7 @@ bool DsoCommandQueue::sendPendingCommands() {
     return true;
 }
 
-void DsoCommandQueue::manualCommand(bool isBulk, Hantek::BulkCode bulkCode, Hantek::ControlCode controlCode,
+void DsoCommandQueue::manualCommand(bool isBulk, HantekE::BulkCode bulkCode, HantekE::ControlCode controlCode,
                                     const QByteArray &data) {
     if (!m_device->isConnected()) return;
     QMutexLocker l(&m_commandMutex);

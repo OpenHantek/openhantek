@@ -65,7 +65,7 @@ void Settings::ViewIO::read(QSettings *store, View &view, const Settings::Scope 
     view.m_digitalPhosphor = store->value("digitalPhosphor", view.m_digitalPhosphor).toBool();
     view.m_digitalPhosphorDepth =
         std::max((unsigned)2, store->value("digitalPhosphorDepth", view.m_digitalPhosphorDepth).toUInt());
-    view.m_interpolation = (Dso::InterpolationMode)store->value("interpolation", (int)view.m_interpolation).toInt();
+    view.m_interpolation = (DsoE::InterpolationMode)store->value("interpolation", (int)view.m_interpolation).toInt();
     view.screenColorImages = store->value("screenColorImages", view.screenColorImages).toBool();
     store->endGroup();
 }
@@ -153,7 +153,7 @@ void Settings::ViewIO::syncChannels(Settings::View &view, const Settings::Scope 
     syncChannels(view.print, scope);
 }
 
-void Settings::View::setInterpolation(Dso::InterpolationMode mode) {
+void Settings::View::setInterpolation(DsoE::InterpolationMode mode) {
     m_interpolation = mode;
     emit interpolationChanged(this);
 }
