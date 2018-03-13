@@ -178,14 +178,18 @@ int main(int argc, char *argv[]) {
     int res = openHantekApplication.exec();
 
     //////// Clean up ////////
+    qWarning() << "Finishing dso control thread";
     dsoControlThread.quit();
-    dsoControlThread.wait(10000);
+    dsoControlThread.wait(2000);
 
+    qWarning() << "Finishing post processing thread";
     postProcessingThread.quit();
-    postProcessingThread.wait(10000);
+    postProcessingThread.wait(2000);
 
     if (context && device != nullptr) {
+        qWarning() << "Release usb device";
         device.reset();
+        qWarning() << "Release usb library";
         libusb_exit(context);
     }
 

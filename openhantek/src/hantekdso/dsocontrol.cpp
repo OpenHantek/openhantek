@@ -113,7 +113,7 @@ Dso::ErrorCode DsoControl::retrieveOffsetCalibrationData() {
         return Dso::ErrorCode::CONNECTION;
     }
 
-    if (readBytes != sizeof(Hantek::ControlGetLimits::OffsetsPerGainStep) * m_specification->channels) {
+    if ((unsigned)readBytes != sizeof(Hantek::ControlGetLimits::OffsetsPerGainStep) * m_specification->channels) {
         DBGNOTIFY("Offset calibration data not supported", Debug::NotificationType::DSOControl);
         return Dso::ErrorCode::UNSUPPORTED;
     }

@@ -4,6 +4,8 @@
 
 #include <QWidget>
 
+#include <memory>
+
 class QColor;
 
 /// \brief Contains the color, text and value of one slider.
@@ -181,7 +183,7 @@ class LevelSlider : public QWidget {
 
     void setValue(LevelSliderParameters *parameter, double value);
 
-    std::map<IndexType, LevelSliderParameters *> slider;   ///< The parameters for each slider
+    std::map<IndexType, std::unique_ptr<LevelSliderParameters>> slider;   ///< The parameters for each slider
     IndexType _pressedSlider = INVALID;                    ///< The currently pressed (moved) slider
     LevelSliderParameters *_pressedSliderParams = nullptr; ///< The currently pressed (moved) slider
     int _sliderWidth;                                      ///< The slider width (dimension orthogonal to the sliding

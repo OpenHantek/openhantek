@@ -104,4 +104,4 @@ class GlFrame : public Qt3DCore::QEntity, public GlMoveResizeSnap {
      */
     void activated(unsigned frameIndex);
 };
-Q_DECLARE_METATYPE(EdgePositionFlags);
+Q_DECLARE_METATYPE(EdgePositionFlags)

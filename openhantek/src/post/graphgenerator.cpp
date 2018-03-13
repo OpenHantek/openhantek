@@ -111,11 +111,10 @@ void GraphGenerator::process(PPresult *data) {
         generateGraphsTYspectrum(data);
         generateGraphsTYvoltage(data);
     } else
-        generateGraphsXY(data, m_scope);
+        generateGraphsXY(data);
 }
 
-void GraphGenerator::generateGraphsXY(PPresult *result, const ::Settings::Scope *scope) {
-    ChannelID xChannel;
+void GraphGenerator::generateGraphsXY(PPresult *result) {
     DataChannel *lastChannel = nullptr;
 
     for (DataChannel &channelData : *result) {
@@ -126,7 +125,6 @@ void GraphGenerator::generateGraphsXY(PPresult *result, const ::Settings::Scope 
         // Generate voltage graphs for pairs of channels
         if (!lastChannel) {
             lastChannel = &channelData;
-            xChannel = channelData.channelID;
             continue;
         }
 

@@ -99,7 +99,7 @@ DsoWidget::DsoWidget(Settings::Scope *scope, Settings::View *view, DsoControl *d
 
     // The layout for the widgets
     QGridLayout *mainLayout = new QGridLayout; ///< The main layout for this widget
-    mainLayout = new QGridLayout;
+    setLayout(mainLayout);
     mainLayout->setColumnStretch(2, 1); // Scopes increase their size
     // Bars around the scope, needed because the slider-drawing-area is outside
     // the scope at min/max
@@ -128,6 +128,7 @@ DsoWidget::DsoWidget(Settings::Scope *scope, Settings::View *view, DsoControl *d
     row += 5;
     // Separator and embedded measurementLayout
     mainLayout->setRowMinimumHeight(row++, 8);
+    measurementLayout = new QGridLayout;
     mainLayout->addLayout(measurementLayout, row++, 0, 1, 5);
 
     createChannelWidgets(palette());
@@ -136,7 +137,6 @@ DsoWidget::DsoWidget(Settings::Scope *scope, Settings::View *view, DsoControl *d
     // The widget itself
     setBackgroundRole(QPalette::Background);
     setAutoFillBackground(true);
-    setLayout(mainLayout);
 
     // Connect change-signals of sliders
     connect(mainSliders.offsetSlider, &LevelSlider::valueChanged, this,

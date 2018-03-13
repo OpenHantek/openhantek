@@ -28,7 +28,6 @@ class PaintIcon : public QPaintedTextureImage {
 
   private:
     const QIcon m_icon;
-    QColor border;
     QIcon::Mode m_mode = QIcon::Normal;
 
   protected:
@@ -39,8 +38,9 @@ class PaintIcon : public QPaintedTextureImage {
         painter->setPen(QPen(QBrush(QColor(Qt::black)), 10));
         painter->setBrush(QBrush());
 
-        painter->drawEllipse(0, 0, w, h);
-        m_icon.paint(painter, 0, 0, w, h, Qt::AlignCenter, m_mode, QIcon::On);
+        QRect r(0, 0, w, h);
+        painter->drawEllipse(r);
+        m_icon.paint(painter, r, Qt::AlignCenter, m_mode, QIcon::On);
     }
 };
 #include "glicon.moc"

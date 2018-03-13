@@ -6,8 +6,6 @@
 #include <QString>
 #include <QTime>
 
-//////////////////////////////////////////////////////////////////////////////
-/// \enum Unit utils/printutils.h
 /// \brief The various units supported by valueToString.
 enum class Unit { Undefined, VOLTS, DECIBEL, SECONDS, HERTZ, SAMPLES };
 

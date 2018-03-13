@@ -29,7 +29,7 @@ class GraphGenerator : public QObject, public Processor {
   public:
     GraphGenerator(const ::Settings::Scope *m_scope, const Dso::DeviceSettings *m_deviceSettings,
                    const Dso::ChannelUsage *channelUsage);
-    void generateGraphsXY(PPresult *result, const ::Settings::Scope *m_scope);
+    void generateGraphsXY(PPresult *result);
 
   private:
     void generateGraphsTYvoltage(PPresult *result);

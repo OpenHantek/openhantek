@@ -14,8 +14,8 @@ LevelSlider::LevelSlider(Qt::ArrowType direction, QWidget *parent) : QWidget(par
     font.setPointSizeF(font.pointSize() * 0.8);
     this->setFont(font);
 
-    calculateWidth();
     setDirection(direction);
+    calculateWidth();
 }
 
 int LevelSlider::preMargin() const { return this->_preMargin; }
@@ -115,8 +115,8 @@ void LevelSlider::setLimits(IndexType index, double minimum, double maximum) {
     if (findIt == slider.end()) return;
     findIt->second->minimum = minimum;
     findIt->second->maximum = maximum;
-    fixValue(findIt->second);
-    calculateRect(findIt->second);
+    fixValue(findIt->second.get());
+    calculateRect(findIt->second.get());
     repaint();
 }
 
@@ -142,7 +142,7 @@ double LevelSlider::value(IndexType index) const {
 void LevelSlider::setValue(LevelSlider::IndexType index, double value) {
     auto findIt = slider.find(index);
     if (findIt == slider.end()) return;
-    setValue(findIt->second, value);
+    setValue(findIt->second.get(), value);
     if (_pressedSlider == INVALID) emit valueChanged(index, value);
 }
 
@@ -209,10 +209,10 @@ void LevelSlider::mousePressEvent(QMouseEvent *event) {
 
     _pressedSlider = INVALID;
     for (auto &p : slider) {
-        LevelSliderParameters *lp = p.second;
+        LevelSliderParameters *lp = p.second.get();
         if (lp->visible && lp->rect.contains(event->pos())) {
             _pressedSlider = p.first;
-            _pressedSliderParams = p.second;
+            _pressedSliderParams = p.second.get();
             break;
         }
     }
@@ -252,7 +252,7 @@ void LevelSlider::paintEvent(QPaintEvent *event) {
     }
 
     for (auto &p : slider) {
-        LevelSliderParameters *lp = p.second;
+        LevelSliderParameters *lp = p.second.get();
 
         if (!lp->visible) continue;
 
@@ -326,7 +326,7 @@ void LevelSlider::paintEvent(QPaintEvent *event) {
 void LevelSlider::resizeEvent(QResizeEvent *event) {
     Q_UNUSED(event);
     for (auto &p : slider) {
-        calculateRect(p.second);
+        calculateRect(p.second.get());
         repaint();
     }
 }
@@ -399,7 +399,7 @@ int LevelSlider::calculateWidth() {
     // Is it a vertical slider?
     if (_direction == Qt::RightArrow || _direction == Qt::LeftArrow) {
         for (auto &p : slider) {
-            LevelSliderParameters *lp = p.second;
+            LevelSliderParameters *lp = p.second.get();
             int newSliderWidth = fontMetrics().size(0, lp->text).width();
             if (newSliderWidth > _sliderWidth) _sliderWidth = newSliderWidth;
         }
@@ -407,7 +407,7 @@ int LevelSlider::calculateWidth() {
     // Or a horizontal slider?
     else {
         for (auto &p : slider) {
-            LevelSliderParameters *lp = p.second;
+            LevelSliderParameters *lp = p.second.get();
             int newSliderWidth = fontMetrics().size(0, lp->text).height();
             if (newSliderWidth > _sliderWidth) _sliderWidth = newSliderWidth;
         }

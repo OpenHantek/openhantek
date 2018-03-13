@@ -113,7 +113,7 @@ MainWindow::MainWindow(DsoControl *dsoControl, Settings::DsoSettings *settings, 
     restoreState(mSettings->mainWindowState);
 
     // Central oszilloscope widget
-    dsoWidget = new DsoWidget(&mSettings->scope, &mSettings->view, dsoControl);
+    dsoWidget = new DsoWidget(&mSettings->scope, &mSettings->view, dsoControl, this);
     setCentralWidget(dsoWidget);
     connect(dsoWidget, &DsoWidget::requestStatusText, statusBar(),
             [this](const QString &text) { statusBar()->showMessage(text, 1200); });

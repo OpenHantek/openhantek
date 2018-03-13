@@ -79,7 +79,7 @@ class DsoWidget : public QWidget {
     std::vector<ChannelWidgets *> channelWidgets;
 
     Sliders mainSliders;
-    QGridLayout *measurementLayout = new QGridLayout; ///< The table for the signal details
+    QGridLayout *measurementLayout; ///< The table for the signal details
 
     QLabel *settingsTriggerLabel;       ///< The trigger details
     QLabel *settingsRecordLengthLabel;  ///< The record length

@@ -3,6 +3,7 @@
 #include <QCoreApplication>
 #include <QList>
 #include <iostream>
+#include <QDebug>
 
 #include "usbdevice.h"
 
@@ -130,6 +131,7 @@ void USBDevice::disconnectFromDevice() {
 
     if (handle) {
         // Release claimed interface
+        qWarning() << "Release interface now" << handle << interface;
         if (interface != -1) libusb_release_interface(handle, interface);
         interface = -1;
 

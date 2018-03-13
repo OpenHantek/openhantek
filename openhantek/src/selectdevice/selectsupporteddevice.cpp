@@ -90,7 +90,8 @@ std::unique_ptr<USBDevice> SelectSupportedDevice::showSelectDeviceModal(libusb_c
         }
     });
     timer.start();
-    QCoreApplication::sendEvent(&timer, new QTimerEvent(timer.timerId())); // immediate timer event
+    QTimerEvent tEvent(timer.timerId());
+    QCoreApplication::sendEvent(&timer, &tEvent); // immediate timer event
 
     show();
     QCoreApplication::instance()->exec();

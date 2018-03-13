@@ -3,7 +3,7 @@ layout: default
 ---
 ### [Linux](#linux)
 For debian (stretch and newer), Ubuntu 17.04+ and Mint 17+ and other deb based distributions install named requirements like this:
-> apt install g++ cmake qttools5-dev qttools5-dev-tools libfftw3-dev binutils-dev libusb-1.0-0-dev libqt5opengl5-dev mesa-common-dev libgl1-mesa-dev libgles2-mesa-dev
+> apt install g++ cmake qttools5-dev qttools5-dev-tools libfftw3-dev binutils-dev libusb-1.0-0-dev qt3d5-dev qt3d-assimpsceneio-plugin qt3d-gltfsceneio-plugin
 
 For rpm based distributions (Fedora 21+, OpenSuse) use this command:
 > dnf install cmake gcc-c++ qt5-qtbase-gui qt5-qttools-devel qt5-qttranslations fftw-devel binutils-devel libusb-devel mesa-libGL-devel mesa-libGLES-devel

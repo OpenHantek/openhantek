@@ -2,6 +2,7 @@
 
 #include <cmath>
 
+#include "settings/scopesettings.h"
 #include <QApplication>
 #include <QLocale>
 #include <QStringList>
@@ -226,3 +227,4 @@ unsigned int hexParse(const QString dump, unsigned char *data, unsigned int leng
 
     return index;
 }
+

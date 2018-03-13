@@ -73,8 +73,8 @@ void GlScopeGraph::ChannelDetail::updateGraph(const ChannelGraph &channelData) {
         return;
     }
 
-    if (tempBuffer.size() < channelData.size() * sizeof(QVector3D)) {
-        tempBuffer.resize(channelData.size() * sizeof(QVector3D));
+    if ((unsigned)tempBuffer.size() < channelData.size() * sizeof(QVector3D)) {
+        tempBuffer.resize((int)channelData.size() * (int)sizeof(QVector3D));
         memcpy(tempBuffer.data(), (char *)channelData.data(), channelData.size() * sizeof(QVector3D));
         dataBuffer->setData(tempBuffer);
     } else {
@@ -87,7 +87,7 @@ void GlScopeGraph::ChannelDetail::updateGraph(const ChannelGraph &channelData) {
         const unsigned s = (unsigned)channelData.size();
         meshInit = s;
         mesh->setVertexCount((int)s);
-        attr->setCount((int)s);
+        attr->setCount(s);
     }
 
     setEnabled(true);

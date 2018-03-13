@@ -148,6 +148,7 @@ class DeviceSettings : public QObject {
 
   public:
     DeviceSettings(const ModelSpec *specification);
+    ~DeviceSettings();
 
     /// \brief Return the target samplerate, as set by the user.
     /// You have access to a (samperate,record-time,fixed-samplerate-id)-tuple,
@@ -250,7 +251,7 @@ class DeviceSettings : public QObject {
     void recordLengthChanged(unsigned m_recordLengthId);
 };
 }
-Q_DECLARE_METATYPE(Dso::Samplerate);
+Q_DECLARE_METATYPE(Dso::Samplerate)
 
 class QSettings;
 namespace Settings {

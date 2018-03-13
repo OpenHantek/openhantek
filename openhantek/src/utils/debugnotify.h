@@ -18,7 +18,7 @@ enum class NotificationType : int {
     DSOControl = 8,
     DSOLoop = 16,
 };
-Q_ENUM_NS(NotificationType);
+Q_ENUM_NS(NotificationType)
 
 /// A simple Qt Model that just allows to add another debug message entry.
 /// Limited to 250 entries, before auto purging of the oldest messages.

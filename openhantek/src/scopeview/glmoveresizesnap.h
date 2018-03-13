@@ -103,7 +103,7 @@ class GlMoveResizeSnap {
     virtual void inputStateChanged();
 
     // Input state
-    EdgePositionFlags m_hoveredParts;
+    EdgePositionFlags m_hoveredParts = EdgePositionFlags::None;
     bool m_isPressed = false;
     int m_inputPriority = 0;
 

@@ -20,7 +20,7 @@ QtAwesome *iconFont = new QtAwesome();
 class QtAwesomeCharIconPainter : public QtAwesomeIconPainter {
 
   protected:
-    QStringList optionKeysForModeAndState(const QString &key, QIcon::Mode mode, QIcon::State state) {
+    QStringList optionKeysForModeAndState(const QString &key, QIcon::Mode mode, QIcon::State state) const {
         QString modePostfix;
         switch (mode) {
         case QIcon::Disabled:
@@ -51,7 +51,7 @@ class QtAwesomeCharIconPainter : public QtAwesomeIconPainter {
     }
 
     QVariant optionValueForModeAndState(const QString &baseKey, QIcon::Mode mode, QIcon::State state,
-                                        const QVariantMap &options) {
+                                        const QVariantMap &options) const {
         foreach (QString key, optionKeysForModeAndState(baseKey, mode, state)) {
             if (options.contains(key)) return options.value(key);
         }
@@ -59,8 +59,8 @@ class QtAwesomeCharIconPainter : public QtAwesomeIconPainter {
     }
 
   public:
-    virtual void paint(QtAwesome *awesome, QPainter *painter, const QRect &rect, QIcon::Mode mode, QIcon::State state,
-                       const QVariantMap &options) {
+    virtual void paint(const QtAwesome *awesome, QPainter *painter, const QRect &rect, QIcon::Mode mode, QIcon::State state,
+                       const QVariantMap &options) const {
         Q_UNUSED(mode);
         Q_UNUSED(state);
         Q_UNUSED(options);
@@ -98,7 +98,7 @@ class QtAwesomeCharIconPainter : public QtAwesomeIconPainter {
 class QtAwesomeIconPainterIconEngine : public QIconEngine {
 
   public:
-    QtAwesomeIconPainterIconEngine(QtAwesome *awesome, QtAwesomeIconPainter *painter, const QVariantMap &options)
+    QtAwesomeIconPainterIconEngine(const QtAwesome *awesome, const QtAwesomeIconPainter *painter, const QVariantMap &options)
         : awesomeRef_(awesome), iconPainterRef_(painter), options_(options) {}
 
     virtual ~QtAwesomeIconPainterIconEngine() {}
@@ -132,9 +132,9 @@ class QtAwesomeIconPainterIconEngine : public QIconEngine {
     //    }
     //#endif
   private:
-    QtAwesome *awesomeRef_;                ///< a reference to the QtAwesome instance
-    QtAwesomeIconPainter *iconPainterRef_; ///< a reference to the icon painter
-    QVariantMap options_;                  ///< the options for this icon painter
+    const QtAwesome *awesomeRef_;                ///< a reference to the QtAwesome instance
+    const QtAwesomeIconPainter *iconPainterRef_; ///< a reference to the icon painter
+    const QVariantMap options_;                  ///< the options for this icon painter
 };
 
 //---------------------------------------------------------------------------------------
@@ -1076,7 +1076,7 @@ void QtAwesome::give(const QString &name, QtAwesomeIconPainter *painter) {
 ///
 ///    QLabel* label = new QLabel( QChar( icon_group ) );
 ///    label->setFont( awesome->font(16) )
-QFont QtAwesome::font(int size) {
+QFont QtAwesome::font(int size) const {
     QFont font(fontName_);
     font.setPixelSize(size);
     return font;

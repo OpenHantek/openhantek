@@ -140,4 +140,4 @@ struct ModelSpec {
     }
 };
 }
-Q_DECLARE_METATYPE(Dso::RecordLength);
+Q_DECLARE_METATYPE(Dso::RecordLength)

@@ -47,6 +47,10 @@ USB access for the device is required:
 special driver for Windows systems.
 * On Linux, you need to copy the file `firmware/60-hantek.rules` to `/lib/udev/rules.d/` and replug your device.
 
+If you have compiled a debug variant, you will see helpful messages in the Debug Window within the application.
+You should start the app with the environment variable QT_LOGGING_TO_CONSOLE set to 1. In QtCreator you can
+change environment variables in the **Projects** tab, in a terminal you would start like this: `QT_LOGGING_TO_CONSOLE=1 ./OpenHantek`.
+
 ## Specifications, Features and limitations
 Please refer to the [Specifications, Features, Limitations](docs/limitations.md) page.
 

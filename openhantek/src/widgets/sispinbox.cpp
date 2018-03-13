@@ -7,12 +7,11 @@
 
 #include "utils/printutils.h"
 
-SiSpinBox::SiSpinBox(Unit unit, QWidget *parent) : QDoubleSpinBox(parent) {
+SiSpinBox::SiSpinBox(Unit unit, QWidget *parent)
+    : QDoubleSpinBox(parent), m_unit(unit), m_steps({1.0, 2.0, 5.0, 10.0}) {
     setMinimum(1e-12);
     setMaximum(1e12);
     setDecimals(DBL_MAX_10_EXP + DBL_DIG); // Disable automatic rounding
-    m_unit = unit;
-    m_steps = {1.0, 2.0, 5.0, 10.0};
     setValue(0);
 }
 

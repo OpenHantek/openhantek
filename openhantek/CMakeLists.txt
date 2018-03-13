@@ -42,7 +42,7 @@ add_custom_target(format SOURCES ".clang-format"
 
 add_subdirectory(translations)
 
-add_definitions(-DVERSION="${CPACK_PACKAGE_VERSION}")
+add_definitions(-DVERSION="${CPACK_PACKAGE_VERSION}" -Wall)
 
 # make executable
 add_executable(${PROJECT_NAME} ${SRC} ${UI} ${QRC} ${TRANSLATION_BIN_FILES} ${TRANSLATION_QRC})

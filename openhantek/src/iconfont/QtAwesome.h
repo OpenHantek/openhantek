@@ -844,7 +844,7 @@ public:
 
     void give( const QString& name, QtAwesomeIconPainter* painter );
 
-    QFont font( int size );
+    QFont font( int size ) const;
 
     /// Returns the font-name that is used as icon-map
     QString fontName() { return fontName_ ; }
@@ -868,7 +868,7 @@ class QtAwesomeIconPainter
 {
 public:
     virtual ~QtAwesomeIconPainter() {}
-    virtual void paint( QtAwesome* awesome, QPainter* painter, const QRect& rect, QIcon::Mode mode, QIcon::State state, const QVariantMap& options ) = 0;
+    virtual void paint(const QtAwesome* awesome, QPainter* painter, const QRect& rect, QIcon::Mode mode, QIcon::State state, const QVariantMap& options ) const = 0;
 };
 
 Q_DECLARE_METATYPE(QtAwesomeAnimation*)

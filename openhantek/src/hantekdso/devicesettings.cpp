@@ -13,6 +13,10 @@ DeviceSettings::DeviceSettings(const ModelSpec *specification) : spec(specificat
     while (voltage.size() < specification->channels) voltage.push_back(new Channel);
 }
 
+DeviceSettings::~DeviceSettings() {
+    for (Channel *c : voltage) delete c;
+}
+
 void DeviceSettings::setRecordLengthId(RecordLengthID value) {
     m_recordLengthId = value;
     emit recordLengthChanged(m_recordLengthId);
