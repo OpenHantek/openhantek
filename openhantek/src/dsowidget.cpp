@@ -147,14 +147,13 @@ DsoWidget::DsoWidget(DsoSettingsScope *scope, DsoSettingsView *view, const Dso::
 
     // Cursors
     cursorDataGrid = new DataGrid(this);
-    cursorDataGrid->addItem(tr("Markers"), view->screen.background, view->screen.text);
+    cursorDataGrid->setBackgroundColor(view->screen.background);
+    cursorDataGrid->addItem(tr("Markers"), view->screen.text);
     for (ChannelID channel = 0; channel < scope->voltage.size(); ++channel) {
-        cursorDataGrid->addItem(scope->voltage[channel].name, view->screen.background,
-                                view->screen.voltage[channel]);
+        cursorDataGrid->addItem(scope->voltage[channel].name, view->screen.voltage[channel]);
     }
     for (ChannelID channel = 0; channel < scope->spectrum.size(); ++channel) {
-        cursorDataGrid->addItem(scope->spectrum[channel].name, view->screen.background,
-                                view->screen.spectrum[channel]);
+        cursorDataGrid->addItem(scope->spectrum[channel].name, view->screen.spectrum[channel]);
     }
     cursorDataGrid->selectItem(0);
 

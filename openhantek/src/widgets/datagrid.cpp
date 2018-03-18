@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0+
+
 #include "datagrid.h"
 
 #include <QGridLayout>
@@ -32,6 +34,9 @@ DataGrid::CursorInfo::CursorInfo() {
 }
 
 void DataGrid::CursorInfo::configure(const QString &text, const QColor &bgColor, const QColor &fgColor) {
+    palette.setColor(QPalette::Background, bgColor);
+    palette.setColor(QPalette::WindowText, fgColor);
+
     selector->setText(text);
     selector->setStyleSheet(QString(R"(
         QPushButton {
@@ -60,19 +65,29 @@ void DataGrid::CursorInfo::configure(const QString &text, const QColor &bgColor,
     )").arg(bgColor.name(QColor::HexArgb))
        .arg(fgColor.name(QColor::HexArgb)));
 
-    QPalette palette;
-    palette.setColor(QPalette::Background, bgColor);
-    palette.setColor(QPalette::WindowText, fgColor);
     deltaXLabel->setPalette(palette);
-    deltaYLabel->setPalette(palette);   
+    deltaYLabel->setPalette(palette);
 }
 
-unsigned DataGrid::addItem(const QString &text, const QColor &bgColor, const QColor &fgColor) {
+void DataGrid::setBackgroundColor(const QColor &bgColor) {
+    backgroundColor = bgColor;
+    for (auto it : items) {
+        it.configure(it.selector->text(), bgColor, it.palette.color(QPalette::WindowText));
+    }
+}
+
+void DataGrid::configureItem(unsigned index, const QColor &fgColor) {
+    if (index < items.size()) {
+        items[index].configure(items[index].selector->text(), backgroundColor, fgColor);
+    }
+}
+
+unsigned DataGrid::addItem(const QString &text, const QColor &fgColor) {
     unsigned index = items.size();
     items.resize(index + 1);
 
     CursorInfo& info = items.at(index);
-    info.configure(text, bgColor, fgColor);
+    info.configure(text, backgroundColor, fgColor);
     cursorsSelectorGroup->addButton(info.selector, index);
 
     connect(info.shape, &QPushButton::clicked, [this, index] () {
