@@ -32,7 +32,7 @@ struct ControlSamplerateLimits;
 struct Samplerate {
     double samplerate = 1e8;       ///< The target samplerate set via setSamplerate
     double timebase = 1e-3;        ///< The target record time set via setRecordTime
-    unsigned fixedSamperateId = 0; ///< The target samplerate for fixed samplerate devices set via setFixedSamplerate
+    unsigned fixedSamplerateId = 0; ///< The target samplerate for fixed samplerate devices set via setFixedSamplerate
 };
 
 /// \brief Stores the current trigger settings of the device.

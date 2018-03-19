@@ -423,7 +423,7 @@ void DsoControl::restoreTargets() {
         setSamplerate(m_settings->target().samplerate);
         break;
     case SamplerateSource::FixedSamplerate:
-        setFixedSamplerate(m_settings->target().fixedSamperateId);
+        setFixedSamplerate(m_settings->target().fixedSamplerateId);
         break;
     case SamplerateSource::Duration:
         setRecordTime(m_settings->target().timebase);
@@ -489,7 +489,7 @@ Dso::ErrorCode DsoControl::setFixedSamplerate(unsigned samplerateId) {
     if (samplerateId > m_specification->fixedSampleRates.size()) return Dso::ErrorCode::PARAMETER;
     QMutexLocker l(&m_commandMutex);
 
-    m_settings->updateTarget(SamplerateSource::FixedSamplerate).fixedSamperateId = samplerateId;
+    m_settings->updateTarget(SamplerateSource::FixedSamplerate).fixedSamplerateId = samplerateId;
 
     modifyCommand<ControlSetTimeDIV>(HantekE::ControlCode::SETTIMEDIV)
         ->setDiv(m_specification->fixedSampleRates[samplerateId].id);
