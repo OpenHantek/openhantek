@@ -130,7 +130,7 @@ HorizontalDock::HorizontalDock(Settings::Scope *scope, DsoControl *dsocontrol, Q
         samplerateSiSpinBox->setVisible(false);
         fixedSamplerateBox->setVisible(true);
         fixedSamplerateBox->setModel(new FixedSamplerateModel(dsocontrol->specification()->fixedSampleRates, this));
-        fixedSamplerateBox->setCurrentIndex((int)deviceSettings->samplerate().fixedSamperateId);
+        fixedSamplerateBox->setCurrentIndex((int)deviceSettings->samplerate().fixedSamplerateId);
     } else {
         samplerateSiSpinBox->setVisible(true);
         fixedSamplerateBox->setVisible(false);
@@ -215,7 +215,7 @@ HorizontalDock::HorizontalDock(Settings::Scope *scope, DsoControl *dsocontrol, Q
                 QSignalBlocker blocker3(fixedSamplerateBox);
                 samplerateSiSpinBox->setValue(samplerate.samplerate);
                 timebaseSiSpinBox->setValue(samplerate.timebase); // /DIVS_TIME
-                fixedSamplerateBox->setCurrentIndex(samplerate.fixedSamperateId);
+                fixedSamplerateBox->setCurrentIndex(samplerate.fixedSamplerateId);
             });
     connect(deviceSettings, &Dso::DeviceSettings::recordLengthChanged, this,
             [recordLengthComboBox](unsigned recordLengthId) {

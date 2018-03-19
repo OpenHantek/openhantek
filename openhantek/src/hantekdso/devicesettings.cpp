@@ -25,7 +25,7 @@ void DeviceSettings::setRecordLengthId(RecordLengthID value) {
 void DeviceSettings::updateCurrentSamplerate(double samplerate, double timebase, unsigned fixedSamplerateIndex) {
     m_samplerate.samplerate = samplerate;
     m_samplerate.timebase = timebase;
-    m_samplerate.fixedSamperateId = fixedSamplerateIndex;
+    m_samplerate.fixedSamplerateId = fixedSamplerateIndex;
 }
 
 Samplerate &DeviceSettings::updateTarget(SamplerateSource source) {
@@ -81,7 +81,7 @@ void Settings::DeviceSettingsIO::read(QSettings *io, Dso::DeviceSettings &contro
                                         (unsigned)control.spec->normalSamplerate.recordLengths.size() - 1);
     Dso::Samplerate &localUpdateTarget = control.updateTarget(
         (Dso::SamplerateSource)io->value("samplerateSource", (unsigned)control.samplerateSource()).toUInt());
-    localUpdateTarget.fixedSamperateId = io->value("fixedSamperateId", localUpdateTarget.fixedSamperateId).toUInt();
+    localUpdateTarget.fixedSamplerateId = io->value("fixedSamplerateId", localUpdateTarget.fixedSamplerateId).toUInt();
     localUpdateTarget.samplerate = io->value("samplerate", localUpdateTarget.samplerate).toDouble();
     localUpdateTarget.timebase = io->value("timebase", localUpdateTarget.timebase).toDouble();
 
@@ -113,7 +113,7 @@ void Settings::DeviceSettingsIO::read(QSettings *io, Dso::DeviceSettings &contro
 void Settings::DeviceSettingsIO::write(QSettings *io, const Dso::DeviceSettings &control) {
     io->setValue("recordLengthId", control.m_recordLengthId);
     io->setValue("samplerateSource", (unsigned)control.samplerateSource());
-    io->setValue("fixedSamperateId", control.target().fixedSamperateId);
+    io->setValue("fixedSamplerateId", control.target().fixedSamplerateId);
     io->setValue("samplerate", control.target().samplerate);
     io->setValue("timebase", control.target().timebase);
 
