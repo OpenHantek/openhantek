@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=OpenHantek
+GenericName=Oscilloscope and logic analyzer GUI
+Comment=Hantek and compatible USB digital signal oscilloscope
+Exec=OpenHantek
+Icon=openhantek
+Terminal=false
+Type=Application
+Categories=Development;Electronics;
