@@ -23,6 +23,8 @@
 #include <QFileDialog>
 #include <QLineEdit>
 #include <QMessageBox>
+#include <QScrollArea>
+#include <QDockWidget>
 
 MainWindow::MainWindow(HantekDsoControl *dsoControl, DsoSettings *settings, ExporterRegistry *exporterRegistry,
                        QWidget *parent)
@@ -67,21 +69,44 @@ MainWindow::MainWindow(HantekDsoControl *dsoControl, DsoSettings *settings, Expo
 
     registerDockMetaTypes();
 
+    QDockWidget *groupDock=new QDockWidget(this);
+    groupDock->setWindowTitle("Sidebar");
+    QGridLayout *goupDockLayout=new QGridLayout(groupDock);
+    groupDock->setLayout(goupDockLayout);
+    QScrollArea *groupDockScrollArea = new QScrollArea(groupDock);
+    QFrame *grouDockScrollAreaWidgetContents = new QFrame(groupDockScrollArea);
+    grouDockScrollAreaWidgetContents->setFrameShape(QFrame::StyledPanel);
+    groupDockScrollArea->setWidgetResizable(true);
+    QGridLayout *contentLayout=new QGridLayout();
+    groupDockScrollArea->setLayout(contentLayout);
+    contentLayout->addWidget(grouDockScrollAreaWidgetContents,0,0,0,0);
+    groupDockScrollArea->setSizePolicy(QSizePolicy::MinimumExpanding,QSizePolicy::Expanding);
+    groupDockScrollArea->setWidget(grouDockScrollAreaWidgetContents);
+    goupDockLayout->addWidget(groupDockScrollArea, 0, 0, 0, 0);
+    groupDock->setWidget(groupDockScrollArea);
+    QMainWindow *groupDockMainWindow=new QMainWindow(groupDock);
+    groupDockMainWindow->setAnimated(true);
+    groupDockMainWindow->setDockNestingEnabled(true);
+    QGridLayout *groupDockMainWindowlayout=new QGridLayout(grouDockScrollAreaWidgetContents);
+    grouDockScrollAreaWidgetContents->setLayout(groupDockMainWindowlayout);
+    groupDockMainWindowlayout->addWidget(groupDockMainWindow,0,0,0,0);
+
     // Docking windows
     // Create dock windows before the dso widget, they fix messed up settings
     HorizontalDock *horizontalDock;
     TriggerDock *triggerDock;
     SpectrumDock *spectrumDock;
     VoltageDock *voltageDock;
-    horizontalDock = new HorizontalDock(scope, this);
-    triggerDock = new TriggerDock(scope, spec, this);
-    spectrumDock = new SpectrumDock(scope, this);
-    voltageDock = new VoltageDock(scope, spec, this);
+    horizontalDock = new HorizontalDock(scope, groupDockMainWindow);
+    triggerDock = new TriggerDock(scope, spec, groupDockMainWindow);
+    spectrumDock = new SpectrumDock(scope, groupDockMainWindow);
+    voltageDock = new VoltageDock(scope, spec, groupDockMainWindow);
 
-    addDockWidget(Qt::RightDockWidgetArea, horizontalDock);
-    addDockWidget(Qt::RightDockWidgetArea, triggerDock);
-    addDockWidget(Qt::RightDockWidgetArea, voltageDock);
-    addDockWidget(Qt::RightDockWidgetArea, spectrumDock);
+    addDockWidget(Qt::RightDockWidgetArea,groupDock);
+    groupDockMainWindow->addDockWidget(Qt::RightDockWidgetArea, horizontalDock);
+    groupDockMainWindow->addDockWidget(Qt::RightDockWidgetArea, triggerDock);
+    groupDockMainWindow->addDockWidget(Qt::RightDockWidgetArea, voltageDock);
+    groupDockMainWindow->addDockWidget(Qt::RightDockWidgetArea, spectrumDock);
 
     restoreGeometry(mSettings->mainWindowGeometry);
     restoreState(mSettings->mainWindowState);
