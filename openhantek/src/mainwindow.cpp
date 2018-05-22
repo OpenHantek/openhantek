@@ -80,7 +80,7 @@ MainWindow::MainWindow(HantekDsoControl *dsoControl, DsoSettings *settings, Expo
     QGridLayout *contentLayout=new QGridLayout();
     groupDockScrollArea->setLayout(contentLayout);
     contentLayout->addWidget(grouDockScrollAreaWidgetContents,0,0,0,0);
-    groupDockScrollArea->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Expanding);
+    groupDockScrollArea->setSizePolicy(QSizePolicy::MinimumExpanding,QSizePolicy::Expanding);
     groupDockScrollArea->setWidget(grouDockScrollAreaWidgetContents);
     goupDockLayout->addWidget(groupDockScrollArea, 0, 0, 0, 0);
     groupDock->setWidget(groupDockScrollArea);
