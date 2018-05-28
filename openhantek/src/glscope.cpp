@@ -46,7 +46,7 @@ void GlScope::fixOpenGLversion(QSurfaceFormat::RenderableType t) {
         format.setRenderableType(QSurfaceFormat::OpenGLES);
         QCoreApplication::setAttribute(Qt::AA_UseOpenGLES, true);
     } else {
-        format.setVersion(3, 2);
+        format.setVersion(3, 0);
         format.setRenderableType(QSurfaceFormat::OpenGL);
     }
     QSurfaceFormat::setDefaultFormat(format);
@@ -200,10 +200,11 @@ void GlScope::initializeGL() {
           uniform highp vec4 colour;
           void main() { gl_FragColor = colour; }
     )";
-
+    
     const char *vshaderDesktop = R"(
-          #version 150
-          in highp vec3 vertex;
+          #version 120
+          //in highp vec3 vertex;
+          attribute vec3 vertex;
           uniform mat4 matrix;
           void main()
           {
@@ -212,10 +213,13 @@ void GlScope::initializeGL() {
           }
     )";
     const char *fshaderDesktop = R"(
-          #version 150
+          #version 120
           uniform highp vec4 colour;
-          out vec4 flatColor;
-          void main() { flatColor = colour; }
+          //out vec4 flatColor;
+          void main()
+          {
+          gl_FragColor = colour;
+          }
     )";
 
     qDebug() << "compile shaders";
