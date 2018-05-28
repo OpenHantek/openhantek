@@ -40,9 +40,6 @@ MainWindow::MainWindow(HantekDsoControl *dsoControl, DsoSettings *settings, Expo
     ui->actionDigital_phosphor->setIcon(QIcon(":/images/digitalphosphor.svg"));
     ui->actionZoom->setIcon(iconFont->icon(fa::crop));
     ui->actionCursors->setIcon(iconFont->icon(fa::crosshairs));
-    centralWidget()->setContentsMargins(1,0,1,0);
-    statusBar()->layout()->setContentsMargins(1,0,1,0);
-    statusBar()->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Minimum);
 
     // Window title
     setWindowIcon(QIcon(":openhantek.png"));

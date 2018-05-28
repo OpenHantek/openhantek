@@ -50,7 +50,6 @@ TriggerDock::TriggerDock(DsoSettingsScope *scope, const Dso::ControlSpecificatio
     this->dockLayout->addWidget(this->sourceComboBox, 1, 1);
     this->dockLayout->addWidget(this->slopeLabel, 2, 0);
     this->dockLayout->addWidget(this->slopeComboBox, 2, 1);
-    this->dockLayout->setContentsMargins(1,0,1,0);
 
     this->dockWidget = new QWidget();
     SetupDockWidget(this, dockWidget, dockLayout);

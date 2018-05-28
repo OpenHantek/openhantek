@@ -34,7 +34,6 @@ SpectrumDock::SpectrumDock(DsoSettingsScope *scope, QWidget *parent, Qt::WindowF
     this->dockLayout = new QGridLayout();
     this->dockLayout->setColumnMinimumWidth(0, 64);
     this->dockLayout->setColumnStretch(1, 1);
-    this->dockLayout->setContentsMargins(1,0,1,0);
 
     // Initialize elements
     for (ChannelID channel = 0; channel < scope->voltage.size(); ++channel) {

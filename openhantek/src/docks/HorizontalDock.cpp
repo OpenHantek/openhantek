@@ -68,10 +68,8 @@ HorizontalDock::HorizontalDock(DsoSettingsScope *scope, QWidget *parent, Qt::Win
     this->dockLayout->addWidget(this->recordLengthComboBox, 3, 1);
     this->dockLayout->addWidget(this->formatLabel, 4, 0);
     this->dockLayout->addWidget(this->formatComboBox, 4, 1);
-    this->dockLayout->setContentsMargins(1,0,1,0);
 
     this->dockWidget = new QWidget();
-    this->dockWidget->setContentsMargins(1,0,1,0);
     SetupDockWidget(this, dockWidget, dockLayout);
 
     // Connect signals and slots

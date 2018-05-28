@@ -40,7 +40,6 @@ VoltageDock::VoltageDock(DsoSettingsScope *scope, const Dso::ControlSpecificatio
     dockLayout = new QGridLayout();
     dockLayout->setColumnMinimumWidth(0, 64);
     dockLayout->setColumnStretch(1, 1);
-    dockLayout->setContentsMargins(1,0,1,0);
 
     // Initialize elements
     for (ChannelID channel = 0; channel < scope->voltage.size(); ++channel) {
@@ -94,7 +93,6 @@ VoltageDock::VoltageDock(DsoSettingsScope *scope, const Dso::ControlSpecificatio
     }
 
     dockWidget = new QWidget();
-    dockWidget->setContentsMargins(1,0,1,0);
     SetupDockWidget(this, dockWidget, dockLayout);
 }
 
