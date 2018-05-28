@@ -29,14 +29,10 @@ add_subdirectory(translations)
 
 add_definitions(-DVERSION="${CPACK_PACKAGE_VERSION}")
 
-# if windows and mingw then set WIN32 flag to remove cmd window
-# and it's good place to add mac appbundle later
-# in case of visual studio compiler it will be empty (I don't have it to try)
 set(EXECTYPE "")
 if(WIN32 AND MINGW)
     set(EXECTYPE WIN32)
 endif()
-
 
 # make executable
 add_executable(${PROJECT_NAME} ${EXECTYPE} ${SRC} ${HEADERS} ${UI} ${QRC} ${TRANSLATION_BIN_FILES} ${TRANSLATION_QRC})
