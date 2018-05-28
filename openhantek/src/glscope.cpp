@@ -40,15 +40,15 @@ void GlScope::fixOpenGLversion(QSurfaceFormat::RenderableType t) {
     // Prefer full desktop OpenGL without fixed pipeline
     QSurfaceFormat format;
     format.setSamples(4); // Antia-Aliasing, Multisampling
+    format.setProfile(QSurfaceFormat::CoreProfile);
     if (t==QSurfaceFormat::OpenGLES) {
-        format.setVersion(format.majorVersion(), format.minorVersion());
-        format.setRenderableType(QSurfaceFormat::DefaultRenderableType);
+        format.setVersion(2, 0);
+        format.setRenderableType(QSurfaceFormat::OpenGLES);
         QCoreApplication::setAttribute(Qt::AA_UseOpenGLES, true);
     } else {
-        format.setVersion(format.majorVersion(), format.minorVersion());
+        format.setVersion(3, 0);
         format.setRenderableType(QSurfaceFormat::OpenGL);
     }
-    format.setProfile(QSurfaceFormat::NoProfile);
     QSurfaceFormat::setDefaultFormat(format);
 }
 
@@ -186,7 +186,7 @@ void GlScope::initializeGL() {
     auto program = std::unique_ptr<QOpenGLShaderProgram>(new QOpenGLShaderProgram(context()));
 
     const char *vshaderES = R"(
-          #version 120
+          #version 100
           attribute highp vec3 vertex;
           uniform mat4 matrix;
           void main()
@@ -196,11 +196,11 @@ void GlScope::initializeGL() {
           }
     )";
     const char *fshaderES = R"(
-          #version 120
+          #version 100
           uniform highp vec4 colour;
           void main() { gl_FragColor = colour; }
     )";
-
+    
     const char *vshaderDesktop = R"(
           #version 120
           //in highp vec3 vertex;
