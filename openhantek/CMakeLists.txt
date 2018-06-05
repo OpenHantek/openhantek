@@ -107,12 +107,10 @@ elseif(APPLE)
 	COMMAND chmod 777 "${CMAKE_BINARY_DIR}/openhantek/${PROJECT_NAME}.app/Contents/MacOS/start.sh"
 	COMMAND plutil -replace CFBundleExecutable -string start.sh "${CMAKE_BINARY_DIR}/openhantek/${PROJECT_NAME}.app/Contents/Info.plist"
 	WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/openhantek"
-	COMMENT "Copy app icon to bundle app")
+	COMMENT "Deploy and copy app icon to bundle app")
     else()
-	message(STATUS "No ${MAC_DEPLOY_QT_TOOL} found. So no dbundle.")
+	message(STATUS "No ${MAC_DEPLOY_QT_TOOL} found. So no bundle.")
     endif()
 endif()
-
-#add_custom_target("deploy")
 
 include(../cmake/copy_qt5_dlls_to_bin_dir.cmake)
