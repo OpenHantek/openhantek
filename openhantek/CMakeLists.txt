@@ -1,5 +1,19 @@
 project(OpenHantek CXX)
 
+if(APPLE)
+    list(APPEND CMAKE_CXX_FLAGS "-mmacosx-version-min=10.9 ${CMAKE_CXX_FLAGS}")
+    # Default brew QT location
+    set(QT5_LOCATION "/usr/local/opt/qt5" CACHE)
+	if(EXISTS ${QT5_LOCATION})
+	    list(APPEND CMAKE_PREFIX_PATH ${QT5_LOCATION})
+	    set(MAC_DEPLOY_QT_TOOL "${QT5_LOCATION}/bin/macdeployqt")
+	else()
+	     message(FATAL_ERROR "Install brew and Qt5 by running:\n brew install qt5 \n(Optionally you can change cmake ../ -DQT5_LOCATION=<yourQt> variable to your own Qt version)")
+	endif()
+endif()
+
+
+
 find_package(Qt5Widgets REQUIRED)
 find_package(Qt5PrintSupport REQUIRED)
 find_package(Qt5OpenGL REQUIRED)
