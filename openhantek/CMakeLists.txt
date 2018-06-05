@@ -89,7 +89,30 @@ if(NOT WIN32)
     target_link_libraries(${PROJECT_NAME} ${FFTW_LIBRARIES})
 endif()
 
-# install commands
-install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION "bin")
+
+
+# install command
+if(NOT APPLE)
+    install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION "bin")
+elseif(APPLE)
+    install(TARGETS ${PROJECT_NAME} BUNDLE DESTINATION .)
+    if(EXISTS ${MAC_DEPLOY_QT_TOOL}
+	add_custom_command(
+	TARGET ${PROJECT_NAME} POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_SOURCE_DIR}/openhantek/res/images/openhantek.icns" "${CMAKE_BINARY_DIR}/openhantek/${PROJECT_NAME}.app/Contents/Resources/openhantek.icns"
+	COMMAND "${MAC_DEPLOY_QT_TOOL}" "${PROJECT_NAME}.app" "-verbose=3"
+	COMMAND printf "'#!/bin/bash\\n'" > "${CMAKE_BINARY_DIR}/openhantek/${PROJECT_NAME}.app/Contents/MacOS/start.sh"
+	COMMAND printf "cd '\"$$\{0%%/*}\"\\n'" >> "${CMAKE_BINARY_DIR}/openhantek/${PROJECT_NAME}.app/Contents/MacOS/start.sh"
+	COMMAND printf "'./${PROJECT_NAME}\\n'" >> "${CMAKE_BINARY_DIR}/openhantek/${PROJECT_NAME}.app/Contents/MacOS/start.sh"
+	COMMAND chmod 777 "${CMAKE_BINARY_DIR}/openhantek/${PROJECT_NAME}.app/Contents/MacOS/start.sh"
+	COMMAND plutil -replace CFBundleExecutable -string start.sh "${CMAKE_BINARY_DIR}/openhantek/${PROJECT_NAME}.app/Contents/Info.plist"
+	WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/openhantek"
+	COMMENT "Copy app icon to bundle app")
+    else()
+	message(STATUS "No ${MAC_DEPLOY_QT_TOOL} found. So no dbundle.")
+    endif()
+endif()
+
+#add_custom_target("deploy")
 
 include(../cmake/copy_qt5_dlls_to_bin_dir.cmake)
