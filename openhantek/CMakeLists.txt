@@ -44,8 +44,10 @@ add_subdirectory(translations)
 add_definitions(-DVERSION="${CPACK_PACKAGE_VERSION}")
 
 set(EXECTYPE "")
-if(WIN32 AND MINGW)
+if(MINGW)
     set(EXECTYPE WIN32)
+elseif(APPLE)
+    set(EXECTYPE MACOSX_BUNDLE)
 endif()
 
 # make executable
