@@ -91,12 +91,12 @@ endif()
 
 
 
-# install command
+# install commands
 if(NOT APPLE)
     install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION "bin")
 elseif(APPLE)
     install(TARGETS ${PROJECT_NAME} BUNDLE DESTINATION .)
-    if(EXISTS ${MAC_DEPLOY_QT_TOOL}
+    if(EXISTS ${MAC_DEPLOY_QT_TOOL})
 	add_custom_command(
 	TARGET ${PROJECT_NAME} POST_BUILD
 	COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_SOURCE_DIR}/openhantek/res/images/openhantek.icns" "${CMAKE_BINARY_DIR}/openhantek/${PROJECT_NAME}.app/Contents/Resources/openhantek.icns"
