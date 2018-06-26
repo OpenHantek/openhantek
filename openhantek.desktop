@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Comment=DSO software for Hantek (Voltcraft/Darkwire/Protek/Acetech) USB digital signal oscilloscopes
+Name=OpenHantek
+Exec=OpenHantek --useGLES
+Icon=openhantek
+Categories=Development;

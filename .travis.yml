@@ -1,6 +1,6 @@
 language: cpp
-
-sudo: required
+compiler: gcc
+sudo: require
 dist: trusty
 
 env:
@@ -11,21 +11,13 @@ addons:
   apt:
     sources:
     - ubuntu-toolchain-r-test
-#    - llvm-toolchain-trusty-3.9
     packages: &native_deps
     - cmake
     - libusb-1.0-0-dev
     - libfftw3-dev
-#    - libqt5qml5
     - libgtest-dev
-#    - libqt5opengl5-dev
-#    - qtbase5-dev
-#    - qttools5-dev
-#    - qttools5-dev-tools
     - gcc-5
     - g++-5
-#    - doxygen
-#    - clang-3.6
 
 # We are testing
 # * linux with g++5 (and clang 3.6)
@@ -35,9 +27,6 @@ matrix:
     - compiler: gcc
       env: CMAKE_CXX_COMPILER=g++-5
       os: linux
-#    - compiler: clang
-#      env: CMAKE_CXX_COMPILER=clang++-3.6
-#      os: linux
     - compiler: clang
       env: CMAKE_CXX_COMPILER=/usr/bin/clang++
       os: osx
@@ -49,11 +38,27 @@ before_install:
 before_script:
     - mkdir build
     - cd build
-    - cmake -DCMAKE_CXX_COMPILER=$CMAKE_CXX_COMPILER -DCMAKE_PREFIX_PATH=$CMAKE_PREFIX_PATH ../
-
+    - cmake -DCMAKE_CXX_COMPILER=$CMAKE_CXX_COMPILER -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release ../
+ 
 script:
-    - make -j4
-
+    - make DESTDIR=appdir -j$(nproc) install ; find appdir/
+    - mkdir -p appdir/usr/share/applications/ ; cp ../openhantek.desktop appdir/usr/share/applications/ # FIXME, "make install" should do that
+    - mkdir -p appdir/usr/share/icons/hicolor/scalable/ ; cp ../openhantek/res/images/openhantek.svg appdir/usr/share/icons/hicolor/scalable/ # FIXME, "make install" should do that
+    - wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
+    - chmod a+x linuxdeployqt-continuous-x86_64.AppImage
+    - unset QTDIR; unset QT_PLUGIN_PATH ; unset LD_LIBRARY_PATH
+    - export VERSION=$(git rev-parse --short HEAD) # linuxdeployqt uses this for naming the file
+    - ./linuxdeployqt-continuous-x86_64.AppImage appdir/usr/share/applications/*.desktop -bundle-non-qt-libs
+    - # Workaround to increase compatibility with older systems; see https://github.com/darealshinji/AppImageKit-checkrt for details
+    - mkdir -p appdir/usr/optional/ ; wget -c https://github.com/darealshinji/AppImageKit-checkrt/releases/download/continuous/exec-x86_64.so -O ./appdir/usr/optional/exec.so
+    - rm -f appdir/AppRun ; cp ../AppRun appdir/ ; chmod +x appdir/AppRun
+    - mkdir -p appdir/usr/optional/libstdc++/ ; cp /usr/lib/x86_64-linux-gnu/libstdc++.so.6 ./appdir/usr/optional/libstdc++/
+    - ( cd appdir ; wget -c https://github.com/darealshinji/AppImageKit-checkrt/releases/download/continuous/AppRun-patched-x86_64 -O AppRun2 ; chmod a+x AppRun2)
+    - ./linuxdeployqt*.AppImage --appimage-extract
+    - export PATH=$(readlink -f ./squashfs-root/usr/bin):$PATH
+    - ./squashfs-root/usr/bin/appimagetool -g ./appdir/ "OpenHantek-$VERSION-x86_64.AppImage"
+    -  curl --upload-file OpenHantek-*-x86_64.AppImage https://transfer.sh/
+    
 before_deploy:
     - sudo make package
 
