@@ -35,7 +35,7 @@ LevelSlider::IndexType LevelSlider::addSlider(IndexType index, const QString &te
     parameters->value = 0x00;
     parameters->visible = false;
 
-    slider.insert(std::make_pair(index, parameters));
+    slider.insert(std::make_pair(index, std::unique_ptr<LevelSliderParameters>(parameters)));
     setText(index, text);
     return index;
 }

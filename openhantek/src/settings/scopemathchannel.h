@@ -5,7 +5,7 @@
 #include <QRectF>
 #include <QString>
 
-#include "post/enums.h"
+#include "post/enums-post.h"
 #include "scopechannel.h"
 
 class QSettings;

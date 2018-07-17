@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "enums.h"
+#include "enums-post.h"
 
 class QSettings;
 class DsoConfigAnalysisPage;
