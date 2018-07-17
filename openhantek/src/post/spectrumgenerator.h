@@ -12,7 +12,7 @@
 #include "ppresult.h"
 #include "utils/printutils.h"
 
-#include "enums.h"
+#include "enums-post.h"
 #include "processor.h"
 
 namespace Settings {
