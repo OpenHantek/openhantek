@@ -25,8 +25,6 @@ class GlScopeWindow;
 class DsoControl;
 
 class ChannelWidgets : public QWidget {
-  Q_OBJECT
-  
   public:
     ChannelWidgets(Settings::Channel *channel, Settings::View *view, const Dso::ModelSpec *spec, QWidget *parent);
     ChannelWidgets(const ChannelWidgets &) = default;
@@ -39,7 +37,7 @@ class ChannelWidgets : public QWidget {
         delete measurementFrequencyLabel;
     }
 
-    void setMeasurementVisible();
+    void updateMeasurementVisibility();
     void updateVoltageCoupling();
     void updateMathMode();
     void updateSpectrumDetails();
