@@ -418,7 +418,7 @@ ChannelWidgets::ChannelWidgets(Settings::Channel *channel, Settings::View *view,
     layout->addWidget(measurementAmplitudeLabel, 0, 4);
     layout->addWidget(measurementFrequencyLabel, 0, 5);
 
-    setMeasurementVisible();
+    updateMeasurementVisibility();
 
     if (!channel->isMathChannel()) {
         updateVoltageCoupling();
@@ -438,7 +438,7 @@ ChannelWidgets::ChannelWidgets(Settings::Channel *channel, Settings::View *view,
 }
 
 /// \brief Show/Hide a line of the measurement table.
-void ChannelWidgets::setMeasurementVisible() {
+void ChannelWidgets::updateMeasurementVisibility() {
     bool visible = channel->visible() || channel->spectrum()->visible();
 
     measurementNameLabel->setVisible(visible);
@@ -477,13 +477,13 @@ void ChannelWidgets::updateMathMode() {
 /// \param channel The channel whose used-state was changed.
 /// \param used The new used-state for the channel.
 void ChannelWidgets::updateVoltageUsed() {
-    setMeasurementVisible();
+    updateMeasurementVisibility();
     updateVoltageDetails();
 }
 
 /// \brief Update the label about the trigger settings
 void ChannelWidgets::updateVoltageDetails() {
-    setMeasurementVisible();
+    updateMeasurementVisibility();
 
     if (channel->visible()) {
         const double gain = channel->gain();
@@ -495,7 +495,7 @@ void ChannelWidgets::updateVoltageDetails() {
 
 /// \brief Update the label about the trigger settings
 void ChannelWidgets::updateSpectrumDetails() {
-    setMeasurementVisible();
+    updateMeasurementVisibility();
 
     if (channel->spectrum()->visible())
         measurementMagnitudeLabel->setText(
