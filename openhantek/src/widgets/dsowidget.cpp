@@ -34,7 +34,6 @@ DsoWidget::DsoWidget(Settings::Scope *scope, Settings::View *view, DsoControl *d
     mainSliders.offsetSlider = new LevelSlider(Qt::RightArrow);
     mainSliders.triggerLevelSlider = new LevelSlider(Qt::LeftArrow);
     mainSliders.triggerPositionSlider = new LevelSlider(Qt::DownArrow);
-    mainSliders.triggerPositionSlider = new LevelSlider(Qt::DownArrow);
     mainSliders.triggerPositionSlider->addSlider(0);
     mainSliders.triggerPositionSlider->setLimits(0, 0.0, 1.0);
     mainSliders.triggerPositionSlider->setStep(0, 0.2 / (double)DIVS_TIME);
@@ -189,30 +188,6 @@ DsoWidget::DsoWidget(Settings::Scope *scope, Settings::View *view, DsoControl *d
     updateMarkerDetails(m_view->zoomviews.activeMarker());
 }
 
-/// \brief Show/Hide a line of the measurement table.
-void DsoWidget::setMeasurementVisible(ChannelWidgets *channelWidgets) {
-    bool visible = channelWidgets->channel->visible() || channelWidgets->channel->spectrum()->visible();
-
-    channelWidgets->measurementNameLabel->setVisible(visible);
-    channelWidgets->measurementMiscLabel->setVisible(visible);
-
-    channelWidgets->measurementAmplitudeLabel->setVisible(visible);
-    channelWidgets->measurementFrequencyLabel->setVisible(visible);
-    if (!visible) {
-        channelWidgets->measurementGainLabel->setText(QString());
-        channelWidgets->measurementAmplitudeLabel->setText(QString());
-        channelWidgets->measurementFrequencyLabel->setText(QString());
-    }
-
-    channelWidgets->measurementGainLabel->setVisible(channelWidgets->channel->visible());
-    if (!channelWidgets->channel->visible()) { channelWidgets->measurementGainLabel->setText(QString()); }
-
-    channelWidgets->measurementMagnitudeLabel->setVisible(channelWidgets->channel->spectrum()->visible());
-    if (!channelWidgets->channel->spectrum()->visible()) {
-        channelWidgets->measurementMagnitudeLabel->setText(QString());
-    }
-}
-
 void DsoWidget::updateMarkerDetails(int activeMarker) {
     if (activeMarker < 0) {
         markerTimebaseLabel->setText(QString());
@@ -242,17 +217,6 @@ void DsoWidget::updateMarkerDetails(int activeMarker) {
 }
 
 /// \brief Update the label about the trigger settings
-void DsoWidget::updateSpectrumDetails(ChannelWidgets *channelWidgets) {
-    setMeasurementVisible(channelWidgets);
-
-    if (channelWidgets->channel->spectrum()->visible())
-        channelWidgets->measurementMagnitudeLabel->setText(
-            valueToString(channelWidgets->channel->spectrum()->magnitude(), Unit::DECIBEL, 3) + tr("/div"));
-    else
-        channelWidgets->measurementMagnitudeLabel->setText(QString());
-}
-
-/// \brief Update the label about the trigger settings
 void DsoWidget::updateTriggerDetails() {
     const ChannelID c = m_deviceSettings->trigger.source();
 
@@ -271,17 +235,6 @@ void DsoWidget::updateTriggerDetails() {
     /// \todo This won't work for special trigger sources
 }
 
-/// \brief Update the label about the trigger settings
-void DsoWidget::updateVoltageDetails(ChannelWidgets *channelWidgets) {
-    setMeasurementVisible(channelWidgets);
-
-    if (channelWidgets->channel->visible()) {
-        const double gain = channelWidgets->channel->gain();
-        channelWidgets->measurementGainLabel->setText(valueToString(gain, Unit::VOLTS, 3) + tr("/div"));
-    } else
-        channelWidgets->measurementGainLabel->setText(QString());
-}
-
 /// \brief Handles timebaseChanged signal from the horizontal dock.
 /// \param timebase The timebase used for displaying the trace.
 void DsoWidget::updateHorizontalDetails() {
@@ -294,16 +247,8 @@ void DsoWidget::updateHorizontalDetails() {
     updateMarkerDetails(m_view->zoomviews.activeMarker());
 }
 
-/// \brief Handles magnitudeChanged signal from the spectrum dock.
-/// \param channel The channel whose magnitude was changed.
-void DsoWidget::updateSpectrumMagnitude(ChannelWidgets *channelWidgets) { updateSpectrumDetails(channelWidgets); }
-
-/// \brief Handles usedChanged signal from the spectrum dock.
-/// \param channel The channel whose used-state was changed.
-/// \param used The new used-state for the channel.
-void DsoWidget::updateSpectrumUsed(ChannelWidgets *channelWidgets, bool used) {
-    mainSliders.offsetSlider->setIndexVisible(-1 - (int)channelWidgets->channel->channelID(), used);
-    updateSpectrumDetails(channelWidgets);
+void DsoWidget::updateSpectrumUsed(Settings::Channel *channel, bool used) {
+    mainSliders.offsetSlider->setIndexVisible(-1 - (int)channel->channelID(), used);
 }
 
 /// \brief Handles sourceChanged signal from the trigger dock.
@@ -325,28 +270,12 @@ void DsoWidget::updateTriggerSource() {
     updateTriggerDetails();
 }
 
-/// \brief Handles couplingChanged signal from the voltage dock.
-/// \param channel The channel whose coupling was changed.
-void DsoWidget::updateVoltageCoupling(ChannelWidgets *channelWidgets) {
-    channelWidgets->measurementMiscLabel->setText(
-        DsoE::couplingString(channelWidgets->channel->voltage()->coupling(m_spec)));
-}
-
-/// \brief Handles modeChanged signal from the voltage dock.
-void DsoWidget::updateMathMode(ChannelWidgets *channelWidgets) {
-    channelWidgets->measurementMiscLabel->setText(
-        PostProcessingE::mathModeString(((Settings::MathChannel *)channelWidgets->channel)->mathMode()));
-}
-
 /// \brief Handles usedChanged signal from the voltage dock.
 /// \param channel The channel whose used-state was changed.
 /// \param used The new used-state for the channel.
-void DsoWidget::updateVoltageUsed(ChannelWidgets *channelWidgets, bool used) {
-    mainSliders.offsetSlider->setIndexVisible((int)channelWidgets->channel->channelID(), used);
-    mainSliders.triggerLevelSlider->setIndexVisible((int)channelWidgets->channel->channelID(), used);
-
-    setMeasurementVisible(channelWidgets);
-    updateVoltageDetails(channelWidgets);
+void DsoWidget::updateVoltageUsed(Settings::Channel *channel, bool used) {
+    mainSliders.offsetSlider->setIndexVisible((int)channel->channelID(), used);
+    mainSliders.triggerLevelSlider->setIndexVisible((int)channel->channelID(), used);
 }
 
 void DsoWidget::createChannelWidgets(const QPalette &palette) {
@@ -365,7 +294,6 @@ void DsoWidget::createChannelWidgets(const QPalette &palette) {
         mainSliders.offsetSlider->addSlider((int)channelId, channel->name());
         mainSliders.offsetSlider->setColor((int)channelId, m_view->screen.voltage(channelId));
         mainSliders.offsetSlider->setLimits((int)channelId, -1, 1);
-        mainSliders.offsetSlider->setStep((int)channelId, m_deviceSettings->offsetAdjustStep(channelId));
         mainSliders.offsetSlider->setValue((int)channelId, channel->voltage()->offset());
 
         /// A Level slider widget can contain multiple sliders and uses an index value to identify a slider.
@@ -373,10 +301,17 @@ void DsoWidget::createChannelWidgets(const QPalette &palette) {
         mainSliders.offsetSlider->addSlider(-1 - (int)channelId, channel->name());
         mainSliders.offsetSlider->setColor(-1 - (int)channelId, m_view->screen.spectrum(channelId));
         mainSliders.offsetSlider->setLimits(-1 - (int)channelId, -1, 1);
-        mainSliders.offsetSlider->setStep(-1 - (int)channelId, m_deviceSettings->offsetAdjustStep(channelId));
         mainSliders.offsetSlider->setValue(-1 - (int)channelId, channel->spectrum()->offset());
 
-        if (!channel->isMathChannel()) {
+        if (channel->isMathChannel()) {
+            /// device knows nothing about our math channels. Use one tick for a step size.
+            double vstep = (1 - -1) / DIVS_VOLTAGE / DIVS_SUB;
+            mainSliders.offsetSlider->setStep((int)channelId, vstep);
+            mainSliders.offsetSlider->setStep(-1 - (int)channelId, vstep);
+        } else {
+            mainSliders.offsetSlider->setStep((int)channelId, m_deviceSettings->offsetAdjustStep(channelId));
+            mainSliders.offsetSlider->setStep(-1 - (int)channelId, m_deviceSettings->offsetAdjustStep(channelId));
+
             mainSliders.triggerLevelSlider->addSlider((int)channelId);
             mainSliders.triggerLevelSlider->setColor(
                 (int)channelId,
@@ -388,60 +323,19 @@ void DsoWidget::createChannelWidgets(const QPalette &palette) {
             mainSliders.triggerLevelSlider->setValue((int)channelId, channel->voltage()->triggerLevel());
         }
 
-        ChannelWidgets *cw = new ChannelWidgets(channel, measurementLayout, this);
+        ChannelWidgets *cw = new ChannelWidgets(channel, m_view, m_spec, this);
         channelWidgets.push_back(cw);
-        tablePalette.setColor(QPalette::WindowText, m_view->screen.voltage(channelId));
-        cw->measurementNameLabel->setText(channel->name());
-        cw->measurementNameLabel->setPalette(tablePalette);
-        cw->measurementMiscLabel->setPalette(tablePalette);
-        cw->measurementGainLabel->setAlignment(Qt::AlignRight);
-        cw->measurementGainLabel->setPalette(tablePalette);
-        tablePalette.setColor(QPalette::WindowText, m_view->screen.spectrum(channelId));
-        cw->measurementMagnitudeLabel->setAlignment(Qt::AlignRight);
-        cw->measurementMagnitudeLabel->setPalette(tablePalette);
-        cw->measurementAmplitudeLabel->setAlignment(Qt::AlignRight);
-        cw->measurementAmplitudeLabel->setPalette(palette);
-        cw->measurementFrequencyLabel->setAlignment(Qt::AlignRight);
-        cw->measurementFrequencyLabel->setPalette(palette);
-        setMeasurementVisible(cw);
+        measurementLayout->addWidget(cw, rowIndex, 0);
 
-        cw->measurementLayout->setColumnMinimumWidth(0, 64);
-        cw->measurementLayout->setColumnMinimumWidth(1, 32);
-        cw->measurementLayout->setColumnStretch(2, 2);
-        cw->measurementLayout->setColumnStretch(3, 2);
-        cw->measurementLayout->setColumnStretch(4, 3);
-        cw->measurementLayout->setColumnStretch(5, 3);
+        updateVoltageUsed(channel, channel->visible());
+        // Wire slots to the ChannelWidgets instance so that they are automatically disconnected
+        // when cw is destroyed.
+        connect(channel, &Settings::Channel::visibleChanged, cw, 
+                [this, channel](bool visible) { updateVoltageUsed(channel, visible); });
 
-        cw->measurementLayout->addWidget(cw->measurementNameLabel, rowIndex, 0);
-        cw->measurementLayout->addWidget(cw->measurementMiscLabel, rowIndex, 1);
-        cw->measurementLayout->addWidget(cw->measurementGainLabel, rowIndex, 2);
-        cw->measurementLayout->addWidget(cw->measurementMagnitudeLabel, rowIndex, 3);
-        cw->measurementLayout->addWidget(cw->measurementAmplitudeLabel, rowIndex, 4);
-        cw->measurementLayout->addWidget(cw->measurementFrequencyLabel, rowIndex, 5);
-        if (!channel->isMathChannel()) {
-            updateVoltageCoupling(cw);
-            connect(channel->voltage(), &Dso::Channel::couplingIndexChanged, cw->root(),
-                    [this, cw]() { updateVoltageCoupling(cw); });
-        } else {
-            updateMathMode(cw);
-            connect((Settings::MathChannel *)channel, &Settings::MathChannel::mathModeChanged, cw->root(),
-                    [this, cw]() { updateMathMode(cw); });
-        }
-        updateVoltageUsed(cw, channel->visible());
-        updateSpectrumUsed(cw, channel->spectrum()->visible());
-        updateVoltageDetails(cw);
-        updateSpectrumDetails(cw);
-
-        //        connect(channel->voltage(), &Dso::Channel::gainStepIndexChanged, cw->root(),
-        //                [this, cw]() { updateVoltageDetails(cw); });
-        connect(channel, &Settings::Channel::gainChanged, cw->root(), [this, cw]() { updateVoltageDetails(cw); });
-        connect(channel->spectrum(), &Settings::Spectrum::magnitudeChanged, cw->root(),
-                [this, cw]() { updateSpectrumMagnitude(cw); });
-
-        connect(channel, &Settings::Channel::visibleChanged, cw->root(),
-                [this, cw](bool visible) { updateVoltageUsed(cw, visible); });
-        connect(channel->spectrum(), &Settings::Spectrum::visibleChanged, cw->root(),
-                [this, cw](bool visible) { updateSpectrumUsed(cw, visible); });
+        updateSpectrumUsed(channel, channel->spectrum()->visible());
+        connect(channel->spectrum(), &Settings::Spectrum::visibleChanged, cw,
+                [this, channel](bool visible) { updateSpectrumUsed(channel, visible); });
 
         ++rowIndex;
     }
@@ -486,4 +380,126 @@ void DsoWidget::applyColors() {
     markerTimebaseLabel->setPalette(palette);
     markerFrequencybaseLabel->setPalette(palette);
     markerInfoLabel->setPalette(palette);
+}
+
+ChannelWidgets::ChannelWidgets(Settings::Channel *channel, Settings::View *view, const Dso::ModelSpec *spec, QWidget *parent)
+        : QWidget(parent), m_view(view), channel(channel), m_spec(spec) {
+    QPalette tablePalette = palette();
+    ChannelID channelId = channel->channelID();
+
+    tablePalette.setColor(QPalette::WindowText, m_view->screen.voltage(channelId));
+    measurementNameLabel->setText(channel->name());
+    measurementNameLabel->setPalette(tablePalette);
+    measurementMiscLabel->setPalette(tablePalette);
+    measurementGainLabel->setPalette(tablePalette);
+    measurementGainLabel->setAlignment(Qt::AlignRight);
+
+    tablePalette.setColor(QPalette::WindowText, m_view->screen.spectrum(channelId));
+    measurementMagnitudeLabel->setPalette(tablePalette);
+    measurementMagnitudeLabel->setAlignment(Qt::AlignRight);
+    measurementAmplitudeLabel->setPalette(tablePalette);
+    measurementAmplitudeLabel->setAlignment(Qt::AlignRight);
+    measurementFrequencyLabel->setPalette(tablePalette);
+    measurementFrequencyLabel->setAlignment(Qt::AlignRight);
+
+    layout->setMargin(0);
+
+    layout->setColumnMinimumWidth(0, 64);
+    layout->setColumnMinimumWidth(1, 32);
+    layout->setColumnStretch(2, 2);
+    layout->setColumnStretch(3, 2);
+    layout->setColumnStretch(4, 3);
+    layout->setColumnStretch(5, 3);
+
+    layout->addWidget(measurementNameLabel, 0, 0);
+    layout->addWidget(measurementMiscLabel, 0, 1);
+    layout->addWidget(measurementGainLabel, 0, 2);
+    layout->addWidget(measurementMagnitudeLabel, 0, 3);
+    layout->addWidget(measurementAmplitudeLabel, 0, 4);
+    layout->addWidget(measurementFrequencyLabel, 0, 5);
+
+    setMeasurementVisible();
+
+    if (!channel->isMathChannel()) {
+        updateVoltageCoupling();
+        connect(channel->voltage(), &Dso::Channel::couplingIndexChanged, this, &ChannelWidgets::updateVoltageCoupling);
+    } else {
+        updateMathMode();
+        connect((Settings::MathChannel *)channel, &Settings::MathChannel::mathModeChanged, this, &ChannelWidgets::updateMathMode);
+    }
+    updateVoltageUsed();
+    updateSpectrumDetails();
+
+    connect(channel, &Settings::Channel::gainChanged, this, &ChannelWidgets::updateVoltageDetails);
+    connect(channel, &Settings::Channel::visibleChanged, this, &ChannelWidgets::updateVoltageUsed);
+
+    connect(channel->spectrum(), &Settings::Spectrum::magnitudeChanged, this, &ChannelWidgets::updateSpectrumDetails);
+    connect(channel->spectrum(), &Settings::Spectrum::visibleChanged, this, &ChannelWidgets::updateSpectrumDetails);
+}
+
+/// \brief Show/Hide a line of the measurement table.
+void ChannelWidgets::setMeasurementVisible() {
+    bool visible = channel->visible() || channel->spectrum()->visible();
+
+    measurementNameLabel->setVisible(visible);
+    measurementMiscLabel->setVisible(visible);
+
+    measurementAmplitudeLabel->setVisible(visible);
+    measurementFrequencyLabel->setVisible(visible);
+    if (!visible) {
+        measurementGainLabel->setText(QString());
+        measurementAmplitudeLabel->setText(QString());
+        measurementFrequencyLabel->setText(QString());
+    }
+
+    measurementGainLabel->setVisible(channel->visible());
+    if (!channel->visible()) { measurementGainLabel->setText(QString()); }
+
+    measurementMagnitudeLabel->setVisible(channel->spectrum()->visible());
+    if (!channel->spectrum()->visible()) {
+        measurementMagnitudeLabel->setText(QString());
+    }
+}
+
+/// \brief Handles couplingChanged signal from the voltage dock.
+/// \param channel The channel whose coupling was changed.
+void ChannelWidgets::updateVoltageCoupling() {
+    measurementMiscLabel->setText(DsoE::couplingString(channel->voltage()->coupling(m_spec)));
+}
+
+/// \brief Handles modeChanged signal from the voltage dock.
+void ChannelWidgets::updateMathMode() {
+    measurementMiscLabel->setText(
+        PostProcessingE::mathModeString(((Settings::MathChannel *)channel)->mathMode()));
+}
+
+/// \brief Handles usedChanged signal from the voltage dock.
+/// \param channel The channel whose used-state was changed.
+/// \param used The new used-state for the channel.
+void ChannelWidgets::updateVoltageUsed() {
+    setMeasurementVisible();
+    updateVoltageDetails();
+}
+
+/// \brief Update the label about the trigger settings
+void ChannelWidgets::updateVoltageDetails() {
+    setMeasurementVisible();
+
+    if (channel->visible()) {
+        const double gain = channel->gain();
+        measurementGainLabel->setText(valueToString(gain, Unit::VOLTS, 3) + tr("/div"));
+    } else
+        measurementGainLabel->setText(QString());
+}
+
+
+/// \brief Update the label about the trigger settings
+void ChannelWidgets::updateSpectrumDetails() {
+    setMeasurementVisible();
+
+    if (channel->spectrum()->visible())
+        measurementMagnitudeLabel->setText(
+            valueToString(channel->spectrum()->magnitude(), Unit::DECIBEL, 3) + tr("/div"));
+    else
+        measurementMagnitudeLabel->setText(QString());
 }

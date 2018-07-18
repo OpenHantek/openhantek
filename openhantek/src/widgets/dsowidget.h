@@ -24,10 +24,11 @@ struct ModelSpec;
 class GlScopeWindow;
 class DsoControl;
 
-class ChannelWidgets : protected QWidget {
+class ChannelWidgets : public QWidget {
+  Q_OBJECT
+  
   public:
-    ChannelWidgets(Settings::Channel *channel, QGridLayout *measurementLayout, QWidget *parent = nullptr)
-        : QWidget(parent), measurementLayout(measurementLayout), channel(channel) {}
+    ChannelWidgets(Settings::Channel *channel, Settings::View *view, const Dso::ModelSpec *spec, QWidget *parent);
     ChannelWidgets(const ChannelWidgets &) = default;
     virtual ~ChannelWidgets() {
         delete measurementNameLabel;
@@ -37,10 +38,16 @@ class ChannelWidgets : protected QWidget {
         delete measurementAmplitudeLabel;
         delete measurementFrequencyLabel;
     }
-    inline QWidget *root() { return this; }
+
+    void setMeasurementVisible();
+    void updateVoltageCoupling();
+    void updateMathMode();
+    void updateSpectrumDetails();
+    void updateVoltageDetails();
+    void updateVoltageUsed();
 
   public:
-    QGridLayout *measurementLayout;                       ///< The table for the signal details
+    QGridLayout *layout = new QGridLayout(this);          ///< The table for the signal details
     QLabel *measurementNameLabel = new QLabel(this);      ///< The name of the channel
     QLabel *measurementMiscLabel = new QLabel(this);      ///< Coupling or math mode
     QLabel *measurementGainLabel = new QLabel(this);      ///< The gain for the voltage (V/div)
@@ -48,7 +55,9 @@ class ChannelWidgets : protected QWidget {
     QLabel *measurementAmplitudeLabel = new QLabel(this); ///< Amplitude of the signal (V)
     QLabel *measurementFrequencyLabel = new QLabel(this); ///< Frequency of the signal (Hz)
 
+    Settings::View *m_view;
     Settings::Channel *channel;
+    const Dso::ModelSpec *m_spec;
 };
 
 /// \brief The widget for the oszilloscope-screen
@@ -105,8 +114,6 @@ class DsoWidget : public QWidget {
   private:
     void applyColors();
     void createChannelWidgets(const QPalette &palette);
-    void setMeasurementVisible(ChannelWidgets *channelWidgets);
-    void updateSpectrumDetails(ChannelWidgets *channelWidgets);
     void updateTriggerDetails();
     void updateVoltageDetails(ChannelWidgets *channelWidgets);
 
@@ -116,13 +123,10 @@ class DsoWidget : public QWidget {
     void updateTriggerSource();
 
     // Spectrum
-    void updateSpectrumMagnitude(ChannelWidgets *channelWidgets);
-    void updateSpectrumUsed(ChannelWidgets *channelWidgets, bool used);
+    void updateSpectrumUsed(Settings::Channel *channel, bool used);
 
     // Vertical axis
-    void updateVoltageCoupling(ChannelWidgets *channelWidgets);
-    void updateMathMode(ChannelWidgets *channelWidgets);
-    void updateVoltageUsed(ChannelWidgets *channelWidgets, bool used);
+    void updateVoltageUsed(Settings::Channel *channel, bool used);
 
     /// Update the labels about the active marker measurements
     void updateMarkerDetails(int zoomviewIndex);
