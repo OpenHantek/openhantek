@@ -3,6 +3,7 @@
 #include "dsoloop.h"
 
 #include "dsocontrol.h"
+#include "viewconstants.h"
 #include "models/modelDSO6022.h"
 #include "usb/usbdevice.h"
 #include <QDebug>
@@ -380,7 +381,7 @@ void DsoLoop::convertRawDataToSamples(const std::vector<unsigned char> &rawData)
             for (unsigned pos = 0; pos < samples.size(); ++pos, bufferPosition += m_specification->channels) {
                 if (bufferPosition >= totalSampleCount) bufferPosition %= totalSampleCount;
                 const int16_t v = rawData[bufferPosition] - shiftDataBuf;
-                double samplePoint = (v / limit - harwareOffset) * gainStep - offsetCorrection;
+                double samplePoint = (v / limit - (harwareOffset+1)/2) * gainStep - offsetCorrection;
                 if (samplePoint < samples.minVoltage) samples.minVoltage = samplePoint;
                 if (samplePoint > samples.maxVoltage) samples.maxVoltage = samplePoint;
                 if (v < samples.minRaw) samples.minRaw = v;

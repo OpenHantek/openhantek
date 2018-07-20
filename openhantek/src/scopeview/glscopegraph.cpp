@@ -83,20 +83,16 @@ void GlScopeGraph::ChannelDetail::updateGraph(const ChannelGraph &channelData) {
         dataBuffer->setData(tempBuffer);
     }
 
-    if (meshInit != channelData.size()) {
-        const unsigned s = (unsigned)channelData.size();
-        meshInit = s;
-        mesh->setVertexCount((int)s);
-        attr->setCount(s);
-    }
+    /// It looks like you need to set this each time you change the buffer contents.
+    const unsigned s = (unsigned)channelData.size();
+    mesh->setVertexCount((int)s);
+    attr->setCount(s);
 
     setEnabled(true);
 }
 
 GlScopeGraph::ChannelDetail::ChannelDetail(const ChannelGraph &channelData, QLayer *layer, const View *view,
                                            QEntity *parent) {
-    meshInit = (unsigned)channelData.size();
-
     if (layer) addComponent(layer);
 
     // Data buffer

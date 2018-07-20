@@ -13,6 +13,7 @@
 #include "dsocontrol.h"
 #include "dsoloop.h"
 #include "dsomodel.h"
+#include "viewconstants.h"
 #include "usb/usbdevice.h"
 
 #ifdef WIN32
@@ -37,6 +38,7 @@ DsoControl::DsoControl(USBDevice *device, std::shared_ptr<Dso::DeviceSettings> d
 
     qRegisterMetaType<DSOsamples *>();
     qRegisterMetaType<std::vector<Dso::FixedSampleRate>>("std::vector<Dso::FixedSampleRate>");
+    qRegisterMetaType<std::vector<Dso::RecordLength>>("std::vector<Dso::RecordLength>");
     qRegisterMetaType<HantekE::BulkCode>("HantekE::BulkCode");
     qRegisterMetaType<HantekE::ControlCode>("HantekE::ControlCode");
     qRegisterMetaType<Samplerate>("Samplerate");
@@ -97,7 +99,7 @@ double DsoControl::maxSingleChannelSamplerate() const {
 double DsoControl::computeTimebase(double samplerate) const {
     unsigned sampleCount = m_settings->getRecordLength();
     if (m_specification->isSoftwareTriggerDevice) sampleCount -= m_settings->trigger.swSampleMargin();
-    return (double)(sampleCount) / samplerate;
+    return (double)(sampleCount) / samplerate / DIVS_TIME;
 }
 
 Dso::ErrorCode DsoControl::retrieveOffsetCalibrationData() {
@@ -123,7 +125,7 @@ Dso::ErrorCode DsoControl::retrieveOffsetCalibrationData() {
     // Access model specification in write-mode. Only retrieveOffsetCalibrationData and the (self-)calibration
     // are allowed to do so.
     std::vector<Dso::ModelSpec::gainStepCalibration> &cal = const_cast<Dso::ModelSpec *>(m_specification)->calibration;
-    Hantek::ControlGetLimits::OffsetsPerGainStep *data = cmdGetLimits.offsetLimit.get();
+    Hantek::ControlGetLimits::OffsetsPerGainStep *data = (Hantek::ControlGetLimits::OffsetsPerGainStep *)cmdGetLimits.data();
     for (ChannelID channelId = 0; channelId < m_specification->channels; ++channelId) {
         for (unsigned gainId = 0; gainId < Hantek::ControlGetLimits::HANTEK_GAIN_STEPS; ++gainId) {
             // Convert little->big endian if necessary
@@ -303,10 +305,10 @@ DsoControl::BestSamplerateResult DsoControl::computeBestSamplerate(double sample
 }
 
 unsigned DsoControl::updateSamplerate(unsigned downsampler, bool fastRate) {
-    fastRate |= m_specification->supportsFastRate;
+    fastRate = fastRate && m_specification->supportsFastRate;
     // Get samplerate limits
     const ControlSamplerateLimits *limits =
-        fastRate ? &m_specification->normalSamplerate : &m_specification->fastrateSamplerate;
+        fastRate ? &m_specification->fastrateSamplerate : &m_specification->normalSamplerate;
     // Update settings
     bool fastRateChanged = m_settings->limits != limits;
     if (fastRateChanged) { m_settings->limits = limits; }
@@ -385,7 +387,6 @@ unsigned DsoControl::updateSamplerate(unsigned downsampler, bool fastRate) {
         commandSetSamplerate2250->setSamplerate(downsampler > 1 ? 0x10001 - downsampler : 0);
         // Set fast rate when used
         commandSetSamplerate2250->setFastRate(fastRate);
-
         break;
     }
     default:

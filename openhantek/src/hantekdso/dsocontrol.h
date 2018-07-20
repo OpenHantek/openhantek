@@ -108,7 +108,7 @@ class DsoControl : public DsoCommandQueue {
 
     /// \brief The resulting tuple of the computeBestSamplerate() function
     struct BestSamplerateResult {
-        unsigned downsampler = 0;
+        double downsampler = 0;
         double samplerate = 0.0;
         bool fastrate = false;
     };
