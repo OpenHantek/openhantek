@@ -130,7 +130,7 @@ ControlAcquireHardData::ControlAcquireHardData() : ControlCommand(HantekE::Contr
 }
 
 ControlGetLimits::ControlGetLimits(size_t channels)
-    : ControlCommand(HantekE::ControlCode::VALUE, 1), offsetLimit(new OffsetsPerGainStep[channels]) {
+    : ControlCommand(HantekE::ControlCode::VALUE, channels*sizeof(OffsetsPerGainStep)) {
     value = (uint8_t)ControlValue::VALUE_OFFSETLIMITS;
     data()[0] = 0x01;
 }

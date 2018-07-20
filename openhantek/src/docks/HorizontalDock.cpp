@@ -80,6 +80,8 @@ HorizontalDock::HorizontalDock(Settings::Scope *scope, DsoControl *dsocontrol, Q
     samplerateSiSpinBox = new SiSpinBox(Unit::SAMPLES, this);
     samplerateSiSpinBox->setRange(0, 0);
     samplerateSiSpinBox->setUnitPostfix("/s");
+    std::vector<double> samplerateSteps = {1.0, 2.0, 4.0, 10.0};
+    samplerateSiSpinBox->setSteps(samplerateSteps);
 
     fixedSamplerateBox = new QComboBox(this);
 

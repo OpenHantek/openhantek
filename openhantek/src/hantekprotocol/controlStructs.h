@@ -139,7 +139,6 @@ struct ControlGetLimits : public ControlCommand {
     };
 #pragma pack(pop)
 
-    std::unique_ptr<OffsetsPerGainStep[]> offsetLimit;
     ControlGetLimits(size_t channels);
 };
 }

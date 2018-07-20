@@ -71,7 +71,7 @@ class Scope : public QObject {
 
     DsoE::GraphFormat m_format = DsoE::GraphFormat::TY; ///< Graph drawing mode of the scope
     double m_frequencybase = 1e3;                     ///< Frequencybase in Hz/div
-    bool m_useHardwareGain = false;
+    bool m_useHardwareGain = true;
   signals:
     void formatChanged(const Scope *);
     void frequencybaseChanged(const Scope *);

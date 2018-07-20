@@ -53,14 +53,14 @@ void GraphGenerator::generateGraphsTYvoltage(PPresult *result) {
         // Set size directly to avoid reallocations
         target.resize(sampleCount);
 
-        // Data samples are in [0,1] (as long as the voltageLimits are set correctly).
+        // Data samples are in volts (as long as the voltageLimits are set correctly).
         // The offset needs to be applied now, as well as the gain.
         const float timeFactor =
-            float(channelData.voltage.interval * DIVS_TIME * 2 / m_deviceSettings->samplerate().timebase);
+            float(channelData.voltage.interval / m_deviceSettings->samplerate().timebase);
         const float offY = (float)channelData.channelSettings->voltage()->offset() * DIVS_VOLTAGE / 2;
         const float offX = -DIVS_TIME / 2;
         const int invert = channelData.channelSettings->inverted() ? -1.0 : 1.0;
-        const float gain = invert / channelData.channelSettings->gain();
+        const float gain = invert / channelData.channelSettings->gain() * DIVS_VOLTAGE;
 
 #pragma omp parallel for
         for (unsigned int position = 0; position < sampleCount; ++position) {

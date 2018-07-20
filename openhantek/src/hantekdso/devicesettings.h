@@ -204,7 +204,7 @@ class DeviceSettings : public QObject {
         if (!spec->supportsOffset || channel > spec->calibration.size()) return 0.001;
 
         const Dso::ModelSpec::GainStepCalibration &c = spec->calibration[channel][voltage[channel]->gainStepIndex()];
-        return 1 / (c.offsetEnd - c.offsetStart);
+        return 1.0 / (c.offsetEnd - c.offsetStart);
     }
 
     /// \brief Gets the maximum size of one packet transmitted via bulk transfer.

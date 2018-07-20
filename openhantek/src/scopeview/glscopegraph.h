@@ -38,7 +38,6 @@ class GlScopeGraph : public Qt3DCore::QEntity {
         Qt3DExtras::QPhongAlphaMaterial *material = new Qt3DExtras::QPhongAlphaMaterial(this);
         Qt3DRender::QGeometryRenderer *mesh;
         Qt3DRender::QAttribute* attr;
-        unsigned meshInit = 0;
         ChannelID channelID;
         bool isSpectrum = false;
         QByteArray tempBuffer;

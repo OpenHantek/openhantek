@@ -31,10 +31,10 @@ struct ControlSamplerateLimits {
     std::vector<RecordLength> recordLengths; ///< Available record lengths
 
     inline double minSamplerate(RecordLengthID id) const {
-        return base / maxDownsampler / recordLengths[id].recordLength;
+        return base / maxDownsampler / recordLengths[id].bufferDivider;
     }
     inline double samplerate(RecordLengthID id, unsigned downsampler) const {
-        return base / downsampler / recordLengths[id].recordLength;
+        return base / downsampler / recordLengths[id].bufferDivider;
     }
     inline double samplerate(RecordLengthID id, double recordTime) const {
         return recordLengths[id].bufferDivider / recordTime;
@@ -42,8 +42,8 @@ struct ControlSamplerateLimits {
 
     inline double maxSamplerate(RecordLengthID id) const { return max / recordLengths[id].bufferDivider; }
 
-    inline unsigned computeDownsampler(RecordLengthID id, double samplerate) const {
-        return unsigned(base / recordLengths[id].bufferDivider / samplerate);
+    inline double computeDownsampler(RecordLengthID id, double samplerate) const {
+        return base / recordLengths[id].bufferDivider / samplerate;
     }
 };
 
