@@ -1,0 +1,9 @@
+[
+  {
+    "name": "OpenHantek - Hostx86 - amd64",
+    "compilers": {
+      "C": "C:/Program Files (x86)/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.14.26428/bin/Hostx86/x64/cl.exe",
+      "CXX": "C:/Program Files (x86)/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.14.26428/bin/Hostx86/x64/cl.exe"
+    }
+  }
+]
