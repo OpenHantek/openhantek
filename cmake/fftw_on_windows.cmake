@@ -59,9 +59,9 @@ if(CMAKE_HOST_UNIX AND WIN32)
     endif()
 else()
     execute_process(
-    # Points to mingw location
+    # Must use "Visual Studio 15 2017 Win64" cmake generator for this to work properly
     # COMMAND "${_vs_bin_path}/lib.exe" ${LIBEXE_64} /def:${CMAKE_BINARY_DIR}/fftw/libfftw3-3.def /out:${CMAKE_BINARY_DIR}/fftw/libfftw3-3.lib
-    # Replace with VS version
+    # Manual Set
     COMMAND "C:/Program Files (x86)/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.14.26428/bin/Hostx64/x64/lib.exe" ${LIBEXE_64} /def:${CMAKE_BINARY_DIR}/fftw/libfftw3-3.def /out:${CMAKE_BINARY_DIR}/fftw/libfftw3-3.lib
     WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/fftw"
     OUTPUT_VARIABLE OutVar
@@ -74,7 +74,7 @@ endif()
 target_link_libraries(${PROJECT_NAME} "${CMAKE_BINARY_DIR}/fftw/libfftw3-3.lib")
 target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_BINARY_DIR}/fftw")
 
-file(COPY "${CMAKE_BINARY_DIR}/fftw/fftw3.h" DESTINATION "${CMAKE_SOURCE_DIR}/src")
+file(COPY "${CMAKE_BINARY_DIR}/fftw/fftw3.h" DESTINATION "${CMAKE_SOURCE_DIR}/openhantek/src")
 
 add_custom_command(TARGET ${PROJECT_NAME}
         POST_BUILD
