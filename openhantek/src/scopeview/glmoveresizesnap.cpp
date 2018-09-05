@@ -1,3 +1,4 @@
+#include <cmath>
 #include "glmoveresizesnap.h"
 #include <Qt3DInput/QMouseHandler>
 
