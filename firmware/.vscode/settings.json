@@ -1,0 +1,10 @@
+{
+    "C_Cpp.default.configurationProvider": "vector-of-bool.cmake-tools",
+    "cmake.configureOnOpen": true,
+    "cmake.cmakePath": "C:/Program Files/CMake/bin/cmake.exe",
+    "cmake.preferredGenerators": [
+        "MinGW Makefiles",
+        "Ninja",
+        "Unix Makefiles"
+    ]
+}

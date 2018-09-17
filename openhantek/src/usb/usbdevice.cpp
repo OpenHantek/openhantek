@@ -99,7 +99,11 @@ bool USBDevice::connectDevice(QString &errorMessage) {
     return true;
 }
 
-USBDevice::~USBDevice() { disconnectFromDevice(); }
+USBDevice::~USBDevice() { 
+	disconnectFromDevice(); 
+	if (device != nullptr) libusb_unref_device(device);
+	device = nullptr;
+}
 
 int USBDevice::claimInterface(const libusb_interface_descriptor *interfaceDescriptor, int endpointOut, int endPointIn) {
     int errorCode = libusb_claim_interface(this->handle, interfaceDescriptor->bInterfaceNumber);
@@ -134,8 +138,6 @@ void USBDevice::disconnectFromDevice() {
         libusb_close(this->handle);
     }
     this->handle = nullptr;
-
-    libusb_unref_device(device);
 
     emit deviceDisconnected();
 }
