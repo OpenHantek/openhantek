@@ -32,6 +32,7 @@ src="https://raw.githubusercontent.com/OpenHantek/OpenHantek6022/master/docs/ima
 
 * Supported devices: Hantek 6022BE/BL
 * Supported operating systems: Linux
-* Other (untested) operating systems builds: MacOSX, Windows.
+* Other (untested) operating systems builds: MacOSX, Windows
+* Get source and binaries of all [releases](https://github.com/OpenHantek/OpenHantek6022/releases)
 
 ---
