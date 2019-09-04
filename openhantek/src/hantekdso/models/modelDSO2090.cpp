@@ -42,7 +42,7 @@ void initSpecifications(Dso::ControlSpecification& specification) {
     specification.gain = { {0,0.08} , {1,0.16} , {2,0.40} , {0,0.80} ,
                            {1,1.60} , {2,4.00} , {0,8.00} , {1,16.00} , {2,40.00} };
     specification.sampleSize = 8;
-    specification.specialTriggerChannels = {{"EXT", -2}, {"EXT/10", -3}};
+    specification.specialTriggerChannels = {{"EXT", -1}};
 }
 
 ModelDSO2090::ModelDSO2090() : DSOModel(ID, 0x04b5, 0x2090, 0x04b4, 0x2090, "dso2090x86", "DSO-2090",

@@ -91,7 +91,7 @@ void DsoSettings::load() {
     if (store->contains("position")) scope.trigger.position = store->value("position").toDouble();
     if (store->contains("slope")) scope.trigger.slope = (Dso::Slope)store->value("slope").toUInt();
     if (store->contains("source")) scope.trigger.source = store->value("source").toUInt();
-    if (store->contains("special")) scope.trigger.special = store->value("special").toInt();
+    if (store->contains("special")) scope.trigger.special = store->value("special").toBool();
     store->endGroup();
     // Spectrum
     for (ChannelID channel = 0; channel < scope.spectrum.size(); ++channel) {
