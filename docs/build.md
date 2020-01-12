@@ -11,6 +11,8 @@ For distributions using dnf package manager (Fedora 21+) use this command:
 For OpenSUSE and related distributions use this command
 zypper install cmake gcc-c++ qt5-qtbase-devel qt5-qttools-devel qt5-qttranslations  binutils-devel libusb-devel Mesa-libGL-devel Mesa-libGLESv2-devel fftw3-devel 
 
+For Raspbian you need stretch or above with graphics driver support. Enable fake graphics driver in raspiconfig first. After compiled the program afterwards start program with parameter "---useGLES"
+
 After you've installed the requirements run the following commands inside the directory of this package:
 > mkdir build <br>
 > cd build <br>
