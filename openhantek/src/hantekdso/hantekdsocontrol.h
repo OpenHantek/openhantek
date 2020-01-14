@@ -113,6 +113,9 @@ class HantekDsoControl : public QObject {
     }
     const ControlCommand *getCommand(Hantek::ControlCode code) const;
 
+    /// \brief Update the minimum and maximum supported samplerate.
+    void updateSamplerateLimits();
+
   private:
     bool isRollMode() const;
     bool isFastRate() const;
@@ -168,9 +171,6 @@ class HantekDsoControl : public QObject {
 
     /// \brief Restore the samplerate/timebase targets after divider updates.
     void restoreTargets();
-
-    /// \brief Update the minimum and maximum supported samplerate.
-    void updateSamplerateLimits();
 
   private:
     /// Pointers to bulk/control commands

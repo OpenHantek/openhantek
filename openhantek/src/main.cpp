@@ -77,6 +77,7 @@ void applySettingsToDevice(HantekDsoControl *dsoControl, DsoSettingsScope *scope
     dsoControl->setPretriggerPosition(scope->trigger.position * scope->horizontal.timebase * DIVS_TIME);
     dsoControl->setTriggerSlope(scope->trigger.slope);
     dsoControl->setTriggerSource(scope->trigger.special, scope->trigger.source);
+    dsoControl->updateSamplerateLimits();
 }
 
 /// \brief Initialize resources and translations and show the main window.
