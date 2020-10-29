@@ -94,7 +94,7 @@ void GraphGenerator::generateGraphsTYvoltage( PPresult *result ) {
         // printf("samples: %lu, dotsOnScreen: %d\n", samples.sample.size(), dotsOnScreen);
         graphVoltage.clear();   // remove all previous dots and fill in new trace
         graphHistogram.clear(); // remove all previous dots and fill in new trace
-        unsigned bins[ int( binsPerDiv * DIVS_VOLTAGE ) ] = {0};
+        unsigned bins[ int( binsPerDiv * DIVS_VOLTAGE ) ] = { 0 };
         for ( unsigned int position = unsigned( leftmostPosition ); position < dotsOnScreen && sampleIterator < sampleEnd;
               ++position, ++sampleIterator ) {
             double x = double( MARGIN_LEFT + position * horizontalFactor );

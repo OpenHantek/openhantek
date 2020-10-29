@@ -19,7 +19,7 @@ SelectSupportedDevice::SelectSupportedDevice( QWidget *parent ) : QDialog( paren
     ui->setupUi( this );
     ui->buttonBox->button( QDialogButtonBox::Ok )->setEnabled( false );
     qRegisterMetaType< UniqueUSBid >( "UniqueUSBid" );
-    connect( ui->buttonBox, &QDialogButtonBox::accepted, [this]() {
+    connect( ui->buttonBox, &QDialogButtonBox::accepted, [ this ]() {
         if ( ui->cmbDevices->currentIndex() != -1 ) {
             selectedDevice = ui->cmbDevices->currentData( Qt::UserRole ).value< UniqueUSBid >();
         }
@@ -34,7 +34,7 @@ SelectSupportedDevice::SelectSupportedDevice( QWidget *parent ) : QDialog( paren
             QDesktopServices::openUrl(
                 QUrl( "https://github.com/OpenHantek/OpenHantek6022/blob/master/docs/OpenHantek6022_User_Manual.pdf" ) );
     } );
-    connect( ui->btnDemoMode, &QPushButton::clicked, [this]() { demoModeClicked = true; } );
+    connect( ui->btnDemoMode, &QPushButton::clicked, [ this ]() { demoModeClicked = true; } );
 }
 
 std::unique_ptr< ScopeDevice > SelectSupportedDevice::showSelectDeviceModal( libusb_context *context ) {
@@ -42,7 +42,7 @@ std::unique_ptr< ScopeDevice > SelectSupportedDevice::showSelectDeviceModal( lib
     std::unique_ptr< FindDevices > findDevices = std::unique_ptr< FindDevices >( new FindDevices( context ) );
     std::unique_ptr< DevicesListModel > model = std::unique_ptr< DevicesListModel >( new DevicesListModel( findDevices.get() ) );
     ui->cmbDevices->setModel( model.get() );
-    connect( ui->cmbDevices, static_cast< void ( QComboBox::* )( int ) >( &QComboBox::currentIndexChanged ), [this]( int index ) {
+    connect( ui->cmbDevices, static_cast< void ( QComboBox::* )( int ) >( &QComboBox::currentIndexChanged ), [ this ]( int index ) {
         if ( index == -1 ) {
             ui->buttonBox->button( QDialogButtonBox::Ok )->setEnabled( false );
             return;
@@ -90,7 +90,7 @@ std::unique_ptr< ScopeDevice > SelectSupportedDevice::showSelectDeviceModal( lib
 
     QTimer timer;
     timer.setInterval( 1000 );
-    connect( &timer, &QTimer::timeout, [this, &model, &findDevices, &messageNoDevices]() {
+    connect( &timer, &QTimer::timeout, [ this, &model, &findDevices, &messageNoDevices ]() {
         if ( findDevices->updateDeviceList() ) { // searching...
             model->updateDeviceList();
         }

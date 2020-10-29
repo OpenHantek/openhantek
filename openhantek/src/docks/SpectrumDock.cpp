@@ -27,7 +27,7 @@ template < typename... Args > struct SELECT {
 
 SpectrumDock::SpectrumDock( DsoSettingsScope *scope, QWidget *parent ) : QDockWidget( tr( "Spectrum" ), parent ), scope( scope ) {
     // Initialize lists for comboboxes
-    this->magnitudeSteps = {1, 2, 3, 6, 10, 20, 40, 60, 80, 100};
+    this->magnitudeSteps = { 1, 2, 3, 6, 10, 20, 40, 60, 80, 100 };
     for ( const auto &magnitude : magnitudeSteps )
         this->magnitudeStrings << valueToString( magnitude, UNIT_DECIBEL, 0 );
 
@@ -53,7 +53,7 @@ SpectrumDock::SpectrumDock( DsoSettingsScope *scope, QWidget *parent ) : QDockWi
         b.magnitudeComboBox->addItems( this->magnitudeStrings );
 
         // Connect signals and slots
-        connect( b.usedCheckBox, &QCheckBox::toggled, [this, channel]( bool checked ) {
+        connect( b.usedCheckBox, &QCheckBox::toggled, [ this, channel ]( bool checked ) {
             // Send signal if it was one of the checkboxes
             if ( channel < this->scope->voltage.size() ) {
                 this->scope->spectrum[ channel ].used = checked;
@@ -62,7 +62,7 @@ SpectrumDock::SpectrumDock( DsoSettingsScope *scope, QWidget *parent ) : QDockWi
         } );
 
         connect( b.magnitudeComboBox, SELECT< int >::OVERLOAD_OF( &QComboBox::currentIndexChanged ),
-                 [this, channel]( unsigned index ) {
+                 [ this, channel ]( unsigned index ) {
                      // Send signal if it was one of the comboboxes
                      if ( channel < this->scope->voltage.size() ) {
                          this->scope->spectrum[ channel ].magnitude = this->magnitudeSteps.at( index );

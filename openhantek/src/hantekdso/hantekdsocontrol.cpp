@@ -220,7 +220,7 @@ Dso::ErrorCode HantekDsoControl::setGain( ChannelID channel, double gain ) {
     if ( channel >= specification->channels )
         return Dso::ErrorCode::PARAMETER;
 
-    static uint8_t lastGain[ 2 ] = {0xFF, 0xFF};
+    static uint8_t lastGain[ 2 ] = { 0xFF, 0xFF };
     gain /= controlsettings.voltage[ channel ].probeAttn; // gain needs to be scaled by probe attenuation
     // Find lowest gain voltage thats at least as high as the requested
     uint8_t gainID;
@@ -264,7 +264,7 @@ Dso::ErrorCode HantekDsoControl::setCoupling( ChannelID channel, Dso::Coupling c
     if ( channel >= specification->channels )
         return Dso::ErrorCode::PARAMETER;
 
-    static int lastCoupling[ 2 ] = {-1, -1};
+    static int lastCoupling[ 2 ] = { -1, -1 };
     if ( hasCommand( ControlCode::CONTROL_SETCOUPLING ) ) // don't send command if it is not implemented (like on the 6022)
         modifyCommand< ControlSetCoupling >( ControlCode::CONTROL_SETCOUPLING )
             ->setCoupling( channel, coupling == Dso::Coupling::DC );

@@ -61,16 +61,16 @@ TriggerDock::TriggerDock( DsoSettingsScope *scope, const Dso::ControlSpecificati
     loadSettings( scope );
 
     // Connect signals and slots
-    connect( modeComboBox, static_cast< void ( QComboBox::* )( int ) >( &QComboBox::currentIndexChanged ), [this]( int index ) {
+    connect( modeComboBox, static_cast< void ( QComboBox::* )( int ) >( &QComboBox::currentIndexChanged ), [ this ]( int index ) {
         this->scope->trigger.mode = mSpec->triggerModes[ unsigned( index ) ];
         emit modeChanged( this->scope->trigger.mode );
     } );
-    connect( slopeComboBox, static_cast< void ( QComboBox::* )( int ) >( &QComboBox::currentIndexChanged ), [this]( int index ) {
+    connect( slopeComboBox, static_cast< void ( QComboBox::* )( int ) >( &QComboBox::currentIndexChanged ), [ this ]( int index ) {
         this->scope->trigger.slope = Dso::Slope( index );
         emit slopeChanged( this->scope->trigger.slope );
     } );
     connect( sourceComboBox, static_cast< void ( QComboBox::* )( int ) >( &QComboBox::currentIndexChanged ),
-             [this]( unsigned index ) {
+             [ this ]( unsigned index ) {
                  bool smooth = index >= mSpec->channels;
                  this->scope->trigger.smooth = smooth;
                  this->scope->trigger.source = index & ( mSpec->channels - 1 );

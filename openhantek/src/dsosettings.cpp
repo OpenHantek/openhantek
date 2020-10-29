@@ -12,7 +12,7 @@
 /// \param channels The new channel count, that will be applied to lists.
 DsoSettings::DsoSettings( const Dso::ControlSpecification *deviceSpecification ) : deviceSpecification( deviceSpecification ) {
     // Add new channels to the list
-    unsigned char trace_hue[] = {60, 240, 0, 120}; // yellow, blue, red, green
+    unsigned char trace_hue[] = { 60, 240, 0, 120 }; // yellow, blue, red, green
     unsigned index = 0;
     scope.hasACcoupling = deviceSpecification->hasACcoupling;
     while ( scope.spectrum.size() < deviceSpecification->channels ) {
