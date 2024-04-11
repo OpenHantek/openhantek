@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 
+#include <QtGlobal>
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QDebug>
@@ -92,18 +93,33 @@ int main(int argc, char *argv[]) {
 #endif
 
     bool useGles = false;
+    bool forceSl150 = false;
     {
         QCoreApplication parserApp(argc, argv);
         QCommandLineParser p;
         p.addHelpOption();
         p.addVersionOption();
+
         QCommandLineOption useGlesOption("useGLES", QCoreApplication::tr("Use OpenGL ES instead of OpenGL"));
         p.addOption(useGlesOption);
+
+        QCommandLineOption forceSl150Option("forceSL150", QCoreApplication::tr("Force OpenGL Shader Language version 1.50"));
+        p.addOption(forceSl150Option);
+
         p.process(parserApp);
         useGles = p.isSet(useGlesOption);
+        forceSl150 = p.isSet(forceSl150Option);
     }
 
     GlScope::fixOpenGLversion(useGles ? QSurfaceFormat::OpenGLES : QSurfaceFormat::OpenGL);
+
+    if (forceSl150) {
+      // set environment variables for Qt
+      qputenv("MESA_GL_VERSION_OVERRIDE", "3.2");
+      qputenv("MESA_GLSL_VERSION_OVERRIDE", "150");
+      qDebug() << "MESA_GL_VERSION_OVERRIDE =" << qgetenv("MESA_GL_VERSION_OVERRIDE").constData();
+      qDebug() << "MESA_GLSL_VERSION_OVERRIDE =" << qgetenv("MESA_GLSL_VERSION_OVERRIDE").constData();
+    }
 
     QApplication openHantekApplication(argc, argv);
 
