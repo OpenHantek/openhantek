@@ -57,6 +57,7 @@ class HantekDsoControl : public QObject {
     /// Return the read-only device control settings. Use the set- Methods to change
     /// device settings.
     const Dso::ControlSettings *getDeviceSettings() const;
+    const Dso::ControlSpecification *getSpecification() const;
 
     /// \brief Get available record lengths for this oscilloscope.
     /// \return The number of physical channels, empty list for continuous.
@@ -184,7 +185,9 @@ class HantekDsoControl : public QObject {
     bool sampling = false; ///< true, if the oscilloscope is taking samples
 
     // Device setup
+    Dso::ControlSpecification deviceSpecification;  ///< Per-device protocol capabilities
     const Dso::ControlSpecification *specification; ///< The specifications of the device
+    bool legacy2250 = false;
     Dso::ControlSettings controlsettings;           ///< The current settings of the device
 
     // Results

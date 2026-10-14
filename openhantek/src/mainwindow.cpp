@@ -63,7 +63,7 @@ MainWindow::MainWindow(HantekDsoControl *dsoControl, DsoSettings *settings, Expo
     }
 
     DsoSettingsScope *scope = &(mSettings->scope);
-    const Dso::ControlSpecification *spec = dsoControl->getDevice()->getModel()->spec();
+    const Dso::ControlSpecification *spec = dsoControl->getSpecification();
 
     registerDockMetaTypes();
 
@@ -74,6 +74,7 @@ MainWindow::MainWindow(HantekDsoControl *dsoControl, DsoSettings *settings, Expo
     SpectrumDock *spectrumDock;
     VoltageDock *voltageDock;
     horizontalDock = new HorizontalDock(scope, this);
+    horizontalDock->setAvailableRecordLengths(dsoControl->getAvailableRecordLengths());
     triggerDock = new TriggerDock(scope, spec, this);
     spectrumDock = new SpectrumDock(scope, this);
     voltageDock = new VoltageDock(scope, spec, this);
@@ -110,6 +111,7 @@ MainWindow::MainWindow(HantekDsoControl *dsoControl, DsoSettings *settings, Expo
 
     // Connect general signals
     connect(dsoControl, &HantekDsoControl::statusMessage, statusBar(), &QStatusBar::showMessage);
+    connect(dsoControl, &HantekDsoControl::recordLengthChanged, horizontalDock, &HorizontalDock::setRecordLength);
 
     // Connect signals to DSO controller and widget
     connect(horizontalDock, &HorizontalDock::samplerateChanged, [dsoControl, this]() {

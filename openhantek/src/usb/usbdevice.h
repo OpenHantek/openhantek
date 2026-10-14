@@ -109,11 +109,10 @@ class USBDevice : public QObject {
     /// \brief Control read to the oscilloscope.
     /// \param command Buffer for the sent/recieved data.
     /// \return Number of received bytes on success, libusb error code on error.
-    template<class T>
-    inline int controlRead(const T *command) {
+    template <class T> inline int controlRead(const T *command, int attempts = HANTEK_ATTEMPTS) {
         return controlTransfer(LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_IN, (uint8_t)command->code,
                                (unsigned char *)command->data(), (unsigned)command->size(), command->value, 0,
-                               HANTEK_ATTEMPTS);
+                               attempts);
     }
 
     /**

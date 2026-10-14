@@ -1,0 +1,64 @@
+{
+    "date": "2026-10-14",
+    "device": "Hantek DSO-2250, VID/PID 04b4:2250 then 04b5:2250",
+    "platform": "macOS 27.0.1, arm64",
+    "libraries": "Qt 5.15.19, libusb 1.0.30, FFTW 3.3.11",
+    "setup": "CH1 on CAL 2 Vpp/1 kHz, probe x10, ground on CAL GND; 100 mV/div input range, DC coupling",
+    "runs": [
+        {
+            "condition": "warm",
+            "cold_start": false,
+            "protocol": "legacy",
+            "frames": 24,
+            "samples_per_channel": 10240,
+            "sample_rate": 1000000,
+            "frequency_Hz_range": [
+                1000,
+                1000
+            ],
+            "plateau_Vpp_probe10_range": [
+                2.101960784313725,
+                2.1333333333333337
+            ],
+            "passed": true
+        },
+        {
+            "condition": "cold RAM upload",
+            "cold_start": true,
+            "protocol": "legacy",
+            "frames": 24,
+            "samples_per_channel": 10240,
+            "sample_rate": 1000000,
+            "frequency_Hz_range": [
+                1000,
+                1000
+            ],
+            "plateau_Vpp_probe10_range": [
+                2.101960784313725,
+                2.101960784313725
+            ],
+            "passed": true
+        },
+        {
+            "condition": "queued acquisition events",
+            "cold_start": false,
+            "protocol": "legacy",
+            "frames": 24,
+            "samples_per_channel": 10240,
+            "sample_rate": 1000000,
+            "frequency_Hz_range": [
+                1000,
+                1000
+            ],
+            "plateau_Vpp_probe10_range": [
+                2.101960784313725,
+                2.1333333333333337
+            ],
+            "passed": true
+        }
+    ],
+    "gui_validation":
+        "User confirmed the CAL waveform in the native GUI with 10.24 kS, 1 MS/s, CH1 100 mV/div and Wait/Force; the waveform remained stationary after selecting Hard-/Software, CH1 rising slope and approximately 100 mV trigger level.",
+    "limits":
+        "Automated physical tests used short records, both ADCs and forced automatic triggering. Hardware trigger synchronization was confirmed manually in the GUI. Other protocol settings are checked against vendor SDK golden packets; newer logic revision 1 was tested with the offline USB fixture."
+}
