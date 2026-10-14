@@ -29,6 +29,7 @@ class USBDevice : public QObject {
     USBDevice(const USBDevice&) = delete;
     ~USBDevice();
     bool connectDevice(QString &errorMessage);
+    /// Close the connection while retaining the raw device for reconnection.
     void disconnectFromDevice();
 
     /// \brief Check if the oscilloscope is connected.
@@ -155,7 +156,7 @@ class USBDevice : public QObject {
     libusb_device_handle *handle = nullptr;
     unsigned findIteration;
     const unsigned long uniqueUSBdeviceID;
-    int interface;
+    int interface = -1;
     int outPacketLength; ///< Packet length for the OUT endpoint
     int inPacketLength;  ///< Packet length for the IN endpoint
   signals:

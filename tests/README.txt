@@ -11,6 +11,10 @@ fake libusb C functions, and does not link a physical USB implementation.
 It verifies legacy and revision-1 selection, SDK packet bytes, rates, channels,
 relay/DAC banks, capture duration, Gray ordering, rolling ordering, default
 record restoration, a DSO-2090 regression, and guarded firmware preparation.
+It also reproduces the GUI's connection probe followed by reconnection and
+verifies USB reference ownership, repeated disconnects, unplug errors,
+destruction of an open connection, and failed configuration/interface claims.
+The original code fails this reference-lifetime regression.
 The post_pipeline test exercises queued Qt events and the actual processing
 and graph generators. Hardware-triggered frames produce graph vertices in
 normal, auto and single modes without a software-trigger flag.
@@ -28,6 +32,11 @@ its queued event path. It exits unsuccessfully on incomplete records or
 CAL frequency/amplitude outside the stated tolerances.
 
 Observed hardware results are summarized in dso2250-hardware-validation.json.
+The native GUI was also opened, captured three nonempty CH1 graph frames and
+closed normally in three consecutive runs (exit 0). Cancelling device selection
+twice followed the existing return -1 path (shell exit 255) without crashing.
+A fourth capture/close run passed after installing the corrected bundle in
+/Applications; its executable matched the workspace bundle.
 The raw factory firmware resource remains unchanged. Preparation checks its
 full decoded identity before adding the 82-byte clock/speed correction to a
 temporary upload file. There are no EEPROM or FPGA flash writes.

@@ -60,5 +60,30 @@
     "gui_validation":
         "User confirmed the CAL waveform in the native GUI with 10.24 kS, 1 MS/s, CH1 100 mV/div and Wait/Force; the waveform remained stationary after selecting Hard-/Software, CH1 rising slope and approximately 100 mV trigger level.",
     "limits":
-        "Automated physical tests used short records, both ADCs and forced automatic triggering. Hardware trigger synchronization was confirmed manually in the GUI. Other protocol settings are checked against vendor SDK golden packets; newer logic revision 1 was tested with the offline USB fixture."
+        "Automated physical tests used short records, both ADCs and forced automatic triggering. Hardware trigger synchronization was confirmed manually in the GUI. Other protocol settings are checked against vendor SDK golden packets; newer logic revision 1 was tested with the offline USB fixture.",
+    "shutdown_validation": {
+        "capture_and_close_cycles": 3,
+        "processed_ch1_frames_each": 3,
+        "graph_vertices_per_frame": 10240,
+        "capture_exit_codes": [
+            0,
+            0,
+            0
+        ],
+        "selection_cancel_cycles": 2,
+        "selection_cancel_exit_codes": [
+            255,
+            255
+        ],
+        "selection_cancel_note":
+            "The existing main returns -1 (shell exit 255) when selection is cancelled; no crash occurred.",
+        "method":
+            "Actual bundled application, selection via its OK button, observed production processingFinished frames, window closure through QWidget::close. A local Qt observation helper was used only for validation and is not shipped.",
+        "installed_copy_capture_close": {
+            "processed_ch1_frames": 3,
+            "graph_vertices_per_frame": 10240,
+            "exit_code": 0,
+            "matched_workspace_binary": true
+        }
+    }
 }

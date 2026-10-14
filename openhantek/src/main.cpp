@@ -125,11 +125,13 @@ int main(int argc, char *argv[]) {
         SelectSupportedDevice().showLibUSBFailedDialogModel(error);
         return -1;
     }
+    // Keep the context alive until every controller and USBDevice is destroyed,
+    // including cancellation and connection failures in the selection dialog.
+    std::unique_ptr<libusb_context, decltype(&libusb_exit)> usbContext(context, &libusb_exit);
     std::unique_ptr<USBDevice> device = SelectSupportedDevice().showSelectDeviceModal(context);
 
     QString errorMessage;
     if (device == nullptr || !device->connectDevice(errorMessage)) {
-        libusb_exit(context);
         return -1;
     }
 
@@ -203,15 +205,10 @@ int main(int argc, char *argv[]) {
 
     //////// Clean up ////////
     dsoControlThread.quit();
-    dsoControlThread.wait(10000);
+    dsoControlThread.wait();
 
     postProcessingThread.quit();
-    postProcessingThread.wait(10000);
-
-    if (context && device != nullptr) { 
-        device.reset(); // causes libusb_close(), which must be called before libusb_exit() 
-        libusb_exit(context); 
-    }
+    postProcessingThread.wait();
 
     return res;
 }

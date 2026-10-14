@@ -65,6 +65,14 @@ struct FakeUsb {
     size_t dataPosition = 0;
     int opened = 0;
     int claimed = 0;
+    int references = 1; // The USB backend's device-list reference.
+    int wrapperRefs = 0;
+    int wrapperUnrefs = 0;
+    int closes = 0;
+    int configurationError = 0;
+    int claimError = 0;
+    int controlError = 0;
+    int bulkError = 0;
     std::vector<QByteArray> bulkOut;
     std::vector<QByteArray> beginCommands;
     QByteArray calibration =
@@ -96,8 +104,15 @@ struct FakeUsb {
 };
 
 extern "C" {
-libusb_device *LIBUSB_CALL libusb_ref_device(libusb_device *dev) { return dev; }
-void LIBUSB_CALL libusb_unref_device(libusb_device *) {}
+libusb_device *LIBUSB_CALL libusb_ref_device(libusb_device *dev) {
+    ++dev->fixture->references;
+    ++dev->fixture->wrapperRefs;
+    return dev;
+}
+void LIBUSB_CALL libusb_unref_device(libusb_device *dev) {
+    --dev->fixture->references;
+    ++dev->fixture->wrapperUnrefs;
+}
 int LIBUSB_CALL libusb_get_port_numbers(libusb_device *, uint8_t *ports, int length) {
     if (length < 1) return LIBUSB_ERROR_OVERFLOW;
     ports[0] = 1;
@@ -114,15 +129,22 @@ uint8_t LIBUSB_CALL libusb_get_device_address(libusb_device *) { return 1; }
 int LIBUSB_CALL libusb_open(libusb_device *dev, libusb_device_handle **handle) {
     *handle = &dev->fixture->handle;
     ++dev->fixture->opened;
+    ++dev->fixture->references; // Each open handle retains the device.
     return LIBUSB_SUCCESS;
 }
-void LIBUSB_CALL libusb_close(libusb_device_handle *handle) { --handle->fixture->opened; }
+void LIBUSB_CALL libusb_close(libusb_device_handle *handle) {
+    --handle->fixture->opened;
+    --handle->fixture->references;
+    ++handle->fixture->closes;
+}
 int LIBUSB_CALL libusb_get_config_descriptor(libusb_device *dev, uint8_t, libusb_config_descriptor **config) {
+    if (dev->fixture->configurationError) return dev->fixture->configurationError;
     *config = &dev->fixture->configuration;
     return LIBUSB_SUCCESS;
 }
 void LIBUSB_CALL libusb_free_config_descriptor(libusb_config_descriptor *) {}
 int LIBUSB_CALL libusb_claim_interface(libusb_device_handle *handle, int) {
+    if (handle->fixture->claimError) return handle->fixture->claimError;
     ++handle->fixture->claimed;
     return LIBUSB_SUCCESS;
 }
@@ -140,6 +162,7 @@ int LIBUSB_CALL libusb_set_interface_alt_setting(libusb_device_handle *, int, in
 int LIBUSB_CALL libusb_control_transfer(libusb_device_handle *handle, uint8_t type, uint8_t request, uint16_t value,
                                         uint16_t index, unsigned char *data, uint16_t length, unsigned int) {
     auto &fixture = *handle->fixture;
+    if (fixture.controlError) return fixture.controlError;
     if ((type & LIBUSB_ENDPOINT_IN) != 0) {
         std::memset(data, 0, length);
         if (request == 0xa2 && value == 8) {
@@ -158,6 +181,7 @@ int LIBUSB_CALL libusb_bulk_transfer(libusb_device_handle *handle, unsigned char
                                      int length, int *transferred, unsigned int) {
     auto &fixture = *handle->fixture;
     *transferred = 0;
+    if (fixture.bulkError) return fixture.bulkError;
     if (endpoint == 0x02) {
         check(length >= 2, "Incomplete bulk command");
         fixture.lastCommand = data[0];
@@ -214,6 +238,66 @@ void configure(HantekDsoControl &control, bool ch1 = true, bool ch2 = true) {
     ok(control.setSamplerate(1e6), "Set 1MS/s");
     ok(control.setRecordLength(1), "Set short record");
     ok(control.setPretriggerPosition(0.00512), "Set 50 percent pretrigger");
+}
+
+void usbLifetime() {
+    ModelDSO2250 model;
+    FakeUsb fixture;
+    int disconnected = 0;
+    {
+        USBDevice usb(&model, &fixture.raw);
+        QObject::connect(&usb, &USBDevice::deviceDisconnected, [&disconnected]() { ++disconnected; });
+        QString error;
+        check(fixture.references == 2 && fixture.wrapperRefs == 1, "Wrapper did not retain the raw USB device");
+        // The GUI selection model opens and closes the device to check access,
+        // then main opens this same wrapper again for acquisition.
+        for (int probe = 0; probe < 3; ++probe) {
+            check(usb.connectDevice(error), "Selection-probe connection failed");
+            check(fixture.references == 3 && fixture.opened == 1 && fixture.claimed == 1,
+                  "Open handle/device references are inconsistent");
+            usb.disconnectFromDevice();
+            usb.disconnectFromDevice();
+            check(fixture.references == 2 && fixture.wrapperUnrefs == 0 && fixture.opened == 0 &&
+                      fixture.claimed == 0 && disconnected == probe + 1,
+                  "Selection-probe disconnect released the wrapper reference or disconnected twice");
+        }
+        check(usb.getRawDevice() == &fixture.raw && usb.connectDevice(error),
+              "Device could not reconnect after probing");
+        unsigned char data = 0;
+        fixture.controlError = LIBUSB_ERROR_NO_DEVICE;
+        check(usb.controlTransfer(0x40, 0xb3, &data, 1, 0, 0, 1) == LIBUSB_ERROR_NO_DEVICE,
+              "Unplug error was not returned");
+        check(!usb.isConnected() && fixture.references == 2 && disconnected == 4,
+              "Unplug handling invalidated the wrapper reference");
+        usb.disconnectFromDevice();
+    }
+    check(fixture.references == 1 && fixture.wrapperUnrefs == 1 && fixture.closes == 4 && disconnected == 4,
+          "Destruction did not release exactly one raw-device reference");
+
+    FakeUsb active;
+    {
+        USBDevice usb(&model, &active.raw);
+        QString error;
+        check(usb.connectDevice(error), "Active device did not open");
+    }
+    check(active.references == 1 && active.opened == 0 && active.claimed == 0 && active.closes == 1 &&
+              active.wrapperUnrefs == 1,
+          "Closing an active device leaked or released it twice");
+
+    for (bool failConfiguration : {false, true}) {
+        FakeUsb failed;
+        {
+            USBDevice usb(&model, &failed.raw);
+            if (failConfiguration) failed.configurationError = LIBUSB_ERROR_NO_DEVICE;
+            else failed.claimError = LIBUSB_ERROR_BUSY;
+            QString error;
+            check(!usb.connectDevice(error) && !error.isEmpty(), "Failed connection was accepted or lost its error");
+            check(!usb.isConnected() && failed.references == 2 && failed.opened == 0 && failed.claimed == 0,
+                  "Failed configuration/claim retained an open handle");
+        }
+        check(failed.references == 1 && failed.wrapperUnrefs == 1 && failed.closes == 1,
+              "Failed connection destroyed the raw-device reference twice");
+    }
 }
 
 void controllerGoldens() {
@@ -451,6 +535,7 @@ void firmwareSafety() {
 int main(int argc, char **argv) {
     QCoreApplication app(argc, argv);
     try {
+        usbLifetime();
         controllerGoldens();
         unaffected2090Golden();
         savedRecordLengths();
