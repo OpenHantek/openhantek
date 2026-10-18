@@ -141,11 +141,6 @@ int main(int argc, char *argv[]) {
     HantekDsoControl dsoControl(device.get());
     dsoControl.moveToThread(&dsoControlThread);
     QObject::connect(&dsoControlThread, &QThread::started, &dsoControl, &HantekDsoControl::run);
-    QObject::connect(&dsoControl, &HantekDsoControl::communicationError, QCoreApplication::instance(),
-                     &QCoreApplication::quit);
-    QObject::connect(device.get(), &USBDevice::deviceDisconnected, QCoreApplication::instance(),
-                     &QCoreApplication::quit);
-
     //////// Create settings object ////////
     const Dso::ControlSpecification *spec = dsoControl.getSpecification();
     DsoSettings settings(spec);

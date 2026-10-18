@@ -196,7 +196,7 @@ MainWindow::MainWindow(HantekDsoControl *dsoControl, DsoSettings *settings, Expo
     connect(spectrumDock, &SpectrumDock::magnitudeChanged, dsoWidget, &DsoWidget::updateSpectrumMagnitude);
 
     // Started/stopped signals from oscilloscope
-    connect(dsoControl, &HantekDsoControl::samplingStatusChanged, [this, dsoControl](bool enabled) {
+    connect(dsoControl, &HantekDsoControl::samplingStatusChanged, this, [this](bool enabled) {
         QSignalBlocker blocker(this->ui->actionSampling);
         if (enabled) {
             this->ui->actionSampling->setText(tr("&Stop"));
@@ -209,6 +209,23 @@ MainWindow::MainWindow(HantekDsoControl *dsoControl, DsoSettings *settings, Expo
     });
     connect(this->ui->actionSampling, &QAction::triggered, dsoControl, &HantekDsoControl::enableSampling);
     this->ui->actionSampling->setChecked(dsoControl->isSampling());
+
+    auto showConnectionLost = [this, dsoControl]() {
+        if (connectionLost) return;
+        connectionLost = true;
+        QMetaObject::invokeMethod(dsoControl, "enableSampling", Qt::QueuedConnection, Q_ARG(bool, false));
+        ui->actionSampling->setEnabled(false);
+        const QString message =
+            tr("The oscilloscope connection was lost. Reconnect the USB cable and reopen OpenHantek.");
+        statusBar()->showMessage(message);
+        auto *notice =
+            new QMessageBox(QMessageBox::Warning, tr("Oscilloscope disconnected"), message, QMessageBox::Ok, this);
+        notice->setAttribute(Qt::WA_DeleteOnClose);
+        notice->setModal(false);
+        notice->show();
+    };
+    connect(dsoControl, &HantekDsoControl::communicationError, this, showConnectionLost);
+    connect(dsoControl->getDevice(), &USBDevice::deviceDisconnected, this, showConnectionLost);
 
     connect(dsoControl, &HantekDsoControl::availableRecordLengthsChanged, horizontalDock,
             &HorizontalDock::setAvailableRecordLengths);

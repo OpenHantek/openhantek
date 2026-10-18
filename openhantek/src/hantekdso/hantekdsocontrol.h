@@ -139,6 +139,7 @@ class HantekDsoControl : public QObject {
     unsigned getSampleCount() const;
 
     void updateInterval();
+    void scheduleNextRun(int minimumDelay = 0);
 
     /// \brief Calculates the trigger point from the CommandGetCaptureState data.
     /// \param value The data value that contains the trigger point.
@@ -150,7 +151,7 @@ class HantekDsoControl : public QObject {
     std::pair<int, unsigned> getCaptureState() const;
 
     /// \brief Gets sample data from the oscilloscope
-    std::vector<unsigned char> getSamples(unsigned &expectedSampleCount) const;
+    std::vector<unsigned char> getSamples(unsigned &expectedSampleCount);
 
     /// \brief Converts raw oscilloscope data to sample data
     void convertRawDataToSamples(const std::vector<unsigned char> &rawData);

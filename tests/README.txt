@@ -15,6 +15,11 @@ It also reproduces the GUI's connection probe followed by reconnection and
 verifies USB reference ownership, repeated disconnects, unplug errors,
 destruction of an open connection, and failed configuration/interface claims.
 The original code fails this reference-lifetime regression.
+Transient USB errors are also injected into pending configuration, the B2
+handshake, and GETDATA. The actual controller timer must recover and publish
+another complete record without a fatal communication signal. A real device
+disconnection still stops acquisition. The original controller fails the
+pending-command timeout regression.
 The post_pipeline test exercises queued Qt events and the actual processing
 and graph generators. Hardware-triggered frames produce graph vertices in
 normal, auto and single modes without a software-trigger flag.

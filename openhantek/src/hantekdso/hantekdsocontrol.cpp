@@ -145,6 +145,11 @@ void HantekDsoControl::updateInterval() {
     cycleTime = qBound(10, cycleTime, 1000);
 }
 
+void HantekDsoControl::scheduleNextRun(int minimumDelay) {
+    updateInterval();
+    QTimer::singleShot(qMax(cycleTime, minimumDelay), this, &HantekDsoControl::run);
+}
+
 bool HantekDsoControl::isRollMode() const {
     return controlsettings.samplerate.limits->recordLengths[controlsettings.recordLengthId] == UINT_MAX;
 }
@@ -205,7 +210,7 @@ std::pair<int, unsigned> HantekDsoControl::getCaptureState() const {
     return std::make_pair((int)response.getCaptureState(), response.getTriggerPoint());
 }
 
-std::vector<unsigned char> HantekDsoControl::getSamples(unsigned &previousSampleCount) const {
+std::vector<unsigned char> HantekDsoControl::getSamples(unsigned &previousSampleCount) {
     int errorCode;
     if (!specification->useControlNoBulk) {
         // Request data
@@ -215,7 +220,10 @@ std::vector<unsigned char> HantekDsoControl::getSamples(unsigned &previousSample
     }
     if (errorCode < 0) {
         qWarning() << "Getting sample data failed: " << libUsbErrorString(errorCode);
-        emit communicationError();
+        if (errorCode == LIBUSB_ERROR_NO_DEVICE) emit communicationError();
+        else
+            emit statusMessage(tr("USB communication interrupted: %1. Retrying.").arg(libUsbErrorString(errorCode)),
+                               5000);
         return std::vector<unsigned char>();
     }
 
@@ -1122,6 +1130,10 @@ void HantekDsoControl::addCommand(ControlCommand *newCommand, bool pending) {
 const ControlCommand *HantekDsoControl::getCommand(ControlCode code) const { return control[(uint8_t)code]; }
 
 void HantekDsoControl::run() {
+    if (!device->isConnected()) {
+        emit communicationError();
+        return;
+    }
     int errorCode = 0;
 
     // Send all pending bulk commands
@@ -1132,8 +1144,16 @@ void HantekDsoControl::run() {
 
             errorCode = bulkCommand(command);
             if (errorCode < 0) {
-                qWarning() << "Sending bulk command failed: " << libUsbErrorString(errorCode);
-                emit communicationError();
+                qWarning() << "Sending bulk command" << QString::number((uint8_t)command->code, 16)
+                           << "failed:" << libUsbErrorString(errorCode);
+                if (errorCode == LIBUSB_ERROR_NO_DEVICE) emit communicationError();
+                else {
+                    emit statusMessage(
+                        tr("USB communication interrupted: %1. Retrying.").arg(libUsbErrorString(errorCode)), 5000);
+                    // Keep the configuration pending and retry before acquiring
+                    // samples with settings that the device has not accepted.
+                    scheduleNextRun(100);
+                }
                 return;
             } else
                 command->pending = false;
@@ -1158,6 +1178,10 @@ void HantekDsoControl::run() {
                     emit communicationError();
                     return;
                 }
+                emit statusMessage(tr("USB communication interrupted: %1. Retrying.").arg(libUsbErrorString(errorCode)),
+                                   5000);
+                scheduleNextRun(100);
+                return;
             } else
                 controlCommand->pending = false;
         }
@@ -1360,12 +1384,7 @@ void HantekDsoControl::run() {
         }
     }
 
-    this->updateInterval();
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 4, 0))
-    QTimer::singleShot(cycleTime, this, &HantekDsoControl::run);
-#else
-    QTimer::singleShot(cycleTime, this, SLOT(run()));
-#endif
+    scheduleNextRun();
 }
 
 int HantekDsoControl::getConnectionSpeed() const {

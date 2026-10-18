@@ -4,8 +4,10 @@
 // wrapper against fake libusb C functions; no physical USB library is linked.
 #include <QByteArray>
 #include <QCoreApplication>
+#include <QEventLoop>
 #include <QFile>
 #include <QMap>
+#include <QTimer>
 
 #include <algorithm>
 #include <cmath>
@@ -73,6 +75,11 @@ struct FakeUsb {
     int claimError = 0;
     int controlError = 0;
     int bulkError = 0;
+    int failingBulkOpcode = -1;
+    int bulkFailuresRemaining = 0;
+    int injectedBulkError = LIBUSB_ERROR_TIMEOUT;
+    int speedFailuresRemaining = 0;
+    int injectedSpeedError = LIBUSB_ERROR_TIMEOUT;
     std::vector<QByteArray> bulkOut;
     std::vector<QByteArray> beginCommands;
     QByteArray calibration =
@@ -163,6 +170,10 @@ int LIBUSB_CALL libusb_control_transfer(libusb_device_handle *handle, uint8_t ty
                                         uint16_t index, unsigned char *data, uint16_t length, unsigned int) {
     auto &fixture = *handle->fixture;
     if (fixture.controlError) return fixture.controlError;
+    if ((type & LIBUSB_ENDPOINT_IN) != 0 && request == 0xb2 && fixture.speedFailuresRemaining > 0) {
+        --fixture.speedFailuresRemaining;
+        return fixture.injectedSpeedError;
+    }
     if ((type & LIBUSB_ENDPOINT_IN) != 0) {
         std::memset(data, 0, length);
         if (request == 0xa2 && value == 8) {
@@ -182,6 +193,10 @@ int LIBUSB_CALL libusb_bulk_transfer(libusb_device_handle *handle, unsigned char
     auto &fixture = *handle->fixture;
     *transferred = 0;
     if (fixture.bulkError) return fixture.bulkError;
+    if (endpoint == 0x02 && length > 0 && data[0] == fixture.failingBulkOpcode && fixture.bulkFailuresRemaining > 0) {
+        --fixture.bulkFailuresRemaining;
+        return fixture.injectedBulkError;
+    }
     if (endpoint == 0x02) {
         check(length >= 2, "Incomplete bulk command");
         fixture.lastCommand = data[0];
@@ -418,6 +433,95 @@ void unaffected2090Golden() {
     check(rig.fake.bulkOut.empty(), "A non2250 model received a2250 revision query");
 }
 
+void transientCommunicationErrors() {
+    ModelDSO2250 model;
+    // A pending settings command must survive either an exhausted bulk retry
+    // or the single-attempt B2 handshake timing out. Recovery uses the real
+    // controller timer, rather than an extra test call to run().
+    for (bool handshakeTimeout : {false, true}) {
+        Rig rig(model);
+        auto &control = *rig.control;
+        configure(control);
+        control.enableSampling(true);
+        int fatalErrors = 0;
+        int frames = 0;
+        QEventLoop loop;
+        QObject::connect(&control, &HantekDsoControl::communicationError, [&fatalErrors]() { ++fatalErrors; });
+        QObject::connect(&control, &HantekDsoControl::samplesAvailable, [&frames, &loop](const DSOsamples *) {
+            ++frames;
+            loop.quit();
+        });
+        const auto *pending = control.getCommand(Hantek::BulkCode::SETTRIGGERANDSAMPLERATE);
+        check(pending->pending, "Settings fixture did not queue the legacy command");
+        if (handshakeTimeout) {
+            rig.fake.speedFailuresRemaining = 1;
+        } else {
+            rig.fake.failingBulkOpcode = 1;
+            rig.fake.bulkFailuresRemaining = HANTEK_ATTEMPTS;
+        }
+        control.run();
+        check(fatalErrors == 0 && frames == 0 && rig.usb.isConnected() && pending->pending,
+              "Transient pending-command timeout was fatal or discarded the pending setting");
+        bool expired = false;
+        QTimer deadline;
+        deadline.setSingleShot(true);
+        QObject::connect(&deadline, &QTimer::timeout, [&expired, &loop]() {
+            expired = true;
+            loop.quit();
+        });
+        deadline.start(1000);
+        loop.exec();
+        check(!expired && frames > 0 && fatalErrors == 0 && !pending->pending && rig.usb.isConnected(),
+              "Pending settings did not recover and capture automatically after a transient timeout");
+    }
+
+    {
+        Rig rig(model);
+        auto &control = *rig.control;
+        configure(control);
+        control.enableSampling(true);
+        control.run(); // Discard the stale ready frame and arm a new capture.
+        int fatalErrors = 0;
+        int frames = 0;
+        QEventLoop loop;
+        QObject::connect(&control, &HantekDsoControl::communicationError, [&fatalErrors]() { ++fatalErrors; });
+        QObject::connect(&control, &HantekDsoControl::samplesAvailable, [&frames, &loop](const DSOsamples *) {
+            ++frames;
+            loop.quit();
+        });
+        rig.fake.failingBulkOpcode = 5;
+        rig.fake.bulkFailuresRemaining = 1;
+        control.run();
+        check(fatalErrors == 0 && frames == 0 && rig.usb.isConnected(),
+              "GETDATA timeout terminated acquisition or published an incomplete frame");
+        bool expired = false;
+        QTimer deadline;
+        deadline.setSingleShot(true);
+        QObject::connect(&deadline, &QTimer::timeout, [&expired, &loop]() {
+            expired = true;
+            loop.quit();
+        });
+        deadline.start(1000);
+        loop.exec();
+        check(!expired && frames > 0 && fatalErrors == 0 && rig.usb.isConnected(),
+              "GETDATA timeout did not recover automatically on the following acquisition");
+    }
+
+    {
+        Rig rig(model);
+        auto &control = *rig.control;
+        configure(control);
+        control.enableSampling(true);
+        int fatalErrors = 0;
+        QObject::connect(&control, &HantekDsoControl::communicationError, [&fatalErrors]() { ++fatalErrors; });
+        rig.fake.failingBulkOpcode = 1;
+        rig.fake.bulkFailuresRemaining = 1;
+        rig.fake.injectedBulkError = LIBUSB_ERROR_NO_DEVICE;
+        control.run();
+        check(fatalErrors > 0 && !rig.usb.isConnected(), "Actual USB disconnection was treated as a retryable timeout");
+    }
+}
+
 void savedRecordLengths() {
     struct SavedRecord {
         unsigned count;
@@ -538,6 +642,7 @@ int main(int argc, char **argv) {
         usbLifetime();
         controllerGoldens();
         unaffected2090Golden();
+        transientCommunicationErrors();
         savedRecordLengths();
         firmwareSafety();
         std::cout << "DSO2250 SDK packet, calibration, revision, RAM-order and firmware safety tests passed\n";
