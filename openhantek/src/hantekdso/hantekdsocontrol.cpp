@@ -1373,6 +1373,8 @@ void HantekDsoControl::run() {
 
             this->_samplingStarted = true;
             this->cycleCounter = 0;
+            // The first run has not scheduled a timer interval yet.
+            this->updateInterval();
             this->startCycle = int(controlsettings.trigger.position * 1000.0 / cycleTime + 1.0);
             this->lastTriggerMode = controlsettings.trigger.mode;
             break;

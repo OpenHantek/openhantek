@@ -80,7 +80,11 @@ struct FakeUsb {
     int injectedBulkError = LIBUSB_ERROR_TIMEOUT;
     int speedFailuresRemaining = 0;
     int injectedSpeedError = LIBUSB_ERROR_TIMEOUT;
+    bool waitForForcedTrigger = false;
+    bool forcedTrigger = false;
+    unsigned captureStateReads = 0;
     std::vector<QByteArray> bulkOut;
+    std::vector<unsigned> stateReadsAtBulkOut;
     std::vector<QByteArray> beginCommands;
     QByteArray calibration =
         QByteArray::fromHex("006b00ee006100e4005e00e1006b00ee006000e4005e00e1006b00ee006000e4005e00e1"
@@ -202,6 +206,9 @@ int LIBUSB_CALL libusb_bulk_transfer(libusb_device_handle *handle, unsigned char
         fixture.lastCommand = data[0];
         fixture.dataPosition = 0;
         fixture.bulkOut.emplace_back(reinterpret_cast<char *>(data), length);
+        fixture.stateReadsAtBulkOut.push_back(fixture.captureStateReads);
+        if (data[0] == 3) fixture.forcedTrigger = false;
+        if (data[0] == 2) fixture.forcedTrigger = true;
         *transferred = length;
         return LIBUSB_SUCCESS;
     }
@@ -212,8 +219,11 @@ int LIBUSB_CALL libusb_bulk_transfer(libusb_device_handle *handle, unsigned char
         if (length > 1) data[1] = fixture.revision;
     } else if (fixture.lastCommand == 6) {
         check(length == 512, "Capture-state read changed from the verified 512-byte transfer");
+        ++fixture.captureStateReads;
         std::memset(data, 0, length);
-        const unsigned char state[] = {2, 0, 0xb9, 0x17}; // captured gray0x17b9 ->RAM6865
+        const unsigned char state[] = {
+            static_cast<unsigned char>(fixture.waitForForcedTrigger && !fixture.forcedTrigger ? 0 : 2),
+            0, 0xb9, 0x17}; // captured gray0x17b9 ->RAM6865
         std::memcpy(data, state, sizeof(state));
     } else if (fixture.lastCommand == 5) {
         if (fixture.dataPosition + static_cast<size_t>(length) > fixture.frame.size()) return LIBUSB_ERROR_OVERFLOW;
@@ -433,6 +443,72 @@ void unaffected2090Golden() {
     check(rig.fake.bulkOut.empty(), "A non2250 model received a2250 revision query");
 }
 
+void initialTriggerCadence() {
+    ModelDSO2250 model;
+    Rig rig(model);
+    auto &control = *rig.control;
+    configure(control);
+    ok(control.setTriggerMode(Dso::TriggerMode::WAIT_FORCE), "Set forced automatic trigger");
+    rig.fake.waitForForcedTrigger = true;
+    // Exclude the constructor's revision query from the acquisition sequence.
+    rig.fake.bulkOut.clear();
+    rig.fake.stateReadsAtBulkOut.clear();
+    int frames = 0;
+    int fatalErrors = 0;
+    bool expired = false;
+    QEventLoop loop;
+    QObject::connect(&control, &HantekDsoControl::communicationError, [&fatalErrors, &loop]() {
+        ++fatalErrors;
+        loop.quit();
+    });
+    QObject::connect(&control, &HantekDsoControl::samplesAvailable, [&control, &frames, &loop](const DSOsamples *) {
+        ++frames;
+        control.enableSampling(false);
+        loop.quit();
+    });
+    QTimer deadline;
+    deadline.setSingleShot(true);
+    QObject::connect(&deadline, &QTimer::timeout, [&expired, &loop]() {
+        expired = true;
+        loop.quit();
+    });
+    deadline.start(1000);
+    control.enableSampling(true);
+    control.run();
+    loop.exec(); // All subsequent polls use the production controller's timer.
+    check(!expired && fatalErrors == 0 && frames == 1,
+          "Initial waiting capture did not complete through timed enable/force triggering");
+
+    // At 1MS/s, a short record and centered trigger need one waiting poll
+    // before enable and eight more before force. Verify actual USB commands,
+    // including the original state-before-start order, rather than the formula.
+    std::vector<QByteArray> expected{
+        QByteArray::fromHex("0100c6069dffffeb00000700"), QByteArray::fromHex("070f300000000000"),
+        QByteArray::fromHex("0600"), QByteArray::fromHex("0300")};
+    for (int poll = 1; poll <= 9; ++poll) {
+        expected.push_back(QByteArray::fromHex("0600"));
+        if (poll == 1) expected.push_back(QByteArray::fromHex("0400"));
+        if (poll == 9) expected.push_back(QByteArray::fromHex("0200"));
+    }
+    expected.push_back(QByteArray::fromHex("0600"));
+    expected.push_back(QByteArray::fromHex("0500"));
+    check(rig.fake.bulkOut == expected,
+          "First capture did not enable on the first waiting poll and force on the ninth");
+    const auto start = std::find(rig.fake.bulkOut.begin(), rig.fake.bulkOut.end(), QByteArray::fromHex("0300"));
+    const unsigned startRead = rig.fake.stateReadsAtBulkOut[start - rig.fake.bulkOut.begin()];
+    for (size_t i = 0; i < rig.fake.bulkOut.size(); ++i) {
+        if (rig.fake.bulkOut[i] == QByteArray::fromHex("0400"))
+            check(rig.fake.stateReadsAtBulkOut[i] - startRead == 1,
+                  "Initial trigger enable skipped its first timer poll");
+        if (rig.fake.bulkOut[i] == QByteArray::fromHex("0200"))
+            check(rig.fake.stateReadsAtBulkOut[i] - startRead == 9,
+                  "Initial force trigger used an uninitialized interval");
+    }
+    const auto &samples = control.getLastSamples();
+    check(samples.data.size() == 2 && samples.data[0].size() == 10240 && samples.data[1].size() == 10240,
+          "Timed initial capture did not publish a complete ADC frame");
+}
+
 void transientCommunicationErrors() {
     ModelDSO2250 model;
     // A pending settings command must survive either an exhausted bulk retry
@@ -642,6 +718,7 @@ int main(int argc, char **argv) {
         usbLifetime();
         controllerGoldens();
         unaffected2090Golden();
+        initialTriggerCadence();
         transientCommunicationErrors();
         savedRecordLengths();
         firmwareSafety();
