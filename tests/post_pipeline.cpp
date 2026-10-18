@@ -99,6 +99,31 @@ void testHardwareFrames(QCoreApplication &app) {
                   "The normal pipeline did not measure the synthetic1kHz calibration signal");
             check(graphs.isReady(), "Graph generation never became ready");
         }
+
+        // A 12 V DC supply through a x10 probe reaches the ADC as 1.2 V.
+        // Wait/Force must display this edge-free input as a horizontal trace.
+        scope.trigger.mode = Dso::TriggerMode::WAIT_FORCE;
+        scope.voltage[0].gainStepIndex = 6; // 1 V/div at the scope input.
+        frame.data[0].assign(10240, 1.2);
+        received.reset();
+        QTimer timeout;
+        timeout.setSingleShot(true);
+        QObject::connect(&timeout, &QTimer::timeout, &loop, &QEventLoop::quit);
+        timeout.start(5000);
+        source.publish(&frame);
+        loop.exec();
+        check(received != nullptr && received->sampleCount() == 10240,
+              "DC input did not cross the queued production post-processing path");
+        check(!received->softwareTriggerTriggered, "DC hardware capture unexpectedly required a software edge");
+        check(received->vaChannelVoltage.size() == 3 && received->vaChannelVoltage[0].size() == 10240,
+              "DC input produced an empty or truncated voltage graph");
+        for (const auto &vertex : received->vaChannelVoltage[0]) {
+            check(std::isfinite(vertex.x()) && std::isfinite(vertex.y()) && std::isfinite(vertex.z()),
+                  "DC voltage graph contains non-finite coordinates");
+            check(std::abs(vertex.y() - 1.2f) < 1e-5,
+                  "DC input was not displayed as a horizontal trace 1.2 divisions above channel zero");
+        }
+        check(graphs.isReady(), "DC graph generation never became ready");
     } catch (...) {
         worker.quit();
         worker.wait();
@@ -113,8 +138,8 @@ int main(int argc, char **argv) {
     QCoreApplication app(argc, argv);
     try {
         testHardwareFrames(app);
-        std::cout << "Queued hardware frames generated10240vertices in normal,wait/force andsingle modes; no "
-                     "software-trigger gate\n";
+        std::cout << "Queued hardware frames generated 10240 vertices in normal, wait/force and single modes; "
+                     "DC input produced a finite horizontal trace without a software-trigger gate\n";
         return 0;
     } catch (const std::exception &error) {
         std::cerr << error.what() << '\n';
