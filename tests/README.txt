@@ -22,7 +22,9 @@ disconnection still stops acquisition. The original controller fails the
 pending-command timeout regression.
 The post_pipeline test exercises queued Qt events and the actual processing
 and graph generators. Hardware-triggered frames produce graph vertices in
-normal, auto and single modes without a software-trigger flag.
+normal, Wait/Force and single modes without a software-trigger flag. A constant
+1.2 V input in Wait/Force at 1 V/div produces 10,240 finite graph vertices on
+a horizontal line, covering a 12 V DC measurement through a x10 probe.
 These offline targets currently build on non-Windows platforms.
 
 The optional physical probe is never registered with CTest:
@@ -36,7 +38,8 @@ then acquires 24 real short frames through the production controller and
 its queued event path. It exits unsuccessfully on incomplete records or
 CAL frequency/amplitude outside the stated tolerances.
 
-Observed hardware results are summarized in dso2250-hardware-validation.json.
+The successful 2026-10-14 hardware results are summarized in
+dso2250-hardware-validation.json.
 The native GUI was also opened, captured three nonempty CH1 graph frames and
 closed normally in three consecutive runs (exit 0). Cancelling device selection
 twice followed the existing return -1 path (shell exit 255) without crashing.
@@ -45,6 +48,15 @@ A fourth capture/close run passed after installing the corrected bundle in
 The raw factory firmware resource remains unchanged. Preparation checks its
 full decoded identity before adding the 82-byte clock/speed correction to a
 temporary upload file. There are no EEPROM or FPGA flash writes.
+
+On 2026-10-18, the same device no longer delivered capture records with the
+corrected production image. Cold initialization, the OEM upload sequence, and
+the earlier 100 mV/div settings did not restore acquisition. Restarting the
+resident program cleared the command queue, but only four OUT packets were
+accepted before the fifth timed out; no state or ADC data was returned.
+The cause remains unresolved. The timeout regression passes offline and the
+updated GUI remained open for 45 seconds through repeated USB timeouts; these
+checks do not establish successful physical acquisition on that date.
 
 Manual GUI check:
 Open the generated OpenHantek.app and choose DSO-2250. The record selector
