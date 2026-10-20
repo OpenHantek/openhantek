@@ -4,6 +4,7 @@
 // wrapper against fake libusb C functions; no physical USB library is linked.
 #include <QByteArray>
 #include <QCoreApplication>
+#include <QElapsedTimer>
 #include <QEventLoop>
 #include <QFile>
 #include <QMap>
@@ -80,6 +81,12 @@ struct FakeUsb {
     int injectedBulkError = LIBUSB_ERROR_TIMEOUT;
     int speedFailuresRemaining = 0;
     int injectedSpeedError = LIBUSB_ERROR_TIMEOUT;
+    bool stateReplyPending = false;
+    int postStateSpeedFailuresRemaining = 0;
+    int stateReadFailuresRemaining = 0;
+    int injectedStateReadError = LIBUSB_ERROR_TIMEOUT;
+    int shortStateResponsesRemaining = 0;
+    int shortStateResponseLength = 3;
     bool waitForForcedTrigger = false;
     bool forcedTrigger = false;
     unsigned captureStateReads = 0;
@@ -174,6 +181,11 @@ int LIBUSB_CALL libusb_control_transfer(libusb_device_handle *handle, uint8_t ty
                                         uint16_t index, unsigned char *data, uint16_t length, unsigned int) {
     auto &fixture = *handle->fixture;
     if (fixture.controlError) return fixture.controlError;
+    if ((type & LIBUSB_ENDPOINT_IN) != 0 && request == 0xb2 && fixture.stateReplyPending &&
+        fixture.postStateSpeedFailuresRemaining > 0) {
+        --fixture.postStateSpeedFailuresRemaining;
+        return fixture.injectedSpeedError;
+    }
     if ((type & LIBUSB_ENDPOINT_IN) != 0 && request == 0xb2 && fixture.speedFailuresRemaining > 0) {
         --fixture.speedFailuresRemaining;
         return fixture.injectedSpeedError;
@@ -187,6 +199,7 @@ int LIBUSB_CALL libusb_control_transfer(libusb_device_handle *handle, uint8_t ty
             data[0] = 1;
         } else return LIBUSB_ERROR_PIPE;
     } else if (request == 0xb3) {
+        fixture.stateReplyPending = false;
         fixture.beginCommands.emplace_back(reinterpret_cast<char *>(data), length);
     }
     return length;
@@ -209,6 +222,7 @@ int LIBUSB_CALL libusb_bulk_transfer(libusb_device_handle *handle, unsigned char
         fixture.stateReadsAtBulkOut.push_back(fixture.captureStateReads);
         if (data[0] == 3) fixture.forcedTrigger = false;
         if (data[0] == 2) fixture.forcedTrigger = true;
+        if (data[0] == 6) fixture.stateReplyPending = true;
         *transferred = length;
         return LIBUSB_SUCCESS;
     }
@@ -220,11 +234,22 @@ int LIBUSB_CALL libusb_bulk_transfer(libusb_device_handle *handle, unsigned char
     } else if (fixture.lastCommand == 6) {
         check(length == 512, "Capture-state read changed from the verified 512-byte transfer");
         ++fixture.captureStateReads;
+        if (fixture.stateReadFailuresRemaining > 0) {
+            --fixture.stateReadFailuresRemaining;
+            return fixture.injectedStateReadError;
+        }
         std::memset(data, 0, length);
         const unsigned char state[] = {
             static_cast<unsigned char>(fixture.waitForForcedTrigger && !fixture.forcedTrigger ? 0 : 2),
             0, 0xb9, 0x17}; // captured gray0x17b9 ->RAM6865
-        std::memcpy(data, state, sizeof(state));
+        int responseLength = length;
+        if (fixture.shortStateResponsesRemaining > 0) {
+            --fixture.shortStateResponsesRemaining;
+            responseLength = fixture.shortStateResponseLength;
+        }
+        std::memcpy(data, state, std::min(sizeof(state), static_cast<size_t>(responseLength)));
+        *transferred = responseLength;
+        return LIBUSB_SUCCESS;
     } else if (fixture.lastCommand == 5) {
         if (fixture.dataPosition + static_cast<size_t>(length) > fixture.frame.size()) return LIBUSB_ERROR_OVERFLOW;
         std::memcpy(data, fixture.frame.data() + fixture.dataPosition, length);
@@ -598,6 +623,117 @@ void transientCommunicationErrors() {
     }
 }
 
+void captureStateCommunicationErrors() {
+    enum class Stage { COMMAND, POST_SPEED, RESPONSE, SHORT_HEADER };
+    struct Fault {
+        Stage stage;
+        int error;
+        int shortLength;
+    };
+    ModelDSO2250 model;
+    const std::vector<Fault> faults{
+        {Stage::COMMAND, LIBUSB_ERROR_TIMEOUT}, {Stage::COMMAND, LIBUSB_ERROR_NO_DEVICE},
+        {Stage::POST_SPEED, LIBUSB_ERROR_TIMEOUT}, {Stage::POST_SPEED, LIBUSB_ERROR_NO_DEVICE},
+        {Stage::RESPONSE, LIBUSB_ERROR_TIMEOUT}, {Stage::RESPONSE, LIBUSB_ERROR_NO_DEVICE},
+        {Stage::SHORT_HEADER, LIBUSB_ERROR_IO, 0}, {Stage::SHORT_HEADER, LIBUSB_ERROR_IO, 3},
+        {Stage::SHORT_HEADER, 0, 4}};
+    for (const auto &fault : faults) {
+        Rig rig(model);
+        auto &control = *rig.control;
+        configure(control);
+        control.enableSampling(true);
+        control.run(); // Preserve a real trigger pointer and arm a capture.
+        const unsigned triggerPoint = control.getDeviceSettings()->trigger.point;
+        check(triggerPoint != 0, "Capture-state error fixture did not establish a trigger pointer");
+        rig.fake.bulkOut.clear();
+
+        int frames = 0;
+        int fatalErrors = 0;
+        int retryMessages = 0;
+        int messageTimeout = 0;
+        bool pointPreserved = false;
+        bool noCommandsAfterError = false;
+        bool expired = false;
+        qint64 errorAt = -1;
+        qint64 frameAt = -1;
+        QElapsedTimer elapsed;
+        elapsed.start();
+        QEventLoop loop;
+        QObject::connect(&control, &HantekDsoControl::statusMessage, &loop, [&](const QString &message, int timeout) {
+            if (!message.contains("Getting capture state failed:") || !message.contains("Retrying.")) return;
+            ++retryMessages;
+            messageTimeout = timeout;
+            pointPreserved = control.getDeviceSettings()->trigger.point == triggerPoint;
+            noCommandsAfterError = std::all_of(rig.fake.bulkOut.begin(), rig.fake.bulkOut.end(),
+                                             [](const QByteArray &packet) { return packet[0] == 6; });
+            errorAt = elapsed.elapsed();
+        });
+        QObject::connect(&control, &HantekDsoControl::communicationError, &loop, [&]() { ++fatalErrors; });
+        QObject::connect(&rig.usb, &USBDevice::deviceDisconnected, &loop, [&]() {
+            // Check the same failed poll, before a later timer could notice
+            // that the USB handle has already been closed.
+            QTimer::singleShot(0, &loop, &QEventLoop::quit);
+        });
+        QObject::connect(&control, &HantekDsoControl::samplesAvailable, &loop, [&](const DSOsamples *) {
+            ++frames;
+            frameAt = elapsed.elapsed();
+            control.enableSampling(false);
+            loop.quit();
+        });
+
+        switch (fault.stage) {
+        case Stage::COMMAND:
+            rig.fake.failingBulkOpcode = 6;
+            rig.fake.bulkFailuresRemaining = 1;
+            rig.fake.injectedBulkError = fault.error;
+            break;
+        case Stage::POST_SPEED:
+            rig.fake.postStateSpeedFailuresRemaining = HANTEK_ATTEMPTS;
+            rig.fake.injectedSpeedError = fault.error;
+            break;
+        case Stage::RESPONSE:
+            rig.fake.stateReadFailuresRemaining = HANTEK_ATTEMPTS;
+            rig.fake.injectedStateReadError = fault.error;
+            break;
+        case Stage::SHORT_HEADER:
+            rig.fake.shortStateResponsesRemaining = 1;
+            rig.fake.shortStateResponseLength = fault.shortLength;
+            break;
+        }
+        QTimer deadline;
+        deadline.setSingleShot(true);
+        QObject::connect(&deadline, &QTimer::timeout, [&]() {
+            expired = true;
+            loop.quit();
+        });
+        deadline.start(1000);
+        loop.exec(); // Both the failing poll and recovery use the real timer.
+        check(!expired, "Capture-state error handling stopped scheduling acquisition");
+        if (fault.error == LIBUSB_ERROR_NO_DEVICE) {
+            check(fatalErrors == 1 && !rig.usb.isConnected() && frames == 0 && retryMessages == 0 &&
+                      control.getDeviceSettings()->trigger.point == triggerPoint,
+                  "Capture-state disconnect was swallowed, delayed or changed the trigger pointer");
+            check(std::all_of(rig.fake.bulkOut.begin(), rig.fake.bulkOut.end(),
+                              [](const QByteArray &packet) { return packet[0] == 6; }),
+                  "Capture-state disconnect sent another acquisition command");
+        } else if (fault.error == 0) {
+            check(fatalErrors == 0 && retryMessages == 0 && frames == 1 && rig.usb.isConnected() &&
+                      control.getDeviceSettings()->trigger.point == triggerPoint,
+                  "Complete four-byte capture-state header was rejected");
+        } else {
+            check(fatalErrors == 0 && rig.usb.isConnected() && retryMessages == 1 && messageTimeout > 0 &&
+                      pointPreserved && noCommandsAfterError,
+                  "Capture-state transient error was silent, fatal or changed the last valid state");
+            check(frames == 1 && errorAt >= 0 && frameAt - errorAt >= 80,
+                  "Capture-state timeout did not recover after the timer retry delay");
+            check(std::all_of(rig.fake.bulkOut.begin(), rig.fake.bulkOut.end(), [](const QByteArray &packet) {
+                      return packet[0] == 6 || packet[0] == 5;
+                  }),
+                  "Capture-state failure restarted or triggered acquisition without a valid state");
+        }
+    }
+}
+
 void savedRecordLengths() {
     struct SavedRecord {
         unsigned count;
@@ -720,6 +856,7 @@ int main(int argc, char **argv) {
         unaffected2090Golden();
         initialTriggerCadence();
         transientCommunicationErrors();
+        captureStateCommunicationErrors();
         savedRecordLengths();
         firmwareSafety();
         std::cout << "DSO2250 SDK packet, calibration, revision, RAM-order and firmware safety tests passed\n";

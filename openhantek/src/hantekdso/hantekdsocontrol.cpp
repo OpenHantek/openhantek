@@ -97,16 +97,28 @@ int HantekDsoControl::bulkCommand(const std::vector<unsigned char> *command, int
 
     // Send BeginCommand control command
     int errorCode = device->controlWrite(&controlsettings.beginCommandControl);
-    if (errorCode < 0) return errorCode;
+    if (errorCode < 0) {
+        qWarning() << "Bulk command" << (command->empty() ? -1 : command->front())
+                   << "failed (B3 begin):" << libUsbErrorString(errorCode);
+        return errorCode;
+    }
 
     if (device->getModel()->ID == ModelDSO2250::ID) {
         ControlGetSpeed handshake;
         errorCode = device->controlRead(&handshake, 1);
-        if (errorCode < 0) return errorCode;
+        if (errorCode < 0) {
+            qWarning() << "Bulk command" << (command->empty() ? -1 : command->front())
+                       << "failed (B2 handshake):" << libUsbErrorString(errorCode);
+            return errorCode;
+        }
     }
 
     // Send bulk command
-    return device->bulkWrite(command->data(), command->size(), attempts);
+    errorCode = device->bulkWrite(command->data(), command->size(), attempts);
+    if (errorCode < 0)
+        qWarning() << "Bulk command" << (command->empty() ? -1 : command->front())
+                   << "failed (bulk OUT):" << libUsbErrorString(errorCode);
+    return errorCode;
 }
 
 unsigned HantekDsoControl::getChannelCount() const { return specification->channels; }
@@ -195,16 +207,28 @@ std::pair<int, unsigned> HantekDsoControl::getCaptureState() const {
 
     errorCode = bulkCommand(getCommand(BulkCode::GETCAPTURESTATE), 1);
     if (errorCode < 0) {
-        qWarning() << "Getting capture state failed: " << libUsbErrorString(errorCode);
-        return std::make_pair(CAPTURE_ERROR, 0);
+        qWarning() << "Getting capture state failed (sending command): " << libUsbErrorString(errorCode);
+        return std::make_pair(errorCode, 0);
     }
 
     BulkResponseGetCaptureState response;
-    if (device->getModel()->ID == ModelDSO2250::ID && getConnectionSpeed() < 0) return std::make_pair(CAPTURE_ERROR, 0);
+    if (device->getModel()->ID == ModelDSO2250::ID) {
+        errorCode = getConnectionSpeed();
+        if (errorCode < 0) {
+            qWarning() << "Getting capture state failed (speed handshake): " << libUsbErrorString(errorCode);
+            return std::make_pair(errorCode, 0);
+        }
+    }
     errorCode = device->bulkRead(&response);
     if (errorCode < 0) {
-        qWarning() << "Getting capture state failed: " << libUsbErrorString(errorCode);
-        return std::make_pair(CAPTURE_ERROR, 0);
+        qWarning() << "Getting capture state failed (reading response): " << libUsbErrorString(errorCode);
+        return std::make_pair(errorCode, 0);
+    }
+    // Require the state and all three trigger-pointer bytes that we parse,
+    // without requiring every model to fill the entire 512-byte buffer.
+    if (errorCode < 4) {
+        qWarning() << "Getting capture state failed: incomplete header of" << errorCode << "bytes";
+        return std::make_pair(LIBUSB_ERROR_IO, 0);
     }
 
     return std::make_pair((int)response.getCaptureState(), response.getTriggerPoint());
@@ -1277,13 +1301,20 @@ void HantekDsoControl::run() {
         this->rollState = RollState::STARTSAMPLING;
 
         const int lastCaptureState = this->captureState;
-        unsigned triggerPoint;
-        std::tie(captureState, triggerPoint) = this->getCaptureState();
-        controlsettings.trigger.point = calculateTriggerPoint(triggerPoint);
-        if (this->captureState < 0) {
-            qWarning() << tr("Getting capture state failed: %1").arg(libUsbErrorString(this->captureState));
-            emit statusMessage(tr("Getting capture state failed: %1").arg(libUsbErrorString(this->captureState)), 0);
-        } else if (this->captureState != lastCaptureState)
+        const auto state = this->getCaptureState();
+        if (state.first < 0) {
+            if (state.first == LIBUSB_ERROR_NO_DEVICE) {
+                emit communicationError();
+                return;
+            }
+            emit statusMessage(tr("Getting capture state failed: %1. Retrying.").arg(libUsbErrorString(state.first)),
+                               5000);
+            scheduleNextRun(100);
+            return;
+        }
+        this->captureState = state.first;
+        controlsettings.trigger.point = calculateTriggerPoint(state.second);
+        if (this->captureState != lastCaptureState)
             timestampDebug(QString("Capture state changed to %1").arg(this->captureState));
 
         switch (this->captureState) {

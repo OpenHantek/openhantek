@@ -20,6 +20,14 @@ handshake, and GETDATA. The actual controller timer must recover and publish
 another complete record without a fatal communication signal. A real device
 disconnection still stops acquisition. The original controller fails the
 pending-command timeout regression.
+Capture-state tests inject OUT, post-command B2 and IN failures, distinguish
+timeouts from device removal, and reject truncated state/trigger headers.
+They require an immediate nonfatal status message, preservation of the last
+valid trigger pointer, and recovery through the real timer after 100 ms.
+Device removal must signal a fatal communication error in the failed poll.
+The original implementation fails this regression by swallowing the USB error
+as a positive capture-state value. This fix does not identify or repair the
+underlying cause of persistent USB timeouts on the physical board.
 The post_pipeline test exercises queued Qt events and the actual processing
 and graph generators. Hardware-triggered frames produce graph vertices in
 normal, Wait/Force and single modes without a software-trigger flag. A constant
@@ -57,6 +65,34 @@ accepted before the fifth timed out; no state or ADC data was returned.
 The cause remains unresolved. The timeout regression passes offline and the
 updated GUI remained open for 45 seconds through repeated USB timeouts; these
 checks do not establish successful physical acquisition on that date.
+
+On 2026-10-20, short physical captures passed during a retest using the
+normal corrected production RAM image and the current controller at a81d646.
+After a cold USB power cycle, the production uploader completed normally; the
+historical PyUSB capture procedure then received a complete 20,480-byte record
+(10,240 samples per channel), measuring CAL at 1 kHz and 2.102 Vpp after the
+physical x10 probe correction. No diagnostic firmware was used in this run.
+The actual native controller subsequently captured 24 of 24 complete records
+at 1 MS/s, each measuring 1 kHz and 2.102-2.133 Vpp after probe correction,
+without USB errors. The installed native GUI then captured 1,413 nonempty CH1
+graph frames over 45 seconds at 100 mV/div, 1 ms/div and Wait/Force, with
+10,240 vertices per frame and no errors during that initial interval. The
+same session later reached 3,023 frames, but its final observation at 144 s
+had no new frame for 47.9 s and the log contained 81 capture-state timeouts.
+The window remained responsive and the user closed it normally; this was
+an acquisition freeze rather than an application crash. A subsequent native
+cold-start launch uploaded the same production image but again reported
+capture-state timeouts. A three-second process stack sample placed the
+acquisition worker predominantly in bulkCommand()/bulkTransfer(), before
+the capture-state IN read.
+A warm reopen with the CAL controls applied still received no CH1 frame in
+31 seconds and reported timeouts sending the pending configuration command.
+A local Qt helper selected ordinary UI controls and observed processing
+signals; the helper is not part of this PR.
+These results establish successful short captures, not sustained stability
+or the cause of the earlier failure. USB connection, cable,
+probe attachment and host state changed during troubleshooting, so the
+recovery cannot be attributed to a single port or cable change.
 
 Manual GUI check:
 Open the generated OpenHantek.app and choose DSO-2250. The record selector
