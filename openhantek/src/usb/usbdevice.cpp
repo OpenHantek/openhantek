@@ -70,9 +70,16 @@ bool USBDevice::connectDevice(QString &errorMessage) {
     }
 
     // Find and claim interface
+    libusb_config_descriptor *configDescriptor = nullptr;
+    errorCode = libusb_get_config_descriptor(device, 0, &configDescriptor);
+    if (errorCode != LIBUSB_SUCCESS || !configDescriptor) {
+        if (errorCode == LIBUSB_SUCCESS) errorCode = LIBUSB_ERROR_NOT_FOUND;
+        errorMessage =
+            QCoreApplication::translate("", "Couldn't read device configuration: %1").arg(libUsbErrorString(errorCode));
+        disconnectFromDevice();
+        return false;
+    }
     errorCode = LIBUSB_ERROR_NOT_FOUND;
-    libusb_config_descriptor *configDescriptor;
-    libusb_get_config_descriptor(device, 0, &configDescriptor);
     for (int interfaceIndex = 0; interfaceIndex < (int)configDescriptor->bNumInterfaces; ++interfaceIndex) {
         const libusb_interface *interface = &configDescriptor->interface[interfaceIndex];
         if (interface->num_altsetting < 1) continue;
@@ -93,6 +100,7 @@ bool USBDevice::connectDevice(QString &errorMessage) {
                            .arg(libUsbErrorString(errorCode))
                            .arg(libusb_get_bus_number(device), 3, 10, QLatin1Char('0'))
                            .arg(libusb_get_device_address(device), 3, 10, QLatin1Char('0'));
+        disconnectFromDevice();
         return false;
     }
 
@@ -100,11 +108,9 @@ bool USBDevice::connectDevice(QString &errorMessage) {
 }
 
 USBDevice::~USBDevice() {
-	disconnectFromDevice();
-#if defined(_WIN32) || defined(_WIN64)
-	if (device != nullptr) libusb_unref_device(device);
-	device = nullptr;
-#endif
+    disconnectFromDevice();
+    if (device != nullptr) libusb_unref_device(device);
+    device = nullptr;
 }
 
 int USBDevice::claimInterface(const libusb_interface_descriptor *interfaceDescriptor, int endpointOut, int endPointIn) {
@@ -129,21 +135,14 @@ int USBDevice::claimInterface(const libusb_interface_descriptor *interfaceDescri
 }
 
 void USBDevice::disconnectFromDevice() {
-    if (!device) return;
+    if (!this->handle) return;
 
-    if (this->handle) {
-        // Release claimed interface
-        if (this->interface != -1) libusb_release_interface(this->handle, this->interface);
-        this->interface = -1;
-
-        // Close device handle
-        libusb_close(this->handle);
-    }
+    // The raw device reference belongs to this wrapper, not to an individual
+    // connection. Selection probes disconnect and reconnect the same wrapper.
+    if (this->interface != -1) libusb_release_interface(this->handle, this->interface);
+    this->interface = -1;
+    libusb_close(this->handle);
     this->handle = nullptr;
-
-#if !defined(_WIN32) || !defined(_WIN64)
-    libusb_unref_device(device);
-#endif
 
     emit deviceDisconnected();
 }

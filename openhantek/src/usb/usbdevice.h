@@ -29,6 +29,7 @@ class USBDevice : public QObject {
     USBDevice(const USBDevice&) = delete;
     ~USBDevice();
     bool connectDevice(QString &errorMessage);
+    /// Close the connection while retaining the raw device for reconnection.
     void disconnectFromDevice();
 
     /// \brief Check if the oscilloscope is connected.
@@ -109,11 +110,10 @@ class USBDevice : public QObject {
     /// \brief Control read to the oscilloscope.
     /// \param command Buffer for the sent/recieved data.
     /// \return Number of received bytes on success, libusb error code on error.
-    template<class T>
-    inline int controlRead(const T *command) {
+    template <class T> inline int controlRead(const T *command, int attempts = HANTEK_ATTEMPTS) {
         return controlTransfer(LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_IN, (uint8_t)command->code,
                                (unsigned char *)command->data(), (unsigned)command->size(), command->value, 0,
-                               HANTEK_ATTEMPTS);
+                               attempts);
     }
 
     /**
@@ -156,7 +156,7 @@ class USBDevice : public QObject {
     libusb_device_handle *handle = nullptr;
     unsigned findIteration;
     const unsigned long uniqueUSBdeviceID;
-    int interface;
+    int interface = -1;
     int outPacketLength; ///< Packet length for the OUT endpoint
     int inPacketLength;  ///< Packet length for the IN endpoint
   signals:

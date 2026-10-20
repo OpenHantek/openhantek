@@ -329,7 +329,10 @@ uint8_t BulkSetChannels2250::getUsedChannels() { return data()[2]; }
 void BulkSetChannels2250::setUsedChannels(uint8_t value) { data()[2] = value; }
 
 /// \brief Initialize the array to the needed values.
-void BulkSetChannels2250::init() { data()[0] = (uint8_t)BulkCode::BSETCHANNELS; }
+void BulkSetChannels2250::init() {
+    data()[0] = (uint8_t)BulkCode::BSETCHANNELS;
+    data()[1] = 0x0f;
+}
 
 //////////////////////////////////////////////////////////////////////////////
 // class BulkSetTrigger2250
@@ -363,7 +366,11 @@ uint8_t BulkSetTrigger2250::getTriggerSlope() { return ((CTriggerBits *)&(data()
 void BulkSetTrigger2250::setTriggerSlope(uint8_t slope) { ((CTriggerBits *)&(data()[2]))->triggerSlope = slope; }
 
 /// \brief Initialize the array to the needed values.
-void BulkSetTrigger2250::init() { data()[0] = (uint8_t)BulkCode::CSETTRIGGERORSAMPLERATE; }
+void BulkSetTrigger2250::init() {
+    data()[0] = (uint8_t)BulkCode::CSETTRIGGERORSAMPLERATE;
+    data()[1] = 0x0f;
+    data()[4] = 1;
+}
 
 //////////////////////////////////////////////////////////////////////////////
 // class BulkSetSamplerate5200
@@ -426,7 +433,10 @@ uint8_t BulkSetRecordLength2250::getRecordLength() { return data()[2]; }
 void BulkSetRecordLength2250::setRecordLength(uint8_t value) { data()[2] = value; }
 
 /// \brief Initialize the array to the needed values.
-void BulkSetRecordLength2250::init() { data()[0] = (uint8_t)BulkCode::DSETBUFFER; }
+void BulkSetRecordLength2250::init() {
+    data()[0] = (uint8_t)BulkCode::DSETBUFFER;
+    data()[1] = 0x0f;
+}
 
 //////////////////////////////////////////////////////////////////////////////
 // class BulkSetBuffer5200

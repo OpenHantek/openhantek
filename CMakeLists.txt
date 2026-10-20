@@ -21,6 +21,11 @@ include(cmake/CPackInfos.cmake)
 # Qt Widgets based Gui with OpenGL canvas
 add_subdirectory(openhantek)
 
+include(CTest)
+if(BUILD_TESTING)
+    add_subdirectory(tests)
+endif()
+
 if (WIN32)
     install(FILES COPYING readme.md DESTINATION ".")
 else()

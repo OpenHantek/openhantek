@@ -51,6 +51,13 @@ using namespace Hantek;
 /// \brief Initialize the device with the current settings.
 void applySettingsToDevice(HantekDsoControl *dsoControl, DsoSettingsScope *scope,
                            const Dso::ControlSpecification *spec) {
+    const auto &alternateRecordLengths = dsoControl->getDeviceSettings()->samplerate.limits == &spec->samplerate.single
+                                             ? spec->samplerate.multi.recordLengths
+                                             : spec->samplerate.single.recordLengths;
+    // Rate changes update the GUI's sample count. Keep the requested hardware
+    // index until channels and rate have selected the appropriate record list.
+    const unsigned recordLengthParameter =
+        scope->horizontal.normalizeRecordLength(dsoControl->getAvailableRecordLengths(), alternateRecordLengths);
     bool mathUsed = scope->anyUsed(spec->channels);
     for (ChannelID channel = 0; channel < spec->channels; ++channel) {
         dsoControl->setCoupling(channel, scope->coupling(channel, spec));
@@ -65,14 +72,7 @@ void applySettingsToDevice(HantekDsoControl *dsoControl, DsoSettingsScope *scope
     else
         dsoControl->setRecordTime(scope->horizontal.timebase * DIVS_TIME);
 
-    if (dsoControl->getAvailableRecordLengths().empty())
-        dsoControl->setRecordLength(scope->horizontal.recordLength);
-    else {
-        auto recLenVec = dsoControl->getAvailableRecordLengths();
-        ptrdiff_t index = std::distance(recLenVec.begin(),
-                                        std::find(recLenVec.begin(), recLenVec.end(), scope->horizontal.recordLength));
-        dsoControl->setRecordLength(index < 0 ? 1 : (unsigned)index);
-    }
+    dsoControl->setRecordLength(recordLengthParameter);
     dsoControl->setTriggerMode(scope->trigger.mode);
     dsoControl->setPretriggerPosition(scope->trigger.position * scope->horizontal.timebase * DIVS_TIME);
     dsoControl->setTriggerSlope(scope->trigger.slope);
@@ -125,11 +125,13 @@ int main(int argc, char *argv[]) {
         SelectSupportedDevice().showLibUSBFailedDialogModel(error);
         return -1;
     }
+    // Keep the context alive until every controller and USBDevice is destroyed,
+    // including cancellation and connection failures in the selection dialog.
+    std::unique_ptr<libusb_context, decltype(&libusb_exit)> usbContext(context, &libusb_exit);
     std::unique_ptr<USBDevice> device = SelectSupportedDevice().showSelectDeviceModal(context);
 
     QString errorMessage;
     if (device == nullptr || !device->connectDevice(errorMessage)) {
-        libusb_exit(context);
         return -1;
     }
 
@@ -139,16 +141,14 @@ int main(int argc, char *argv[]) {
     HantekDsoControl dsoControl(device.get());
     dsoControl.moveToThread(&dsoControlThread);
     QObject::connect(&dsoControlThread, &QThread::started, &dsoControl, &HantekDsoControl::run);
-    QObject::connect(&dsoControl, &HantekDsoControl::communicationError, QCoreApplication::instance(),
-                     &QCoreApplication::quit);
-    QObject::connect(device.get(), &USBDevice::deviceDisconnected, QCoreApplication::instance(),
-                     &QCoreApplication::quit);
-
     //////// Create settings object ////////
-    DsoSettings settings(device->getModel()->spec());
+    const Dso::ControlSpecification *spec = dsoControl.getSpecification();
+    DsoSettings settings(spec);
+    settings.scope.horizontal.normalizeRecordLength(dsoControl.getAvailableRecordLengths(),
+                                                    spec->samplerate.multi.recordLengths);
 
     //////// Create exporters ////////
-    ExporterRegistry exportRegistry(device->getModel()->spec(), &settings);
+    ExporterRegistry exportRegistry(spec, &settings);
 
     ExporterCSV exporterCSV;
     ExporterImage exportImage;
@@ -166,8 +166,8 @@ int main(int argc, char *argv[]) {
     PostProcessing postProcessing(settings.scope.countChannels());
 
     SpectrumGenerator spectrumGenerator(&settings.scope, &settings.post);
-    MathChannelGenerator mathchannelGenerator(&settings.scope, device->getModel()->spec()->channels);
-    GraphGenerator graphGenerator(&settings.scope, device->getModel()->spec()->isSoftwareTriggerDevice);
+    MathChannelGenerator mathchannelGenerator(&settings.scope, spec->channels);
+    GraphGenerator graphGenerator(&settings.scope, spec->isSoftwareTriggerDevice);
 
     postProcessing.registerProcessor(&samplesToExportRaw);
     postProcessing.registerProcessor(&mathchannelGenerator);
@@ -190,7 +190,7 @@ int main(int argc, char *argv[]) {
                      &MainWindow::exporterStatusChanged);
     openHantekMainWindow.show();
 
-    applySettingsToDevice(&dsoControl, &settings.scope, device->getModel()->spec());
+    applySettingsToDevice(&dsoControl, &settings.scope, spec);
 
     //////// Start DSO thread and go into GUI main loop
     dsoControl.enableSampling(true);
@@ -200,15 +200,10 @@ int main(int argc, char *argv[]) {
 
     //////// Clean up ////////
     dsoControlThread.quit();
-    dsoControlThread.wait(10000);
+    dsoControlThread.wait();
 
     postProcessingThread.quit();
-    postProcessingThread.wait(10000);
-
-    if (context && device != nullptr) { 
-        device.reset(); // causes libusb_close(), which must be called before libusb_exit() 
-        libusb_exit(context); 
-    }
+    postProcessingThread.wait();
 
     return res;
 }

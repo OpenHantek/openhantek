@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include <algorithm>
+
 #include <QString>
 #include <QPointF>
 
@@ -31,6 +33,28 @@ struct DsoSettingsScopeHorizontal {
     DsoSettingsScopeCursor cursor;
 
     unsigned int recordLength = 0; ///< Sample count
+
+    /// Preserve the record selection when normal and fast modes use different
+    /// sample counts for the same hardware record index. Return the controller
+    /// parameter before subsequent rate-change signals update recordLength.
+    unsigned normalizeRecordLength(const std::vector<unsigned> &available,
+                                   const std::vector<unsigned> &alternate = {}) {
+        if (available.empty()) return recordLength;
+        auto selected = std::find(available.begin(), available.end(), recordLength);
+        if (selected == available.end()) {
+            const auto saved = std::find(alternate.begin(), alternate.end(), recordLength);
+            const auto index = std::distance(alternate.begin(), saved);
+            if (saved != alternate.end() && static_cast<size_t>(index) < available.size())
+                selected = available.begin() + index;
+        }
+        if (selected == available.end()) {
+            selected =
+                std::find_if(available.begin(), available.end(), [](unsigned length) { return length != UINT_MAX; });
+            if (selected == available.end()) selected = available.begin();
+        }
+        recordLength = *selected;
+        return static_cast<unsigned>(std::distance(available.begin(), selected));
+    }
 
     /// TODO Use ControlSettingsSamplerateTarget
     double timebase = 1e-3;  ///< Timebase in s/div

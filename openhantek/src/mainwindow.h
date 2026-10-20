@@ -44,4 +44,5 @@ class MainWindow : public QMainWindow {
     // Settings used for the whole program
     DsoSettings *mSettings;
     ExporterRegistry *exporterRegistry;
+    bool connectionLost = false;
 };

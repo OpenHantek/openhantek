@@ -38,7 +38,11 @@ void ModelDSO2250::applyRequirements(HantekDsoControl *dsoControl) const {
     dsoControl->addCommand(new BulkTriggerEnabled(), false);
     dsoControl->addCommand(new BulkGetData(), false);
     dsoControl->addCommand(new BulkGetCaptureState(), false);
-    dsoControl->addCommand(new BulkSetGain(), false);
+    auto *gain = new BulkSetGain();
+    (*gain)[1] = 0x0f;
+    (*gain)[2] = 0x30;
+    dsoControl->addCommand(gain, false);
+    dsoControl->addCommand(new BulkSetTriggerAndSamplerate(), false);
 
     // Instantiate additional commands for the DSO-2250
     dsoControl->addCommand(new BulkSetChannels2250(), false);

@@ -32,10 +32,25 @@ add_definitions(-DVERSION="${CPACK_PACKAGE_VERSION}")
 set(EXECTYPE "")
 if(WIN32 AND MINGW)
     set(EXECTYPE WIN32)
+elseif(APPLE)
+    set(EXECTYPE MACOSX_BUNDLE)
 endif()
 
 # make executable
 add_executable(${PROJECT_NAME} ${EXECTYPE} ${SRC} ${HEADERS} ${UI} ${QRC} ${TRANSLATION_BIN_FILES} ${TRANSLATION_QRC})
+if(APPLE)
+    set(APP_ICON "${CMAKE_CURRENT_SOURCE_DIR}/res/images/openhantek.icns")
+    set_source_files_properties(${APP_ICON} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+    target_sources(${PROJECT_NAME} PRIVATE ${APP_ICON})
+    string(TIMESTAMP BUNDLE_BUILD_VERSION "%Y%m%d")
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        MACOSX_BUNDLE_BUNDLE_NAME "OpenHantek"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "org.openhantek.OpenHantek"
+        MACOSX_BUNDLE_ICON_FILE "openhantek.icns"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "${DATE_VERSION}"
+        MACOSX_BUNDLE_BUNDLE_VERSION "${BUNDLE_BUILD_VERSION}"
+    )
+endif()
 target_link_libraries(${PROJECT_NAME} Qt5::Widgets Qt5::PrintSupport Qt5::OpenGL ${OPENGL_LIBRARIES} )
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_range_for)
 if(MSVC)
@@ -54,6 +69,11 @@ include(../cmake/libusb_on_windows.cmake)
 if(NOT WIN32)
     find_package(libusb REQUIRED)
     target_include_directories(${PROJECT_NAME} PRIVATE ${LIBUSB_INCLUDE_DIRS})
+    # Some source files use the distribution-qualified libusb-1.0/libusb.h path.
+    get_filename_component(LIBUSB_PARENT_INCLUDE_DIR "${LIBUSB_INCLUDE_DIR}" DIRECTORY)
+    if(EXISTS "${LIBUSB_PARENT_INCLUDE_DIR}/libusb-1.0/libusb.h")
+        target_include_directories(${PROJECT_NAME} PRIVATE "${LIBUSB_PARENT_INCLUDE_DIR}")
+    endif()
     target_link_libraries(${PROJECT_NAME} ${LIBUSB_LIBRARIES})
 
     find_package(Threads REQUIRED)
@@ -65,6 +85,6 @@ if(NOT WIN32)
 endif()
 
 # install commands
-install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION "bin")
+install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION "bin" BUNDLE DESTINATION ".")
 
 include(../cmake/copy_qt5_dlls_to_bin_dir.cmake)
